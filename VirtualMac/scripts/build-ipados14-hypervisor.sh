@@ -80,6 +80,7 @@ fi
 xcrun --sdk iphoneos clang \
     -arch arm64e -miphoneos-version-min=14.5 -isysroot "$SDK" \
     -dynamiclib \
+    -Wl,-ld_classic \
     -Wl,-reexport_library,"$SDK/usr/lib/libSystem.B.tbd" \
     -lobjc \
     -install_name @rpath/LibSystem14 \
@@ -91,6 +92,7 @@ ldid -S"$VMM_ENTS" "$LIBSYSTEM14"
 xcrun --sdk iphoneos clang \
     -arch arm64e -miphoneos-version-min=14.5 -isysroot "$SDK" \
     -dynamiclib \
+    -Wl,-ld_classic \
     -Wl,-not_for_dyld_shared_cache \
     -Wl,-reexport_library,"$BIG_SUR" \
     -Wl,-reexport_library,"$LIBSYSTEM14" \

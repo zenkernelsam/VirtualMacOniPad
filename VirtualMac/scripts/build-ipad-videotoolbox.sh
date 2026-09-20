@@ -81,7 +81,13 @@ grep -A5 LC_LOAD_WEAK_DYLIB "$OUT/load-commands.txt" |
     grep -F /System/Library/Frameworks/ColorSync.framework/ColorSync \
         >/dev/null ||
     die "VideoToolbox ColorSync dependency is not weak"
-dyld_info -exports "$BIN" >"$OUT/exports.txt"
+# Apple's dyld_info cannot parse the chained fixups this rebuild pipeline
+# emits (it reports "imports_count exceeds max of 0"), so read the export trie
+# directly with llvm-objdump instead.
+exports_of() {
+    xcrun llvm-objdump --macho --exports-trie "$1"
+}
+exports_of "$BIN" >"$OUT/exports.txt"
 for symbol in \
     _VTParavirtualizationHostSessionCreate \
     _VTParavirtualizationHostSessionDeliverMessageFromGuest \
@@ -94,7 +100,7 @@ for symbol in \
     _VTParavirtualizationGuestSupportRegisterGuestUUID \
     _VTParavirtualizationGuestSupportSendRawMessageToHost \
     _VTParavirtualizationGuestSupportSetUpWithHandlers; do
-    dyld_info -exports "$PV_BIN" | grep -F "$symbol" >/dev/null ||
+    exports_of "$PV_BIN" | grep -F "$symbol" >/dev/null ||
         die "VideoToolbox PV support is missing export: $symbol"
 done
 

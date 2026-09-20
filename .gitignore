@@ -6,6 +6,7 @@ build/
 artifacts/
 DerivedData/
 DeviceDiagnostics/
+.diag/
 
 # Apple restore/runtime artifacts and VM state never belong in Git.
 *.ipsw

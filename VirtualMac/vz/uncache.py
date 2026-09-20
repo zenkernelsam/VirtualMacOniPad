@@ -45,8 +45,29 @@ def a2s_batch(targets):
     for t in targets:
         tf.write(hex(t) + "\n")
     tf.close()
-    out = subprocess.run([IPSW, "--no-color", "dyld", "a2sb", "--cache", DSC + ".a2s", DSC, tf.name],
-                         capture_output=True, text=True).stdout
+    # The cached resolver reproduces the shipped frameworks byte-for-byte; the
+    # direct resolver does not. Only the huge one-time .a2s cache makes them
+    # differ, so reuse an existing cache and fall back to a direct lookup when
+    # there is none instead of spending hours building a fresh cache (the
+    # macOS 22D68 cache is the one that matters for the shipping payload).
+    cache = DSC + ".a2s"
+    args = [IPSW, "--no-color", "dyld", "a2sb"]
+    if os.path.exists(cache):
+        args += ["--cache", cache]
+    else:
+        # The direct resolver does not reproduce the shipped frameworks
+        # byte-for-byte; only the huge one-time .a2s cache does. Warn loudly so a
+        # missing cache for the shipping DSC (macOS 22D68) is not mistaken for a
+        # faithful rebuild.
+        import sys
+        print(
+            f"WARNING: {cache} missing; using the direct a2sb lookup, which "
+            f"may rebuild non-faithful frameworks (see "
+            f"docs/VM-crash-fix-and-build-notes.md)",
+            file=sys.stderr,
+        )
+    args += [DSC, tf.name]
+    out = subprocess.run(args, capture_output=True, text=True).stdout
     out = re.sub(r"\x1b\[[0-9;]*m", "", out)
     os.unlink(tf.name)
     m = {}

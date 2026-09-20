@@ -109,6 +109,16 @@ typedef struct {
     void *base;
     uint64_t logicalStart;
     uint64_t length;
+    // Host byte ranges this segment has actually mapped, kept as merged
+    // half-open [start, end) pairs. Metal retains the CPU pointers PGTask
+    // hands out for a resource's whole lifetime, so an address outside every
+    // recorded range would read unmapped memory and kill the VMM. The set is
+    // rebuilt from every map the descriptor callback accepts; saturation makes
+    // lookups fail open so a fragmented task is never falsely rejected.
+    uint64_t *mappedBounds;
+    uint32_t mappedCount;
+    uint32_t mappedCapacity;
+    BOOL mappedSaturated;
 } PVGTaskSegment;
 
 typedef struct PVGSegmentedTask {
@@ -128,6 +138,99 @@ static Ivar gPGTaskHandleIvar;
 static SEL gOriginalAddressForOffsetSelector;
 static SEL gOriginalMappedAddressForOffsetSelector;
 static BOOL gSegmentedAddressHooksInstalled;
+
+// Upper bound on tracked mapped host ranges per segment. A graphics client
+// normally maps a few large, contiguous spans; exceeding this means the task is
+// pathologically fragmented, at which point tracking is abandoned (lookups then
+// fail open) rather than risk a false "unmapped" verdict.
+#define PVG_MAX_MAPPED_RANGES 1024
+
+static void FreeSegmentMappings(PVGTaskSegment *segment) {
+    if (segment == NULL)
+        return;
+    free(segment->mappedBounds);
+    segment->mappedBounds = NULL;
+    segment->mappedCount = 0;
+    segment->mappedCapacity = 0;
+    segment->mappedSaturated = NO;
+}
+
+// Insert [start, end) into the segment's merged host-mapped set. The caller
+// holds the owning task's mutex.
+static void SegmentRecordMappedRange(PVGTaskSegment *segment, uint64_t start,
+                                     uint64_t end) {
+    if (segment == NULL || end <= start || segment->mappedSaturated)
+        return;
+    uint32_t count = segment->mappedCount;
+    uint32_t index = 0;
+    while (index < count && segment->mappedBounds[index * 2 + 1] < start)
+        index++;
+    uint64_t mergedStart = start;
+    uint64_t mergedEnd = end;
+    uint32_t mergeEnd = index;
+    while (mergeEnd < count &&
+           segment->mappedBounds[mergeEnd * 2] <= mergedEnd) {
+        if (segment->mappedBounds[mergeEnd * 2] < mergedStart)
+            mergedStart = segment->mappedBounds[mergeEnd * 2];
+        if (segment->mappedBounds[mergeEnd * 2 + 1] > mergedEnd)
+            mergedEnd = segment->mappedBounds[mergeEnd * 2 + 1];
+        mergeEnd++;
+    }
+    uint32_t removed = mergeEnd - index;
+    uint32_t newCount = count - removed + 1;
+    if (newCount > PVG_MAX_MAPPED_RANGES) {
+        segment->mappedSaturated = YES;
+        return;
+    }
+    if (newCount > segment->mappedCapacity) {
+        uint32_t capacity = segment->mappedCapacity ? segment->mappedCapacity : 8;
+        while (capacity < newCount)
+            capacity *= 2;
+        uint64_t *bounds = realloc(
+            segment->mappedBounds, (size_t)capacity * 2 * sizeof(uint64_t));
+        if (bounds == NULL) {
+            segment->mappedSaturated = YES;
+            return;
+        }
+        segment->mappedBounds = bounds;
+        segment->mappedCapacity = capacity;
+    }
+    // Shift the surviving tail one slot right whenever an existing entry must
+    // move. A new range inserted before existing ones without merging
+    // (removed == 0) still has to make room; using `removed > 0` here would
+    // overwrite that entry and leave an uninitialized slot, breaking the
+    // sorted invariant the coverage lookup depends on.
+    if (count > mergeEnd)
+        memmove(&segment->mappedBounds[(index + 1) * 2],
+                &segment->mappedBounds[mergeEnd * 2],
+                (size_t)(count - mergeEnd) * 2 * sizeof(uint64_t));
+    segment->mappedBounds[index * 2] = mergedStart;
+    segment->mappedBounds[index * 2 + 1] = mergedEnd;
+    segment->mappedCount = newCount;
+}
+
+// True when every byte of [start, end) sits inside one recorded mapped range.
+// An empty or saturated tracker fails open so legitimate mappings are never
+// rejected once tracking is unavailable.
+static BOOL SegmentCoversHostRange(const PVGTaskSegment *segment, uint64_t start,
+                                   uint64_t end) {
+    if (segment == NULL || end <= start)
+        return NO;
+    if (segment->mappedSaturated || segment->mappedCount == 0)
+        return YES;
+    uint32_t low = 0;
+    uint32_t high = segment->mappedCount;
+    while (low < high) {
+        uint32_t middle = low + (high - low) / 2;
+        if (segment->mappedBounds[middle * 2 + 1] < start)
+            low = middle + 1;
+        else
+            high = middle;
+    }
+    return low < segment->mappedCount &&
+        segment->mappedBounds[low * 2] <= start &&
+        segment->mappedBounds[low * 2 + 1] >= end;
+}
 
 static size_t SegmentedTaskBucket(void *task) {
     return (((uintptr_t)task) >> 4) % PVG_SEGMENT_BUCKET_COUNT;
@@ -260,8 +363,53 @@ static void *PGTaskHandle(id taskObject) {
     return task;
 }
 
+static BOOL TaskIsSegmented(void *task) {
+    pthread_rwlock_rdlock(&gSegmentedTaskLock);
+    BOOL found = FindSegmentedTaskLocked(task) != NULL;
+    pthread_rwlock_unlock(&gSegmentedTaskLock);
+    return found;
+}
+
+// Record the host bytes a successful map made accessible for the segment that
+// owns [logicalOffset, logicalOffset + length). The caller holds the task's
+// mutex.
+static void RecordSegmentHostRange(PVGTaskSegment *segment,
+                                   uint64_t logicalOffset, uint64_t length) {
+    if (segment == NULL || length == 0 ||
+        logicalOffset < segment->logicalStart)
+        return;
+    uint64_t delta = logicalOffset - segment->logicalStart;
+    if (UINT64_MAX - length < delta)
+        return;
+    uint64_t hostStart = (uint64_t)segment->base + delta;
+    if (UINT64_MAX - hostStart < length)
+        return;
+    SegmentRecordMappedRange(segment, hostStart, hostStart + length);
+}
+
+// Record a mapping performed directly on the primary reservation (the fast path
+// of the wrapped descriptor callback), so the tracker also covers in-primary
+// ranges.
+static void RecordSegmentedTaskMapping(void *task, uint64_t offset,
+                                       uint64_t length) {
+    if (length == 0)
+        return;
+    pthread_rwlock_rdlock(&gSegmentedTaskLock);
+    PVGSegmentedTask *entry = FindSegmentedTaskLocked(task);
+    if (entry != NULL) {
+        pthread_mutex_lock(&entry->mutex);
+        PVGTaskSegment *segment = SegmentForRangeLocked(
+            entry, offset, length, NO);
+        if (segment != NULL)
+            RecordSegmentHostRange(segment, offset, length);
+        pthread_mutex_unlock(&entry->mutex);
+    }
+    pthread_rwlock_unlock(&gSegmentedTaskLock);
+}
+
 static void *TranslatedTaskAddress(void *task, uint64_t offset,
-                                   uint64_t length, BOOL create) {
+                                   uint64_t length, BOOL create,
+                                   BOOL requireCovered) {
     void *address = NULL;
     pthread_rwlock_rdlock(&gSegmentedTaskLock);
     PVGSegmentedTask *entry = FindSegmentedTaskLocked(task);
@@ -269,9 +417,27 @@ static void *TranslatedTaskAddress(void *task, uint64_t offset,
         pthread_mutex_lock(&entry->mutex);
         PVGTaskSegment *segment = SegmentForRangeLocked(
             entry, offset, length, create);
-        if (segment != NULL)
-            address = (uint8_t *)segment->base +
+        if (segment != NULL) {
+            void *candidate = (uint8_t *)segment->base +
                 (offset - segment->logicalStart);
+            if (!requireCovered) {
+                // addressForOffset: keeps the historical "a segment contains the
+                // range -> return the segment address" behavior that builds the
+                // object tables, so its semantics are unchanged.
+                address = candidate;
+            } else if (SegmentCoversHostRange(segment, (uint64_t)candidate,
+                                              (uint64_t)candidate + length)) {
+                // Only hand back a pointer whose whole range this segment has
+                // mapped. Returning one that is not backed by mapped host
+                // memory is exactly what makes PVG's replay memcpy fault.
+                address = candidate;
+            } else {
+                Trace(@"TASK_ADDRESS_UNMAPPED\tsegment=%p\toffset=%llu"
+                      "\tlength=%llu\tcandidate=%p",
+                      segment, (unsigned long long)offset,
+                      (unsigned long long)length, candidate);
+            }
+        }
         pthread_mutex_unlock(&entry->mutex);
     }
     pthread_rwlock_unlock(&gSegmentedTaskLock);
@@ -284,21 +450,39 @@ static void *SegmentedAddressForOffset(id self, SEL selector,
     void *nativeAddress = ((void *(*)(id, SEL, uint64_t, uint64_t))
         objc_msgSend)(self, gOriginalAddressForOffsetSelector, offset, length);
     void *translated = TranslatedTaskAddress(
-        PGTaskHandle(self), offset, length, YES);
+        PGTaskHandle(self), offset, length, YES, NO);
     return translated ?: nativeAddress;
 }
 
 static void *SegmentedMappedAddressForOffset(id self, SEL selector,
                                              uint64_t offset,
                                              uint64_t length) {
-    // The original method maintains PGTask's mapped-range tracker and invokes
-    // the descriptor callback. Discard only its base+offset result.
+    // The original method maintains PGTask's mapped-range tracker and maps the
+    // requested range on demand through the descriptor callback. Keep that side
+    // effect, but never trust its base+offset result, which assumes the whole
+    // logical reservation the segmented host does not actually back.
     void *nativeAddress = ((void *(*)(id, SEL, uint64_t, uint64_t))
         objc_msgSend)(self, gOriginalMappedAddressForOffsetSelector,
                       offset, length);
-    void *translated = TranslatedTaskAddress(
-        PGTaskHandle(self), offset, length, NO);
-    return translated ?: nativeAddress;
+    void *task = PGTaskHandle(self);
+    void *translated = TranslatedTaskAddress(task, offset, length, YES, YES);
+    if (translated != NULL)
+        return translated;
+    if (TaskIsSegmented(task)) {
+        // A ranged task whose probe is not backed by mapped host memory.
+        // Falling back to Apple's base+offset here would read outside the
+        // reservation and crash the VMM, so fail the lookup cleanly and let
+        // PGFIFO's existing exception recovery drop the resource instead.
+        dprintf(STDERR_FILENO,
+                "VirtualMac PVG: refusing unmapped mappedAddressForOffset "
+                "offset=%llu length=%llu\n",
+                (unsigned long long)offset, (unsigned long long)length);
+        @throw [NSException
+            exceptionWithName:@"VirtualMacPGFifoUnmappedRange"
+                       reason:@"mappedAddressForOffset range is not mapped"
+                     userInfo:nil];
+    }
+    return nativeAddress;
 }
 
 static BOOL InstallSegmentedPGTaskAddressHooks(void) {
@@ -355,6 +539,8 @@ static BOOL MapSegmentedTaskRange(PVGMapMemoryBlock originalMap,
             result = originalMap(
                 segment->task, segmentCount,
                 offset - segment->logicalStart, readonly, ranges);
+            if (result)
+                RecordSegmentHostRange(segment, offset, mappedLength);
         } else {
             dprintf(STDERR_FILENO,
                     "VirtualMac PVG: mapping cannot fit one reservation "
@@ -964,6 +1150,10 @@ static id TracePGNewDeviceWithDescriptor(id descriptor) {
                          index < segmented->segmentCount; index++) {
                         originalDestroy(segmented->segments[index].task);
                     }
+                    for (uint32_t index = 0;
+                         index < segmented->segmentCount; index++) {
+                        FreeSegmentMappings(&segmented->segments[index]);
+                    }
                     pthread_mutex_unlock(&segmented->mutex);
                 }
                 originalDestroy(task);
@@ -1008,6 +1198,8 @@ static id TracePGNewDeviceWithDescriptor(id descriptor) {
                 : MapSegmentedTaskRange(
                     originalMap, task, segmentCount, offset, mappedLength,
                     readonly, ranges);
+            if (result && withinReservation)
+                RecordSegmentedTaskMapping(task, offset, mappedLength);
             if (!result) {
                 uint64_t failure = __atomic_add_fetch(
                     &gTaskMapFailures, 1, __ATOMIC_RELAXED);

@@ -1,0 +1,109 @@
+{
+  "version": 3,
+  "ownerAccountId": "c08b033c203cd2fd3299f94c0d81a101e4087843",
+  "updatedAt": 1789883655297,
+  "folders": {
+    "__virtual__": {
+      "updatedAt": 1789883655297,
+      "tasks": [
+        {
+          "id": "task-ba51371e661041f1a242",
+          "workspaceId": "",
+          "machineId": "5a36504e-5858-462d-b152-576d5a36502d",
+          "name": "无法访问目录",
+          "prevStatus": "",
+          "status": "Completed",
+          "createTime": 1789883556468,
+          "sourceBranch": "",
+          "targetBranch": "",
+          "headCommitId": "",
+          "executeStartTime": 0,
+          "executeEndTime": 0,
+          "endTime": 0,
+          "bootStatus": "",
+          "finishedActionCount": 0,
+          "totalActionCount": 0,
+          "rawConfig": "{\"chatContext\":{\"preferredLanguage\":\"zh\"},\"pluginPayloadConfig\":{\"isEnableAutoMemory\":true}}",
+          "updatedAtTimestamp": 1789883563574,
+          "lastUserQueryAt": 1789883556468,
+          "filePath": "/Users/ciscohe/Documents/QoderCN/2026-09-20/chat-1",
+          "designFile": "",
+          "userRequirements": "",
+          "agentClass": "LocalAgent",
+          "questType": "agent",
+          "executionMode": "execute",
+          "designSessionId": "",
+          "executionSessionId": "task-ba51371e661041f1a242.session.execution",
+          "executionSessionStopReason": "Stopped",
+          "executionRequestId": "",
+          "query": "无法访问目录",
+          "runtime": null,
+          "taskVersion": "v2",
+          "planProgress": {
+            "completedSteps": 0,
+            "totalSteps": 0
+          },
+          "repoName": "",
+          "workspaceType": "virtual",
+          "title": "无法访问目录",
+          "createdAt": 1789883556468,
+          "finishedAt": 0,
+          "executeStartAt": 0,
+          "executeEndAt": 0,
+          "designRequestId": ""
+        }
+      ]
+    },
+    "/Users/ciscohe/Desktop/VirtualMacOniPad": {
+      "updatedAt": 1789883655297,
+      "tasks": [
+        {
+          "id": "task-1ab2097cc2aa401aae7c",
+          "workspaceId": "",
+          "machineId": "5a36504e-5858-462d-b152-576d5a36502d",
+          "name": "项目分析",
+          "prevStatus": "",
+          "status": "Completed",
+          "createTime": 1789883648302,
+          "sourceBranch": "main",
+          "targetBranch": "",
+          "headCommitId": "",
+          "executeStartTime": 0,
+          "executeEndTime": 0,
+          "endTime": 0,
+          "bootStatus": "",
+          "finishedActionCount": 0,
+          "totalActionCount": 0,
+          "rawConfig": "{\"chatContext\":{\"preferredLanguage\":\"zh\"},\"pluginPayloadConfig\":{\"isEnableAutoMemory\":true}}",
+          "updatedAtTimestamp": 1789883655162,
+          "lastUserQueryAt": 1789883648302,
+          "filePath": "/Users/ciscohe/Desktop/VirtualMacOniPad",
+          "designFile": "",
+          "userRequirements": "",
+          "agentClass": "LocalAgent",
+          "questType": "agent",
+          "executionMode": "execute",
+          "designSessionId": "",
+          "executionSessionId": "task-1ab2097cc2aa401aae7c.session.execution",
+          "executionSessionStopReason": "Stopped",
+          "executionRequestId": "",
+          "query": "项目分析",
+          "runtime": null,
+          "taskVersion": "v2",
+          "planProgress": {
+            "completedSteps": 0,
+            "totalSteps": 0
+          },
+          "repoName": "zenkernelsam/VirtualMacOniPad",
+          "workspaceUri": "file:///Users/ciscohe/Desktop/VirtualMacOniPad",
+          "title": "项目分析",
+          "createdAt": 1789883648302,
+          "finishedAt": 0,
+          "executeStartAt": 0,
+          "executeEndAt": 0,
+          "designRequestId": ""
+        }
+      ]
+    }
+  }
+}

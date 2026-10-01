@@ -63,7 +63,7 @@
 
 ### 2.2 备用/测试路径 `vzboot.m`（SSH 冒烟启动器）
 - `vzboot.m:91` 逐字注释：`// 13.2.1 uses the USB input devices (VZMac{Keyboard,Trackpad} are macOS 14+); guard nil.` → 该路径用 `VZUSBKeyboardConfiguration` + `VZUSBScreenCoordinatePointingDeviceConfiguration`。
-- ⚠️ **矛盾待澄清**：注释称 Mac 输入类为 macOS 14+；但运行日志显示 App 路径在 13.2.1 payload 上成功配置 `_VZMacKeyboardConfiguration`/`VZMacTrackpadConfiguration`。可能：①私有类在 13.2.1 已存在（只是 14 才公开）；②注释过时。复核方式：查 VMGPU 的 Virtualization 是否含 `_VZMacKeyboardConfiguration`（`nm | grep _VZMacKeyboard`，待补）。
+- ~~⚠️ 矛盾待澄清~~ **已澄清**：`nm -gU` 在 Ventura payload 逐字命中 `_OBJC_CLASS_$__VZMacKeyboardConfiguration`/`_OBJC_CLASS_$_VZMacTrackpadConfiguration`/`_VZScreenCoordinatePointerEvent` —— 私有类在 13.2.1 已存在（14 才公开），注释过时，无路径矛盾。
 
 ### 2.3 USB 桥（现状唯一 USB 通路，仅服务安装）
 - `vz/host/installation_usb_shim.m` 头注释逐字：*"Publish VMM's real AVP-backed restore USB device to MobileDevice without requiring macOS's AppleUSBUserHCIResources kernel service. MobileDevice continues to use iPadOS's native IOUSBLib; only IOKit registry/user-client calls for our synthetic handles are redirected to the VMM socket bridge."*
@@ -71,14 +71,33 @@
 - **用途边界**：`start-install.sh` 中 prewarm usbmuxd → RestoreOS USB 移交，仅服务 IPSW 安装。**非运行期外设直通**。
 - 客机侧 ioreg：`AppleVirtIOUSBDeviceController` 类存在但实例=0 → virtio-usb 控制器未向客机暴露；`AppleUSBUserHCIResources`=1（含义待查）。
 
-### 2.4 注入面（hook 层）
-| 层 | 组件 | 机制（证据逐字） |
-|---|---|---|
-| App 内 | `VZHostCompat.dylib` | 日志 `loaded host hook`；`authenticated VZ rebind=0x...` |
-| VMM XPC | `vzxpchook` | `vzxpchook.log`：rebind `IOSurfaceLookupFromXPCObject`、`confstr`、`sysctlbyname`、`sandbox_extension_issue_generic_to_process/release`、`xpc_connection_create/send_message/send_message_with_reply/set_event_handler`（伪装 macOS 环境 + XPC 改写） |
-| 系统注入 | `VZKeyboardPassthrough.dylib` | TweakInject（`/var/jb/Library/MobileSubstrate/DynamicLibraries/`） |
-| GPU | `pvg_trace.m` → `LaunchServicesCompat.dylib` | 接管 `PGTask mappedAddressForOffset:` 等（详见 VM-crash-fix notes） |
-| App↔VMM RPC | 14 handler | 日志逐字：`map_shared_ram_for_custom_virtio_devices`、`open_host_virtio_socket`、`process_frame_update/cursor_update`、`process_trackpad_haptic_feedback`、`guest_did_panic` 等——**无 USB handler** → USB 直通需新增通路或复用 restore 桥 |
+### 2.4 注入面（hook 层）—— 全量盘点（2026-10-01 复核）
+
+**入口方式**：6 个文件带 `__attribute__((constructor))`：`vmmhook.m:2878`、`vzxpchook.m:202`、`pvg_trace.m:1533`、`metalshim.m:488`、`installationhook.m:94`、`installation_usb_shim.m:1833`。
+
+**`vmmhook.m`（VMM 进程兼容层，最大 hook 面）**：
+- `__DATA,__interpose` 21 个：`xpc_main`(3000)、`sandbox_init`(3003)、`open`(3040)、`IOSurfaceCreate`(1076)、`xpc_send`/`xpc_send_with_reply`/`xpc_set_handler`(1170-1182)、`IOServiceMatching`/`NameMatching`/`GetMatchingService`/`Open`(2763-2781)、`vmnet` 组(323)、**`hv_*` 全套**：`hv_feat`(3093)、`hv_ipa_size`(3125)、`hv_vm_destroy/create/map/protect`(3144-3198)、`hv_vcpu_create/set_reg/run/set_vtimer_mask/set_vtimer_offset/vcpus_exit`(3262-3421)。
+- **USB HCI swizzle 组**：`method_setImplementation`×6 at 2665-2702（`init`/`enqueue_one`/`enqueue_one_expedite`/`enqueue_many`/`enqueue_many_expedite`/`destroy`）—— restore 桥的 VMM 端设备实现。
+- **unix socket server**：2172-2187 `bind`/`listen` `/tmp/vz-usb-restore.sock`（chmod 0666）—— 桥服务端在 VMM 进程内。
+- `vmm_xpc_main`(2957)：strategy-B `xpc_connection_create(NULL, main_queue)` mach-service listener（顶替 iOS 上不可用的 `xpc_main`）。
+
+**`vzxpchook.m`（App 侧 VZ 兼容层）**：不走 `__interpose`（VZ 对宿主符号是 flat-namespace weak-import，interpose 够不着）→ `vz_rebind_virtualization()`(915-990) 手工 GOT rebind：page 对齐 + `mprotect` + `ptrauth_sign_unauthenticated` 签名写回；rebind 表含 `IOSurfaceLookupFromXPCObject`、`confstr`、`sysctlbyname`、`sandbox_extension_issue_generic_to_process/release`、`xpc_connection_create/send_message/send_message_with_reply/set_event_handler`；`preIOS16Only` 条件位。App 日志逐字：`authenticated VZ rebind=0x...`。
+
+**`pvg_trace.m`（PG 序列化追踪/修复层，注入 VMM）**：`__interpose`(1298) + 约 15 处 `method_setImplementation`——`SegmentedAddressForOffset`(519)、`MappedAddressForOffset`(520)、事件/资源/IOSurface settle 路径(702/857/916/1459/1609-1688)。即 VM 崩溃修复与 GPU 追踪的落点。
+
+**`metalshim.m`（宿主 Metal 兼容）**：`method_setImplementation` at 451/485/522 + ctor(488)。
+
+**`installationhook.m`（安装模式）**：`__interpose` `xpc_main`(203)/`sandbox`(212)/`confstr`(221) + ctor(94)；自带 mach-service listener(131)。
+
+**`installation_usb_shim.m`（MobileDevice 侧）**：`__interpose` 宏段(1783) + ctor(1833) + socket client(185)。
+
+**`VirtualMacApp.m`（App 内）**：`class_replaceMethod`(449)、`method_setImplementation` `frameUpdate`(4426)/`cursorUpdate`(4437) 于 `_VZFramebufferView`(4419/5030)、accelerator `isSupported` 强制(4640)；输入事件合成 `_VZScreenCoordinatePointerEvent`(658)/`_VZKeyEvent`(1453)/`_VZScrollWheelEvent`(808)/Magnify/Rotation/SmartMagnify(682/698/713)。
+
+**系统注入**：`VZKeyboardPassthrough.dylib`（TweakInject，`/var/jb/usr/lib/TweakInject/`）。
+
+**App↔VMM RPC**：14 handler——`map_shared_ram_for_custom_virtio_devices`、`open_host_virtio_socket`、`process_frame_update/cursor_update`、`process_trackpad_haptic_feedback`、`guest_did_panic` 等——**无 USB handler** → USB 直通需新增通路或复用 restore 桥。
+
+**设备装配写点（`setObj(configuration, ...)`）**：`setAudioDevices:`(4607)、`_setAcceleratorDevices:`+`_VZMacVideoToolboxDeviceConfiguration`(4623-4650)、`setNetworkDevices:`(4774)、`setDirectorySharingDevices:`(4817)、`setGraphicsDevices:`(4947)、`VZVirtioBlockDeviceConfiguration`+`setStorageDevices:`(4957-4959)、`setKeyboards:`(4966-4973)、`setPointingDevices:`(4975)、`setSocketDevices:`(5009)。vzboot.m 备用路径：72/85-96。
 
 ---
 

@@ -36,7 +36,7 @@
 ### 阻塞/待用户
 - 🔴 **iPad SSH 断**：22:53 起 `kex_exchange_identification: Connection reset by peer`（22/2222 都重置，TCP 可连）。宿主侧拿不到 `/tmp/vmm.stderr.log`/`/tmp/pvg-trace.log`（GPU 复位根因的决定性证据）。用户手动 sshd 重启失败（launchctl EPERM），**决定重启 iPad** → 客机随宿主断电，本会话终止。
 - IDA Instance4 @13340 已写入 `~/.config/devin/mcp_config.json`（CLI 需重启生效）；待用户在 IDA 里加载 `VMGPU/Frameworks/ParavirtualizedGraphics.framework`。
-- vz/host 盘点 subagent（agent_id=9e85a372）会话结束时仍在跑 → **下一会话须重派**，任务描述：枚举 `vz/host/*.m` 全部 hook 点（interpose/swizzle/+load/XPC listener/socket bind）与设备配置写入点（`VZ*Configuration` 装配），每条给 file:line+逐字片段，输出表格，只读不改。
+- ~~vz/host 盘点 subagent（9e85a372）长跑未归~~ **已由主会话亲自动手完成**：审计文档 §2.4 全量 hook 面/装配点表（21 个 `__interpose`、hv_* 全套、USB HCI swizzle 组、10 个设备装配写点）。subagent 若后续归来可作交叉验证，无须重派。
 
 ### iPad 重启后的续会话行动清单（按序）
 1. 用户在 iPad 上重跑 Dopamine 越狱（semi-untethered，必须重打）→ respring 后 SSH 才会回来。

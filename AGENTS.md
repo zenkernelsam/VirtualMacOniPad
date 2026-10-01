@@ -47,7 +47,10 @@
 - 运行期设备表（VirtualMac.log 逐字）：`_VZMacKeyboardConfiguration`、`VZMacTrackpadConfiguration`、virtio audio、`native VideoToolbox accelerator`、NAT、`_VZGraphicsDevice`+`_VZFramebuffer`（PVG 原生显示）、virtio socket。**无任何 USB 运行时设备**。
 - 注入面：`VZHostCompat.dylib`（App 内）+ `vzxpchook`（VMM XPC 内，rebind IOSurface/confstr/sysctlbyname/sandbox_extension/xpc_connection_*）+ `VZKeyboardPassthrough.dylib`（TweakInject）。详见审计文档。
 - App 端遗留 bug：两次 `makeConfiguration` 内 `NSDictionary` 下标 SIGSEGV@0x10（9/20，vmfix1 已装）——与 PG 修复无关的另一只虫子，见 `.diag/20260920-121651/crash-reports/`。
-- Guest 侧 NVRAM 启动参数含 `-arm64e_preview_abi`；GuestTools guest agent 协议是 QGA 风格 JSON。
+- Guest 侧 NVRAM 启动参数含 `-arm64e_preview_abi`；GuestTools guest agent 协议是 QGA 风格 JSON（virtio socket :505050）。
+- **GPU 已知大事（详见 docs/GPU-NATIVE-RESEARCH.md）**：payload=macOS 13.2.1 Ventura 提取（PG 13.0.34 / VZ 104.7.1），客机 Metal 插件 40.7.1(15.6)。客机**每日 gpuRestart 风暴**（`submitEvent:INCOMPLETE` 签名 = 宿主不 retire 命令）；OpenGL 全靠客机 shim `OpenGLPVGCompat.dylib`（interpose `IOGLBundleName`→AppleMetalOpenGLRenderer + `supportsFamily` 谎报 Apple1-7 + 归一化 Ventura serializer 不认的采样字段）。APVFeatures 宿主 14 位 vs 客机 38 键，另有 `binaryVersion` 命令门控与 `PGSerializerFeatures.supportsOpenGL`。
+- vmmhook.m = VMM 进程兼容层：`hv_*` 全套 interpose、USB HCI swizzle（restore 桥服务端）、xpc/IOService/IOSurfaceCreate 改写、VMM 内存放宽至 2×physical（GPU 重载相关的真实约束）。
+- 已知疑点：客机 `system_profiler SPDisplaysDataType` 输出空；App `makeConfiguration` 有字典下标 SIGSEGV 历史崩溃（9/20，vmfix1 在装）；vzboot.m 输入类注释与运行日志矛盾。
 
 ## 4. 文档索引
 

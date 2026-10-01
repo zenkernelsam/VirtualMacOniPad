@@ -1,0 +1,182 @@
+path	size_bytes	uuid	cdhash
+Compatibility/iPadOS15/DiskImages2	1784432	35192C78-5415-38BF-B6B7-2175FDDC6FA1(arm64e)	0385dbd391e4b80b05236835e05f7b47b0e3ca5b
+Compatibility/iPadOS15/Hypervisor	182608	1B1E116F-81FD-3FD6-B424-52D4FA96E9AB(arm64e)	02f53504393792c15f5652137f3339c20a427793
+Compatibility/iPadOS15/MetalSerializer	465824	9C249FB4-2C87-3099-807B-2A3B063C79FA(arm64e)	b90b4bb3ccd188a36f924a6dcd6033a07bb0208a
+Compatibility/iPadOS15/ParavirtualizedGraphics	535216	732073AB-34E5-38C9-A919-53B628977BDB(arm64e)	73923ce93290b522271c30ea8ef8e8c2df6cf220
+Compatibility/iPadOS15/VideoToolbox	4978016	3CDCD75D-0D43-3B00-8F86-8F3DCED33F5D(arm64e)	99ad6c6c7b819f8d60083a32d6f5079504a31452
+Compatibility/iPadOS15/Virtualization	1866080	DCFC0A79-7728-3089-94D7-1508E71F38E5(arm64e)	334ad0cad333455e58d325a08075eafe73893307
+Compatibility/iPadOS14/DiskImages2	1784432	35192C78-5415-38BF-B6B7-2175FDDC6FA1(arm64e)	0385dbd391e4b80b05236835e05f7b47b0e3ca5b
+Compatibility/iPadOS14/Hypervisor	57392	5C799315-D66F-3B24-9E92-25B60A950643(arm64e)	5d67f0fee53f53a744a698ebae6de3d589f6db0b
+Compatibility/iPadOS14/HypervisorBigSur	149488	22165452-B7BD-38FF-B3B5-2C9C72AFC9DE(arm64e)	0b5d7f3e714ad5d81d6920d5dd12f51f3bc12480
+Compatibility/iPadOS14/IOKit15Compat.dylib	54080	B54F34D5-AD7D-3308-9F8A-48A41C9FBD51(arm64e)	34df04f730d62234a9becab28e0376bb8c0ce91f
+Compatibility/iPadOS14/LibSystemCompat.dylib	54416	B792409B-0863-36B7-A058-F703EF0CBC5E(arm64e)	58a1684c407fb7e13854b8e430a260fc8a41023f
+Compatibility/iPadOS14/MetalSerializer	465824	9C249FB4-2C87-3099-807B-2A3B063C79FA(arm64e)	b90b4bb3ccd188a36f924a6dcd6033a07bb0208a
+Compatibility/iPadOS14/Netrb	101392	91BE035E-EEB9-3574-91EF-9FECB9902F8B(arm64e)	ce866e053cab78d3f41017f258cd613160f8820e
+Compatibility/iPadOS14/ParavirtualizedGraphics	535216	732073AB-34E5-38C9-A919-53B628977BDB(arm64e)	73923ce93290b522271c30ea8ef8e8c2df6cf220
+Compatibility/iPadOS14/VideoToolbox	4978016	3CDCD75D-0D43-3B00-8F86-8F3DCED33F5D(arm64e)	3c1db68f51a783f6736b0ed0b1f1f2fe0ac355d1
+Compatibility/iPadOS14/Virtualization	1866080	DCFC0A79-7728-3089-94D7-1508E71F38E5(arm64e)	d7a692eecb25540e2cc9a57aa53c147d177694be
+Compatibility/iPadOS14/vmnet	102176	DE4DE0BD-2583-3A78-ABDF-66981A3F5422(arm64e)	5f913cde73c5b09b48b5fe15a3c6e1ead45c697e
+Compatibility/iPadOS15Authenticated/DiskImages2	1784432	35192C78-5415-38BF-B6B7-2175FDDC6FA1(arm64e)	788195592b7014cb4b4a68fca929fa2564771cf4
+Compatibility/iPadOS15Authenticated/Hypervisor	182608	1B1E116F-81FD-3FD6-B424-52D4FA96E9AB(arm64e)	b09e84c2f550fcadd5d961b4c389e978e86cd477
+Compatibility/iPadOS15Authenticated/MetalSerializer	465824	9C249FB4-2C87-3099-807B-2A3B063C79FA(arm64e)	e2b1fa99b94439da69083a6120309ed2b343bb9e
+Compatibility/iPadOS15Authenticated/ParavirtualizedGraphics	535216	732073AB-34E5-38C9-A919-53B628977BDB(arm64e)	86f703faab1f9d7117e4c3c161dc90c10bbe4a03
+Compatibility/iPadOS15Authenticated/VideoToolbox	4978016	3CDCD75D-0D43-3B00-8F86-8F3DCED33F5D(arm64e)	1dae5e867a6989b045ca6ebe433d9c8be48d146a
+Compatibility/iPadOS15Authenticated/Virtualization	1866080	DCFC0A79-7728-3089-94D7-1508E71F38E5(arm64e)	c161b50ab3b8d9b72c0174d8d763c0a87dd6467e
+Installation.xpc/Contents/Info.plist	1697		
+Installation.xpc/Contents/version.plist	466		
+Installation.xpc/Contents/_CodeSignature/CodeResources	3230		
+Installation.xpc/Contents/MacOS/com.apple.Virtualization.Installation	169104	17997C56-236A-33C2-B8DC-760BF72F9F2C(arm64e)	784653d9395fb4fc92e0d41c6ee6141b693264f2
+Installation.xpc/Contents/MacOS/com.apple.Virtualization.Installation.ipados14	169104	17997C56-236A-33C2-B8DC-760BF72F9F2C(arm64e)	828e6828c648ac5cd200dabcf9da532fecc3f90d
+Installation.xpc/Contents/MacOS/com.apple.Virtualization.Installation.ipados15	169104	17997C56-236A-33C2-B8DC-760BF72F9F2C(arm64e)	0012af4965a47df86236df2e664f6a90a3bd904f
+Installation.xpc/Contents/MacOS/com.apple.Virtualization.Installation.ipados15-auth	169104	17997C56-236A-33C2-B8DC-760BF72F9F2C(arm64e)	784653d9395fb4fc92e0d41c6ee6141b693264f2
+Installation.xpc/Contents/MacOS/com.apple.Virtualization.Installation.ipados16	169104	17997C56-236A-33C2-B8DC-760BF72F9F2C(arm64e)	784653d9395fb4fc92e0d41c6ee6141b693264f2
+Installation.xpc/Contents/Resources/Localizable.loctable	75540		
+Installation.xpc/Contents/Resources/com.apple.Virtualization.Installation.sb	18126		
+Installation.xpc/Contents/Frameworks/CoreServicesCompat.dylib	51696	534108D2-55F8-3A36-8134-1E53A8C1EEAE(arm64e)	068b487d02c60548fe92a30becae1e49b9aaf196
+Installation.xpc/Contents/Frameworks/CoreUtilsCompat.dylib	51744	A0F49733-42A8-38F2-863A-F9D5C47F1130(arm64e)	a969c7d003459d609e51be4c6e927046092e6039
+Installation.xpc/Contents/Frameworks/CrashReporterCompat.dylib	35088	0F6FCB23-5E4D-373B-A06D-A1F30D41882A(arm64e)	e6cf21dcc43e5bb377ad3869d465c8c7b6d43ea0
+Installation.xpc/Contents/Frameworks/DiskImagesCompat.dylib	35072	3FE5FE3F-CCCB-3AC4-9B9E-233D34255733(arm64e)	a1a43eda92fc8870ef47de709baa05361d8d9909
+Installation.xpc/Contents/Frameworks/Foundation14Compat.dylib	18608	2418BCE3-5C05-3BD1-8821-32A3D6C9B4D0(arm64e)	e3388109fce6c747348a51026ac34567db69b277
+Installation.xpc/Contents/Frameworks/IOKit14Compat.dylib	51888	E8632C5A-6BD8-3079-B4BA-034DDF016325(arm64e)	7b386f8b4d967d0c24d2d5565f565c3e1e2df1a8
+Installation.xpc/Contents/Frameworks/InstallationCompat.dylib	113728	C2D24AE6-BE57-3CB2-95BF-5023ADF34035(arm64e)	afc1cc23de8c7cbc8d4e7fbad481191538666d0f
+Installation.xpc/Contents/Frameworks/InstallationCompat.dylib.ipados14	114480	D48D0798-B11A-3E8A-BE72-44F4419C34C8(arm64e)	6855671f617387221e9d276ef693e45f1150c891
+Installation.xpc/Contents/Frameworks/InstallationCompat.dylib.ipados15	114480	D48D0798-B11A-3E8A-BE72-44F4419C34C8(arm64e)	7e303ea74a1ee647b63263b9c14d0715c4687580
+Installation.xpc/Contents/Frameworks/InstallationCompat.dylib.ipados16	113728	C2D24AE6-BE57-3CB2-95BF-5023ADF34035(arm64e)	afc1cc23de8c7cbc8d4e7fbad481191538666d0f
+Installation.xpc/Contents/Frameworks/SecurityCompat.dylib	52016	14D4CCA6-774D-3338-AE73-EBABE0BB89BA(arm64e)	e3758ce922220bc404541dfd824f3ff7d2ad8c6c
+Installation.xpc/Contents/Frameworks/SoftLinking14Compat.dylib	68768	DAED74D1-7E71-3197-B273-A5B16D0B38A2(arm64e)	a2531b37d949af75f3af252adacf04d87fd408dd
+Installation.xpc/Contents/Frameworks/crypto.dylib	1438784	3D6E08A2-85FF-30CE-A3E1-83C138DE8CB3(arm64e)	9e984d9f32246eeb3544ba55eb601051b274dda3
+Installation.xpc/Contents/Frameworks/ssl.dylib	387744	85799B54-BA11-3E12-A748-5FF089C1BAF3(arm64e)	405df92a3e4ab533b46ba06afa711115c7a146bd
+Installation.xpc/Contents/Frameworks/TrustEvaluationAgent.framework/TrustEvaluationAgent	83488	E24B8598-42AF-3B5A-BCF2-D41D5FC73814(arm64e)	da5764245cb5f525e1fca7090a2d8cd1f2a8e4b4
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/MobileDevice	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	c9ec1df36b007d6993aaa5ad65c0a8a42ecc46a8
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Resources/Info.plist	1384		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Resources/usbmuxd	201088	3F84C3F3-5E01-3122-8A80-9C803B41A2A9(arm64e)	2f90db1b8675e0bedcb248b9c52013d9686cc4a5
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Resources/version.plist	523		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Resources/en.lproj/InfoPlist.strings	72		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Resources/en.lproj/Localizable.strings	19230		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/MobileDevice	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	c9ec1df36b007d6993aaa5ad65c0a8a42ecc46a8
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/MobileDevice.ipados14	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	d080a7930f008b5645f80cff878ee52f9fd4aa88
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/MobileDevice.ipados15	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	5d2b292fed96f29f4968af7d84665c04d2f145ea
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/MobileDevice.ipados15-auth	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	97ec61d3b37e1e0f37ac158adae34b88d31d644f
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/MobileDevice.ipados16	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	c9ec1df36b007d6993aaa5ad65c0a8a42ecc46a8
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/Resources/Info.plist	1384		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/Resources/usbmuxd	201088	3F84C3F3-5E01-3122-8A80-9C803B41A2A9(arm64e)	2f90db1b8675e0bedcb248b9c52013d9686cc4a5
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/Resources/version.plist	523		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/Resources/en.lproj/InfoPlist.strings	72		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/A/Resources/en.lproj/Localizable.strings	19230		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/MobileDevice	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	c9ec1df36b007d6993aaa5ad65c0a8a42ecc46a8
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/MobileDevice.ipados14	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	d080a7930f008b5645f80cff878ee52f9fd4aa88
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/MobileDevice.ipados15	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	5d2b292fed96f29f4968af7d84665c04d2f145ea
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/MobileDevice.ipados15-auth	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	97ec61d3b37e1e0f37ac158adae34b88d31d644f
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/MobileDevice.ipados16	6664688	CDB25168-FCDA-3FC1-9F16-17E696426070(arm64e)	c9ec1df36b007d6993aaa5ad65c0a8a42ecc46a8
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/Resources/Info.plist	1384		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/Resources/usbmuxd	201088	3F84C3F3-5E01-3122-8A80-9C803B41A2A9(arm64e)	2f90db1b8675e0bedcb248b9c52013d9686cc4a5
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/Resources/version.plist	523		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/Resources/en.lproj/InfoPlist.strings	72		
+Installation.xpc/Contents/Frameworks/MobileDevice.framework/Versions/Current/Resources/en.lproj/Localizable.strings	19230		
+VirtualMachine.xpc/Contents/Info.plist	1787		
+VirtualMachine.xpc/Contents/version.plist	466		
+VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine	1939680	BAC451C3-70AB-3259-B77E-91F5673D15E1(arm64e)	599ebd2ea94056f4564e3040f8d2aa027c6998e8
+VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine.ipados14	1939776	BAC451C3-70AB-3259-B77E-91F5673D15E1(arm64e)	06a726aa570cc12a60f4fd119fe909b7769c00a0
+VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine.ipados15	1939680	BAC451C3-70AB-3259-B77E-91F5673D15E1(arm64e)	b5ee2286b0d25d569a0b9b97efff568c17aa83dd
+VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine.ipados16	1939680	BAC451C3-70AB-3259-B77E-91F5673D15E1(arm64e)	599ebd2ea94056f4564e3040f8d2aa027c6998e8
+VirtualMachine.xpc/Contents/Resources/com.apple.Virtualization.VirtualMachine.sb	22518		
+Frameworks/IOKit15Compat.dylib	53904	3C0AD49D-C941-37E4-9F38-688193C2D12B(arm64e)	c3151ab1e2abf21c0ee10a200d1c1fb3f74962ae
+Frameworks/LaunchServicesCompat.dylib	164672	50185057-6231-31E8-904F-65F8AD7168A2(arm64e)	0f1c3775372eea17bab3f2b6795cbe20f5de416f
+Frameworks/LaunchServicesCompat.dylib.ipados14	181856	FAAE02D6-7E98-3861-985F-09F702338BFE(arm64e)	d31d844dbfc0b4c0cec8694e300c086b2b068d8f
+Frameworks/LibCxx.dylib	780384	E2679357-B2AF-30D4-8130-50D31765AF88(arm64e)	5b02e22b048e57808b1b0031af03b7cff8c3cc34
+Frameworks/LibSystem15Compat.dylib	54160	6A2243D6-CBEB-3C8E-8C9C-1D0188EBD1AD(arm64e)	7e5779ecf16748bbcb4764e9e5a14a1be4796884
+Frameworks/MetalCompat.dylib	95328	DEE3E174-8010-3635-B91E-8CD13D17AED4(arm64e)	e9153262fb5b724288ae2d2082cdd6a124509ab6
+Frameworks/vmnet.framework/vmnet	118864	CEF69A81-A3E7-3CB9-9675-DC775F878B7C(arm64e)	cebcd356f0d9a75fe5e18981d3a201c0b1caa297
+Frameworks/ParavirtualizedGraphics.framework/ParavirtualizedGraphics	535216	732073AB-34E5-38C9-A919-53B628977BDB(arm64e)	de0389cdff59adfa17007bcdc3987d792a64d38e
+Frameworks/ParavirtualizedGraphics.framework/Resources/AppleParavirtEFI.rom	22016		
+Frameworks/ParavirtualizedGraphics.framework/Resources/Info.plist	1461		
+Frameworks/ParavirtualizedGraphics.framework/Resources/default.ipados14.metallib	19507		
+Frameworks/ParavirtualizedGraphics.framework/Resources/default.ipados15.metallib	19555		
+Frameworks/ParavirtualizedGraphics.framework/Resources/default.macos.metallib	21172		
+Frameworks/ParavirtualizedGraphics.framework/Resources/default.metallib	19635		
+Frameworks/ParavirtualizedGraphics.framework/Resources/version.plist	479		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/ParavirtualizedGraphics	535216	732073AB-34E5-38C9-A919-53B628977BDB(arm64e)	de0389cdff59adfa17007bcdc3987d792a64d38e
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/ParavirtualizedGraphics.id0	5709824		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/ParavirtualizedGraphics.id1	1982464		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/ParavirtualizedGraphics.nam	49152		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/ParavirtualizedGraphics.til	4065		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/_CodeSignature/CodeResources	3920		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/AppleParavirtEFI.rom	22016		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/Info.plist	1461		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/default.ipados14.metallib	19507		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/default.ipados15.metallib	19555		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/default.macos.metallib	21172		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/default.metallib	19635		
+Frameworks/ParavirtualizedGraphics.framework/Versions/A/Resources/version.plist	479		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/ParavirtualizedGraphics	535216	732073AB-34E5-38C9-A919-53B628977BDB(arm64e)	de0389cdff59adfa17007bcdc3987d792a64d38e
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/_CodeSignature/CodeResources	3920		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/AppleParavirtEFI.rom	22016		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/Info.plist	1461		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/default.ipados14.metallib	19507		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/default.ipados15.metallib	19555		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/default.macos.metallib	21172		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/default.metallib	19635		
+Frameworks/ParavirtualizedGraphics.framework/Versions/Current/Resources/version.plist	479		
+Frameworks/Virtualization.framework/Virtualization	1866096	DCFC0A79-7728-3089-94D7-1508E71F38E5(arm64e)	db47c2420807d4ce055f491a74ef8f9747b11fea
+Frameworks/Virtualization.framework/Resources/AVPBooter.vmapple2.bin	215016		
+Frameworks/Virtualization.framework/Resources/Info.plist	1317		
+Frameworks/Virtualization.framework/Resources/Localizable.loctable	659281		
+Frameworks/Virtualization.framework/Resources/VZG11.fd	4194304		
+Frameworks/Virtualization.framework/Resources/VZG21.fd	4194304		
+Frameworks/Virtualization.framework/Resources/version.plist	466		
+Frameworks/Virtualization.framework/Versions/A/Virtualization	1866096	DCFC0A79-7728-3089-94D7-1508E71F38E5(arm64e)	db47c2420807d4ce055f491a74ef8f9747b11fea
+Frameworks/Virtualization.framework/Versions/A/_CodeSignature/CodeResources	3614		
+Frameworks/Virtualization.framework/Versions/A/Resources/AVPBooter.vmapple2.bin	215016		
+Frameworks/Virtualization.framework/Versions/A/Resources/Info.plist	1317		
+Frameworks/Virtualization.framework/Versions/A/Resources/Localizable.loctable	659281		
+Frameworks/Virtualization.framework/Versions/A/Resources/VZG11.fd	4194304		
+Frameworks/Virtualization.framework/Versions/A/Resources/VZG21.fd	4194304		
+Frameworks/Virtualization.framework/Versions/A/Resources/version.plist	466		
+Frameworks/Virtualization.framework/Versions/Current/Virtualization	1866096	DCFC0A79-7728-3089-94D7-1508E71F38E5(arm64e)	db47c2420807d4ce055f491a74ef8f9747b11fea
+Frameworks/Virtualization.framework/Versions/Current/_CodeSignature/CodeResources	3614		
+Frameworks/Virtualization.framework/Versions/Current/Resources/AVPBooter.vmapple2.bin	215016		
+Frameworks/Virtualization.framework/Versions/Current/Resources/Info.plist	1317		
+Frameworks/Virtualization.framework/Versions/Current/Resources/Localizable.loctable	659281		
+Frameworks/Virtualization.framework/Versions/Current/Resources/VZG11.fd	4194304		
+Frameworks/Virtualization.framework/Versions/Current/Resources/VZG21.fd	4194304		
+Frameworks/Virtualization.framework/Versions/Current/Resources/version.plist	466		
+Frameworks/DiskImages2.framework/DiskImages2	1784432	35192C78-5415-38BF-B6B7-2175FDDC6FA1(arm64e)	9e7d702d3361e4fb0e8f7ffa03316753be761228
+Frameworks/DiskImages2.framework/Resources/Info.plist	1412		
+Frameworks/DiskImages2.framework/Versions/A/DiskImages2	1784432	35192C78-5415-38BF-B6B7-2175FDDC6FA1(arm64e)	9e7d702d3361e4fb0e8f7ffa03316753be761228
+Frameworks/DiskImages2.framework/Versions/A/_CodeSignature/CodeResources	2442		
+Frameworks/DiskImages2.framework/Versions/A/Resources/Info.plist	1412		
+Frameworks/DiskImages2.framework/Versions/Current/DiskImages2	1784432	35192C78-5415-38BF-B6B7-2175FDDC6FA1(arm64e)	9e7d702d3361e4fb0e8f7ffa03316753be761228
+Frameworks/DiskImages2.framework/Versions/Current/_CodeSignature/CodeResources	2442		
+Frameworks/DiskImages2.framework/Versions/Current/Resources/Info.plist	1412		
+Frameworks/Hypervisor.framework/Hypervisor	182608	1B1E116F-81FD-3FD6-B424-52D4FA96E9AB(arm64e)	4b1dd89159aee1fd06cf615db98d46cec968873d
+Frameworks/Hypervisor.framework/Resources/Info.plist	1409		
+Frameworks/Hypervisor.framework/Resources/version.plist	457		
+Frameworks/Hypervisor.framework/Versions/A/Hypervisor	182608	1B1E116F-81FD-3FD6-B424-52D4FA96E9AB(arm64e)	4b1dd89159aee1fd06cf615db98d46cec968873d
+Frameworks/Hypervisor.framework/Versions/A/_CodeSignature/CodeResources	2674		
+Frameworks/Hypervisor.framework/Versions/A/Resources/Info.plist	1409		
+Frameworks/Hypervisor.framework/Versions/A/Resources/version.plist	457		
+Frameworks/Hypervisor.framework/Versions/Current/Hypervisor	182608	1B1E116F-81FD-3FD6-B424-52D4FA96E9AB(arm64e)	4b1dd89159aee1fd06cf615db98d46cec968873d
+Frameworks/Hypervisor.framework/Versions/Current/_CodeSignature/CodeResources	2674		
+Frameworks/Hypervisor.framework/Versions/Current/Resources/Info.plist	1409		
+Frameworks/Hypervisor.framework/Versions/Current/Resources/version.plist	457		
+Frameworks/VideoToolboxParavirtualizationSupport.framework/VideoToolboxParavirtualizationSupport	100384	E13E3D99-0D6A-3C9B-A1FB-2B76E247A7B6(arm64e)	eb97a02a330589435f69b12cc01def3e569303f9
+Frameworks/VideoToolboxParavirtualizationSupport.framework/_CodeSignature/CodeResources	1716		
+Frameworks/VideoToolbox.framework/VideoToolbox	4978016	3CDCD75D-0D43-3B00-8F86-8F3DCED33F5D(arm64e)	021aa040b5e93bd2e5cf23da1504251ddfe5e92e
+Frameworks/VideoToolbox.framework/_CodeSignature/CodeResources	1716		
+Frameworks/MetalSerializer.framework/MetalSerializer	465824	9C249FB4-2C87-3099-807B-2A3B063C79FA(arm64e)	b064019fa16777601da076df9549bb60eb375561
+Frameworks/MetalSerializer.framework/Resources/Info.plist	1476		
+Frameworks/MetalSerializer.framework/Resources/version.plist	450		
+Frameworks/MetalSerializer.framework/Versions/A/MetalSerializer	465824	9C249FB4-2C87-3099-807B-2A3B063C79FA(arm64e)	b064019fa16777601da076df9549bb60eb375561
+Frameworks/MetalSerializer.framework/Versions/A/MetalSerializer.id0	4882432		
+Frameworks/MetalSerializer.framework/Versions/A/MetalSerializer.id1	1785856		
+Frameworks/MetalSerializer.framework/Versions/A/MetalSerializer.nam	49152		
+Frameworks/MetalSerializer.framework/Versions/A/MetalSerializer.til	4509		
+Frameworks/MetalSerializer.framework/Versions/A/_CodeSignature/CodeResources	2674		
+Frameworks/MetalSerializer.framework/Versions/A/Resources/Info.plist	1476		
+Frameworks/MetalSerializer.framework/Versions/A/Resources/version.plist	450		
+Frameworks/MetalSerializer.framework/Versions/Current/MetalSerializer	465824	9C249FB4-2C87-3099-807B-2A3B063C79FA(arm64e)	b064019fa16777601da076df9549bb60eb375561
+Frameworks/MetalSerializer.framework/Versions/Current/_CodeSignature/CodeResources	2674		
+Frameworks/MetalSerializer.framework/Versions/Current/Resources/Info.plist	1476		
+Frameworks/MetalSerializer.framework/Versions/Current/Resources/version.plist	450		
+Frameworks/Netrb.framework/Netrb	117904	4BD24895-9A9C-3D56-978A-11A790AA5CB2(arm64e)	834f8ec8c144d6183cac7483ad081c8a7e348bb2
+Frameworks/Netrb.framework/_CodeSignature/CodeResources	1716		

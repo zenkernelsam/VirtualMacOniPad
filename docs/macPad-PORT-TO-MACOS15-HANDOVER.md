@@ -35,6 +35,7 @@
 - **形态**：用 **Apple Virtualization.framework** 开**硬件虚拟化 VM**（宿主进程 `com.apple.Virtualization.VirtualMachine`）；GPU 走 **ParavirtualizedGraphics(PG) + MetalSerializer**，把客机 Metal 转发到 iPad 真 GPU（**有翻译损耗**，这是它 GPU 偏慢的原因）。
 - **客机**：**macOS 15.6.1（Sequoia, 24G90）**，**8 vCPU / 10GB**，显示 1920×1200@2x，MetalBC / OpenGL 加速 / VideoToolbox 均开启，网络 NAT；VM 包名 `Sequoia.bundle`。
 - **仓库（就在本机桌面）**：`~/Desktop/VirtualMacOniPad`（fork `zenkernelsam/VirtualMacOniPad`，upstream `nfzerox/VirtualMacOniPad`），应用版本 1.2.3。
+- **`VMGPU/`（仓库根）——作者原版 payload 的“黄金基线”**：实机 `/var/root/VirtualMac/payload/` 的完整快照（181 文件 / 86 Mach-O / **170.7 MB**），含 `Frameworks/`(17) + `Compatibility/{iPadOS14,iPadOS15,Authenticated}` + 两个 XPC。用途：① 重建**忠实性**的 `__text` 逐字节比对；② CDHash/trustcache 核对；③ 崩溃 A/B 归因（“是我们的改动还是重建过程引入的”）。说明见 A 仓库 `docs/VMGPU-REFERENCE.md`，清单 `docs/VMGPU-cdhash.tsv`（**二进制不入 Git**）。
 - **我们在此仓库做过的事（重要：说明本机工具链与经验都已具备）**：
   1. **修过 VM 崩溃 bug**：`vz/host/pvg_trace.m` 中 `mappedAddressForOffset` 回退到 Apple 原生 `base+offset` → A 类（Metal 断言 `Corrupted library`）/ B 类（`memmove` 越界）崩溃；已改为 `create=YES` + 已映射区间覆盖校验 + 安全失败。
   2. **修过 macOS 15 构建兼容**：重建二进制的 chained fixups 不被 `dyld_info`/`ld` 解析 → 改用 `llvm-objdump --macho --exports-trie`、链接加 `-Wl,-ld_classic`；**a2sb 符号缓存必须使用**（否则重建的框架不忠实 → App 启动即闪退）。

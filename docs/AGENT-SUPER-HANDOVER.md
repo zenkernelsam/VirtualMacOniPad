@@ -52,7 +52,7 @@
 
 | 代号 | 路径 | 性质 | 关键文档 / 状态 |
 |---|---|---|---|
-| **A. VirtualMacOniPad** | `~/Desktop/VirtualMacOniPad`（fork `zenkernelsam` / upstream `nfzerox`） | **虚拟机路线**（Apple Virtualization.framework + PG/MetalSerializer 转发 GPU） | 我们**修过**：`vz/host/pvg_trace.m` 的 A/B 类崩溃（`mappedAddressForOffset` 回退 Apple `base+offset`）、macOS 15 构建兼容（chained fixups → `llvm-objdump` / `-Wl,-ld_classic`；**a2sb 缓存必须用**）。文档 `docs/VM-crash-fix-and-build-notes.md`；产出 `VirtualMac_1.2.3_046abc6e0a.deb`（`2:1.2.3+608.vmfix2`） |
+| **A. VirtualMacOniPad** | `~/Desktop/VirtualMacOniPad`（fork `zenkernelsam` / upstream `nfzerox`） | **虚拟机路线**（Apple Virtualization.framework + PG/MetalSerializer 转发 GPU） | 我们**修过**：`vz/host/pvg_trace.m` 的 A/B 类崩溃（`mappedAddressForOffset` 回退 Apple `base+offset`）、macOS 15 构建兼容（chained fixups → `llvm-objdump` / `-Wl,-ld_classic`；**a2sb 缓存必须用**）。文档 `docs/VM-crash-fix-and-build-notes.md`；产出 `VirtualMac_1.2.3_046abc6e0a.deb`（`2:1.2.3+608.vmfix2`）。**`VMGPU/`（仓库根）= 作者原版 payload 黄金基线**（181 文件 / 86 Mach-O / 170.7 MB），用于重建忠实性的 `__text` 逐字节比对与 CDHash/trustcache 核对 → 见 `docs/VMGPU-REFERENCE.md` + `docs/VMGPU-cdhash.tsv`（二进制不入 Git） |
 | **B. macPad** | `~/Desktop/macPad`（fork `zenkernelsam` / upstream `DCMMC`） | **chroot 路线**（共享 iOS 内核 + 原生 CPU/GPU 驱动） | 仓库自带 `AGENTS.md` 铁律（补丁纪律/证据纪律）；施工图 `docs/porting/PORT-TO-MACOS15-HANDOVER.md`；启动 Prompt `docs/porting/AGENT-START-PROMPT.md`。**待办：先跑命中率探针** |
 | **C. Patch** | `~/Desktop/Patch`（52G，多工程 monorepo） | 逆向复刻主线（ShadowRocket/ShadowCore、NeetAndAngel_iOS、WitchOnTheHolyNight_iOS…） | **只在指定子项目内写入**；`ShadowCore` 遵循 **"先学引擎再实现"**（语义以 IDA 取证 PacketTunnel 为准，见 `ShadowCore-Legacy/ENGINE_FIRST.md`） |
 | D. 其他 | `SchoolBox`(6.7G)、`book-buster`(2.3G)、`Semi/Ursa.Avalonia` | 与本主线无关 | 仅知会 |
@@ -132,7 +132,7 @@
 
 ## 9. 附录：索引
 
-- **A 仓库**：`docs/VM-crash-fix-and-build-notes.md`（VM 修复与构建踩坑）、`docs/macPad-PORT-TO-MACOS15-HANDOVER.md`、`docs/macPad-AGENT-START-PROMPT.md`
+- **A 仓库**：`docs/VM-crash-fix-and-build-notes.md`（VM 修复与构建踩坑）、`docs/VMGPU-REFERENCE.md`（黄金基线说明）、`docs/VMGPU-cdhash.tsv`（基线 UUID/CDHash 清单）、`docs/macPad-PORT-TO-MACOS15-HANDOVER.md`、`docs/macPad-AGENT-START-PROMPT.md`、`docs/AGENT-SUPER-HANDOVER.md`
 - **B 仓库**：`AGENTS.md`（铁律）、`docs/porting/PORT-TO-MACOS15-HANDOVER.md`、`docs/porting/AGENT-START-PROMPT.md`
 - **关键提交**：`VirtualMacOniPad` → `5906e1b`(VM 修复) / `c4c5b55`(handover) / `bfe9204`(aux tools) / `2edecaf`(start prompt)；`macPad` → `cbef0d5` / `282d039` / `df0c4a6` / `d8aac96`
 - **诊断包结构**：`crash-reports/`、`logs/{vmm.stderr.log,pvg-trace.log,VirtualMac.log}`、`package/`、`manifest.txt`、`Settings.plist`

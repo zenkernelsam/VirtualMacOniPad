@@ -25,3 +25,7 @@ logs/
 DeviceCrashLogs/
 *.dSYM/
 *.ips
+
+# Official payload snapshot = rebuild-faithfulness golden baseline (binaries stay out
+# of Git by policy; only docs/VMGPU-REFERENCE.md + docs/VMGPU-cdhash.tsv are tracked).
+VMGPU/

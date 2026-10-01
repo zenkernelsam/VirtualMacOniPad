@@ -45,3 +45,14 @@
 4. 若日志信息量不足 → 下一步是"诊断级"增强 pvg_trace（把命令 opcode 序列打到文件，重启后对账），标 diagnostic。
 5. 顺便按 §"清理"条款处理 iPad 上 3×~1.1GB 旧诊断 zip（先 NAS 备份 manifest，再废纸篓/隔离）。
 6. IDA Instance4 就绪后：PG fifo 命令分发反编译（优先 CMD=0x37 对应处理函数）+ `_attachUSBDevice:error:` 的 entitlement 检查路径。
+
+### 深夜追加（不重启，等 subagent）
+- [x] **卡死定位收窄**：仅 Exec 通道积压（10-01 22:52 报告四通道排水图：Exec 70cmds/~22KB 未消费 vs Object/Memory 排空）
+- [x] 宿主 Cmd* 调度词表 32 条抽全（PGFIFO 方法名即命令处理器；opid→名映射待 IDA 查 dispatch 表）
+- [x] 客机侧词表更大：插件含 `PGSerializer*CommandEncoder` 全套（ICB/光追/动态控制流）+ `supportsCmdExecIndirect3`（宿主只有 2）+ `SupportFlags2024` 位域 + `DeserializerVersion` 协商字段
+- [x] **根因假设收紧**：客机发宿主不认识的 exec 命令 → Ventura 反序列化 `Invalid FIFO command ... opid=%u` → 通道楔死。验证=SSH 后 grep vmm.stderr.log 的 opid
+- [x] 今日复位×8（20:10,21:26,22:17,22:52,23:40+），全部 witchontheholyni 触发（客机 `/private/tmp` 下的游戏，用户自己在测）
+- [x] 客机 ioreg 实况：recoveryCount=0（复位后恢复）；`In use system memory=582MB`；WindowServer 是最后提交者；协商态不导出到 ioreg
+- [x] 宿主 stderr 文件名确认：`vmm.stderr.log`/`vzxpchook.log`/`pvg-trace.log`（VZDiagnostics.m:609 收集清单逐字）；pvg_trace 会 dump `PGNewDeviceWithDescriptor` 的 descriptor（含协商后 APVFeatures/binaryVersion！）
+- [x] 发现宿主侧 `native_bc_texture_support.m`：VMM 进程内给 iPadOS 16.3 的 AGX 注入 16.4 才有的 14 条 BC 格式表项（BC1-7）。客机 BC7 成功靠它
+- [ ] 客机 dyld cache 提取失败（框架只有 stub，真身在 cache 但路径不可见）→ 若需要，改从宿主机 IPSW/挂载取

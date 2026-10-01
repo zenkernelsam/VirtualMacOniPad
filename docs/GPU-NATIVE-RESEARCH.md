@@ -118,3 +118,47 @@
 - 客机：`/Library/Logs/DiagnosticReports/Kernel_*.gpuRestart`（20 份，每日）
 - 本机：`.diag/guest-probes/`（metal-device/metal-bc-probe/opengl-renderer 源码与二进制）
 - iPad（待取）：`/tmp/vmm.stderr.log`、`/tmp/pvg-trace.log`
+
+## 追加取证（2026-10-01 深夜）
+
+### A. 卡死位置再收窄：仅 Exec 通道
+
+`Kernel_2026-10-01-225208_Ciscodexuniji.gpuRestart` 逐字字段：
+
+| 通道 | written | read | 待处理 |
+|---|---|---|---|
+| **Exec** | 1321961976 | 1321939736 | **~22KB 未消费，70 cmds 全 INCOMPLETE** |
+| Object | 15865088 | 15865088 | 0（已排空）|
+| Memory | 17004832 | 17004832 | 0（已排空）|
+| Display[0] | 20810388 | 20810328 | 1 cmd（CMD=0x8 barrier）|
+
+→ 客机侧写指针前进、宿主侧 read 指针停住：对象表/内存通道正常 retire，**唯独 exec（Metal command buffer 提交）通道被楔住**。指向宿主 PG exec 消费线程卡死/静默失败，不是传输层问题。
+
+### B. 宿主 Cmd* 调度词表（Ventura 全量 32 条）
+
+`strings VMGPU/.../ParavirtualizedGraphics | grep '^Cmd'` 抽出宿主反序列化器全部命令处理器（签名统一 `stampValue:withPayload:payloadSize:`）：
+CmdNOP/CmdDebug/CmdDelay/CmdDeprecated/CmdDefineChildFIFO/CmdDeleteChildFIFO/CmdDefineTask2/CmdDeleteTask/CmdDeleteObject/CmdDeleteResource/CmdDeleteIOSurfaceBacking2/CmdMapMemory2/CmdUnmapMemory/CmdReplacePhysical/CmdSetObjectList/CmdExecIndirect2/CmdGetDeviceInfo/CmdGetComputeInfo/CmdHeapTextureSizeAndAlign/CmdSynchronizeResources/CmdInvalidateResources/CmdDiscardResources/CmdSynchronizeAndDiscardResources/CmdDisplayAck/CmdDisplayCursorGlyph/CmdDisplayCursorShow/CmdDisplaySetProperties/CmdDisplaySetSharedStatePage/CmdDisplaySleepState/CmdDisplaySwapMapping/CmdDisplayTransaction2_DEPRECATED/CmdDisplayTransaction3。
+
+**opid→Cmd 映射须等 IDA**（dispatch 表是函数指针数组，strings 无顺序）。
+
+### C. 宿主 stderr 在拿到日志前可用的线索
+
+宿主错误串含 `Invalid FIFO command length (%lu <= %u <= %llu) opid=%u on channel %u`、`Guest used deprecated command=%u: on channel %u`、`This command is unsupported in this binary version` —— 若 VMM stderr 里有 opid 打印，即可锁定具体命令。
+
+### D. 时间相关性（假设级）
+
+22:52:08 客机 GPU reset（witchontheholynight）↔ ~22:53 起 iPad sshd 拒连（两端口 reset）——GPU 复位风暴→宿主资源耗尽 的链式因果可能成立（VMM 宿主进程 ~275%CPU 常驻）。待 SSH 恢复用 `log show`/`uptime`/`memory_pressure` 历史验证。
+
+### E. 客机插件能力 schema 逐字（40.7.1，`AppleParavirtGPUMetalIOGPUFamily`）
+
+`strings` 抽出的 APVFeatures 字段序列（B=bool, I=int）：
+`valid/unsupported/objectTables/efiDisplay/displayDoorbell/mapperIOSurfaces/synchronizeAndDiscardResources/displayMapperSurface/discardResources/displaySleep/supportsRGhAPresents/synchronizeDiscardChildResources/dualPlaneTextures/displaySetProperties/displayDimensionFloats/metalHeaps/bufferFromIOSurface/maxFIFOCount/s8ByteCountForD32S8/supportsSharedTextures/supportsInfoEncoder/supportsDefaultRasterSampleCount/supportsVertexAmplification/supportsSunburstDisplay/supportsProgrammableSamplePositions/supportsVariableRasterizationRateMaps/supportsTileShadersImageBlocks/supportsDisplayCompositorParameters/**supportsCmdExecIndirect3**/supportsSwizzledTextures/supportsDynamicAttributeStride/supportsBlitEncoderSPI/supportsMultiplaneMippedBlitTextures/supportsComputePassDescriptorDispatchType/supportsObjectUniqueIdentifier/supportsCommandBufferJump/supportsSharedStorageHeaps/supportsHeapHazardTracking/supportsProtectionOptionsEnvelope/supportsInsertCompressedTextureReinterpretationFlush/supportsArgumentBuffers/supportsDisplaySetGuestICCProfile/supportsCorrect2pXR10A8`
+
+Guest 侧 PGSerializer 类族：`PGSerializer{Render,Compute,Blit,Info,}CommandEncoder`——含 `executeCommandsInBuffer`（ICB）、`setAccelerationStructure`/`IntersectionFunctionTable`/`VisibleFunctionTable`（光追）、`encodeEndDoWhile/EndIf/EndWhile/StartElse`（动态控制流）、`insertCompressedTextureReinterpretationFlush`。
+
+**deviceInfo schema**（客机要宿主填的探测字典）：`SupportFlags2024` 位域=`SupportsLargeUserTasks/LargeKernelTasks/CommandBufferJump/RangeBuffer/SharedMemoryHeap/ArgumentBuffers/SIMDReduction/Float16BCubicFiltering/SIMDShuffleAndFill/ConditionalLoadStore/ComputeCompressedTextureWrite/SharedTexturePlacement`；另有 `DeserializerVersion`、`HostGPUFamily`、`ArgumentBuffersTier`、`MaxVertexAmplificationCount`、`MaxMetalShaderVersion(Major/Minor)` 等。
+
+### F. 具体根因假设（证据链已收紧）
+
+`supportsCmdExecIndirect3` 存在 ⇒ 协议存在 `CmdExecIndirect3`；宿主 32 条 Cmd 词表只有 `CmdExecIndirect2`。**假设**：客机在某些提交（可能正是带 barrier/indirect 的路径）发出 CmdExecIndirect3（或任一 opcode>宿主表），Ventura PGFIFO 打 `Invalid FIFO command ... opid=%u on channel %u` 后停止消费该 FIFO → guest 见 `submitEvent:INCOMPLETE` 永不 retire → IOGPUScheduler restart → channel→global reset 风暴。**完美解释"仅 Exec 通道积压、Object/Memory 排空"的通道排水图**。
+- 验证：SSH 恢复后 `grep -iE "opid|invalid fifo|unsupported.*binary" /tmp/vmm.stderr.log`；若中，反编译确认该命令的 binary-version 门控，然后选修法（宿主侧假完成 / 客机侧降级到 ExecIndirect2 / 对齐 payload 代际）。

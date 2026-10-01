@@ -6,6 +6,8 @@
 
 ---
 
+> **姊妹文档**：`docs/SOURCE-AUDIT-REPORT.md` = vz/ 全源码（host/guest/shims/tweak/install/patches/packaging）逐行静态审计（subagent 5h 全量产出，主会话抽验行号一致）。本文件聚焦"外设直通"决策；那份是全架构地图。两处事实交叉验证一致（hook 表、USB 桥、设备装配）。
+
 ## 0. 结论速览
 
 | 子系统 | 现状 | 直通程度 | 差距 |
@@ -67,7 +69,8 @@
 
 ### 2.3 USB 桥（现状唯一 USB 通路，仅服务安装）
 - `vz/host/installation_usb_shim.m` 头注释逐字：*"Publish VMM's real AVP-backed restore USB device to MobileDevice without requiring macOS's AppleUSBUserHCIResources kernel service. MobileDevice continues to use iPadOS's native IOUSBLib; only IOKit registry/user-client calls for our synthetic handles are redirected to the VMM socket bridge."*
-- 机制：伪造 IOKit 对象（`FAKE_USB_DEVICE_SERVICE_BASE=0x766d2000` 等魔数段）→ MobileDevice 的 IOUSBLib 调用重定向到 unix socket `/tmp/vz-usb-restore.sock`；协议见 `usb_restore_bridge.h`：`GET_STATE/CONTROL/BULK/RESET/CREATE_ENDPOINT`，payload ≤64MB。
+- 机制：伪造 IOKit 对象（`FAKE_USB_DEVICE_SERVICE_BASE=0x766d2000` 等魔数段）→ MobileDevice 的 IOUSBLib 调用重定向到 unix socket `/tmp/vz-usb-restore.sock`；协议见 `usb_restore_bridge.h`：`GET_STATE/CONTROL/BULK/RESET/CREATE_ENDPOINT`，payload ≤64MB（magic `0x565a5553`"VZUS"，协议 v2）。
+- **VMM 侧完整状态机**（SOURCE-AUDIT §4 全量）：`VMMHOOK_FAKE_USB` 门控，`vmmhook.m:2491` `traced_usb_hci_init` 造纯用户态假 `IOUSBHostControllerInterface`；枚举按码推进 `0x10 PowerOn→0x12 ControllerStart→0x18 PortPowerOn→0x1e PortStatus→0x1c PortReset→0x20 DeviceCreate→0x28 EndpointCreate(EP0)→0x2e SetNextTransfer→doorbell→0x3d 完成`；PID `0x12ac`=RestoreOS、`0x1281`=Recovery 人格；描述符 Stall 最多重试 15 次×1s。socket server 在 `vmmhook.m:2172-2187`，30s `dispatch_semaphore` 超时。
 - **用途边界**：`start-install.sh` 中 prewarm usbmuxd → RestoreOS USB 移交，仅服务 IPSW 安装。**非运行期外设直通**。
 - 客机侧 ioreg：`AppleVirtIOUSBDeviceController` 类存在但实例=0 → virtio-usb 控制器未向客机暴露；`AppleUSBUserHCIResources`=1（含义待查）。
 

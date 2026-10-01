@@ -66,6 +66,7 @@
 | `docs/VMGPU-REFERENCE.md` | 黄金基线用法：`__text` 逐字节比对 / UUID / CDHash 核对 |
 | `docs/VMGPU-cdhash.tsv` | 基线 UUID/CDHash 清单 |
 | `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md` | 外设直通盘点（本轮产出） |
+| `docs/SOURCE-AUDIT-REPORT.md` | vz/ 全源码逐行静态审计（架构地图/hook 全表/USB 状态机/entitlement/风险清单） |
 | `docs/GPU-NATIVE-RESEARCH.md` | GPU 主线研究记录（本轮起持续更新） |
 | `docs/WORKLOG.md` | 逐条进度日志（压缩后先读它） |
 | `.diag/` | 本机取证暂存（gitignored，不入库） |

@@ -38,6 +38,11 @@
 ### 🔴 iPad 侧红线（用户特别强调）
 - **只能只读**：cat/ls/find(限定深度)/ps/unzip -l|unzip -p(单文件)。宿主上跑着本 VM（`com.apple.Virtualization.VirtualMachine` PID 变动，~275% CPU）+ macPad 项目也在动内核文件——**任何可能 panic iPadOS 的操作都会一波带走当前会话**。
 - 禁止：launchctl kickstart/unload、kill 系统进程、sysctl -w、nvram 写、注入运行中进程、全文件系统 find、大文件下载（诊断 zip ~1.1GB/个，只拉需要的条目）、在 iPad 上编译。
+
+### 🔄 iPad 重启后的恢复（2026-10-01 发生过一次）
+- iPad 重启 = **本客机断电，当前会话死**。重启后 Dopamine 需重新越狱（semi-untethered），respring 后 OpenSSH 才恢复；然后用户启动 VirtualMac App → 客机启动 → 新 CLI 会话。
+- 新会话第一步：读 `docs/WORKLOG.md` 末尾"iPad 重启后的续会话行动清单"，按序执行（先验 SSH，立刻拉 `/tmp/vmm.stderr.log` `/tmp/pvg-trace.log`）。
+- sshd 挂死的历史症状：`kex_exchange_identification: Connection reset by peer`（TCP 可连、banner 前被重置）。用户侧 launchctl kickstart 报 EPERM——终端里须先 `su` root；实在不行重启 iPad 是正解。
 - 清理 iPad 文件前：先把有价值证据拉回本机 `.diag/`（已 gitignore），再删。
 
 ## 3. 已确认事实速查（2026-10-01 盘点）

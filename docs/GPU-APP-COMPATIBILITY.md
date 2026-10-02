@@ -55,6 +55,8 @@ VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD prof
 
 隔离硬件模式启动 Devin（临时 HOME、临时 `--user-data-dir`，不读取用户配置）时，正常创建了 `Devin Helper --type=gpu-process`，且没有 `--disable-gpu` 或 `--use-gl=disabled`。该 GPU helper 的 `vmmap` 逐字显示加载 `AppleParavirtGPUMetalIOGPUFamily`、Metal、MetalKit、IOSurface、IOGPU 和 OpenGL。它证明 88 的 VirtualMac GPU 栈可被 Electron GPU 进程打开，但尚未证明 WebView/ANGLE 最终像素正确。
 
+随后通过 Chromium CDP `SystemInfo.getInfo` 和 attached workbench renderer 的 `Runtime.evaluate` 完成像素闸门：`displayType=ANGLE_METAL`、`glRenderer=ANGLE (Apple, ANGLE Metal Renderer: Apple Paravirtual device, Version 15.6.1 (Build 24G90))`、`gpu_compositing=enabled`、`webgl=enabled`、`webgpu=enabled`、`processCrashCount=0`；renderer 内 WebGL2 `clear + gl.finish + gl.readPixels` 返回 `[26,51,77,255]`、`error=0`。这证明 Devin 的 ANGLE WebGL 基础 GPU 路径在当前 88 客机可用。仍未证明所有 WebView、视频、复杂 WebGPU 页面长期稳定，因此不直接修改用户 argv 配置。
+
 ## MATLAB JIT 能力边界（2026-10-03）
 
 在当前 VirtualMac 客机内直接编译并运行只读 probe，得到：

@@ -319,6 +319,9 @@
 - [x] GPU helper `vmmap` 保存在 `.diag/devin-hwprobe-20261003-c/`，加载 `AppleParavirtGPUMetalIOGPUFamily`、Metal/MetalKit、IOSurface、IOGPU、OpenGL。
 - [ ] 尚未取得 WebView/ANGLE 实际像素或 `chrome://gpu` diagnostics；不把 GPU helper 存活当作完全修复。
 
+- [x] Devin CDP 像素闸门完成：`SystemInfo.getInfo` 报 `ANGLE_METAL`、Apple Paravirtual device、gpu_compositing/webgl/webgpu enabled、processCrashCount=0；attached workbench renderer 的 WebGL2 `clear/readPixels` 返回 `[26,51,77,255]`、error=0。证据 `.diag/devin-cdp-pixel-20261003-b/`。
+- [x] 结论：当前 88 已能支持 Devin ANGLE WebGL 基础硬件渲染，应用侧 `disable-hardware-acceleration` 对该基础路径不是必需；不自动修改用户 argv，复杂 WebView/视频/WebGPU 仍待单独验证。
+
 ## 2026-10-03 — 90 GPUReady 候选包完成
 
 - [x] 90 候选包含两项真实稳定性改动：GuestTools readiness marker 不依赖 status-item button/menu；同一 guest-agent connection 的 payload repair 最多3次，之后每60秒只 probe，reconnect 重置上限。

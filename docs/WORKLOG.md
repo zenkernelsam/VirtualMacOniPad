@@ -314,6 +314,7 @@
 - [x] 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”，列入 outstanding issue。
 - [x] 只读核对 `~/.qoder-cn/argv.json`：`disable-hardware-acceleration` 注释；隔离 Qoder CDP 运行时报告 ANGLE Metal / Apple Paravirtual device、gpu_compositing/opengl/rasterization/webgl/webgpu enabled、processCrashCount=0；命令行仅有 `--disable-skia-graphite`。
 - [ ] 待取正式 Qoder 用户 profile 的原文提示、featureStatus 和 WebGL/WebGPU 像素读回；在此之前不修改 Qoder 配置、bundle 或默认 GPU 策略。
+- [x] 正式 Qoder profile 的 CDP `SystemInfo` 与 WebGL2 像素闸门完成：ANGLE_METAL/Apple Paravirtual device、gpu_compositing/opengl/rasterization/webgl/webgpu enabled、processCrashCount=0；`readPixels` 返回 `[51,77,102,255]`、error=0。证据 `.diag/qoder-gpu-probe-real-20261003/`、`.diag/qoder-gpu-pixel-real-20261003/`。文案仍待定位来源。
 - [x] Instance1（macPad iPadOS16.3 kernelcache）只读 Hex-Rays：`_proc_check_map_anon @0xfffffe00092a68c4` 的 MAP_JIT 路径要求 developer mode/device unlocked 并查询 `dynamic-codesigning` entitlement；kernel strings 明确 `MAP_JIT requires sandboxing` / `MAP_JIT requires the dynamic-codesigning entitlement`。这把 MATLAB JIT 缺口从猜测提升为内核证据；Instance2/3 仅用于上下文，未改 IDB。
 ## 2026-10-03 — 90 候选：GuestTools repair 风暴上限
 

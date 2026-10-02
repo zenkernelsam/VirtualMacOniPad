@@ -286,3 +286,8 @@
 - [x] 核对 iPad 实际 dpkg：仍为 `2:1.2.3+88.bb005a7dfe.gpuvulkan`；宿主 `VirtualMac.log` 的 readiness repair 已增长至至少 attempt 409。89 readiness 修复没有运行时证据。
 - [x] 静态审计 `OpenGLPVGCompat.m` 与 host framebuffer/XPC 代码：guest shim 没有 CGLFlushDrawable/glSwapBuffers/drawable present hook；现有 frame callback/IOSurface ACK 在 host VMM 侧，不应未经窗口像素证据就全局 hook。
 - [x] 结论：当前不构建重复或猜测性的 90；90 必须等待 89 首启握手验收和 MATLAB 窗口 present/context 生命周期失败证据。闸门写入 `docs/GPU-APP-COMPATIBILITY.md`。
+## 2026-10-03 — NSOpenGLView 窗口路径基线纠错
+
+- [x] 新建 ignored `.diag/window-gl-probe-20261003/`，用 `NSOpenGLView`、真实 window drawable、VAO/VBO、shader、连续 `flushBuffer`、`glReadPixels` 跑 2 秒；142 帧、`failed=0`、exit0。渲染器字符串在 context teardown 后为 null，不能据此判失败。
+- [x] 初版探针曾在 core profile 漏绑 VAO，导致 `glEnableVertexAttribArray` 的 `GL_INVALID_OPERATION (0x502)`；已定位为测试程序错误并修正。不能把初版失败误归因 VirtualMac 的 window present。
+- [x] 当前没有足够证据构建 90；窗口 drawable 基线也通过，MATLAB figure 的特有失败仍需在 MATLAB 实际进程取得屏幕像素/上下文日志后再改。

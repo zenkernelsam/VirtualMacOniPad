@@ -5233,7 +5233,8 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
         setenv("PVG_DEVICEINFO_EXTRA", capsExtra.UTF8String, 1);
     else
         unsetenv("PVG_DEVICEINFO_EXTRA");
-    fprintf(stderr, "[PVGDeviceInfo] experimental=%d (default off)\n", capsEnabled);
+    fprintf(stderr, "[PVGDeviceInfo] experimental=%d profile=%s (default on)\n",
+            capsEnabled, PVGDeviceInfoCapsProfile);
 
     setStatus(VZL(@"Loading extracted Apple virtualization frameworks…"));
     BOOL guestToolsEnabled =

@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 #import "PVGDeviceInfoPolicy.h"
+#import "PVGDeviceInfoProfile.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <dlfcn.h>
@@ -84,11 +85,6 @@ extern uint8_t *vmmhook_host_address_for_ipa(uint64_t ipa, size_t size);
 
 static void Trace(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
 
-typedef struct {
-    uint32_t key;
-    uint32_t value;
-} VMDevInfoPair;
-
 static const VMDevInfoPair gDevInfoDefaults[] = {
     {17, 1},          // BufferWithIOSurface
     {18, 0x20007},    // MaxMetalShaderVersion = packed AIR 2.7 (guest ceiling)
@@ -133,22 +129,16 @@ static void ParseDevInfoExtra(const char *text) {
         if (eq == NULL)
             continue;
         *eq = '\0';
-        uint32_t key = (uint32_t)strtoul(token, NULL, 0);
-        uint32_t value = (uint32_t)strtoul(eq + 1, NULL, 0);
-        if (key == 0)
+        uint32_t key, value;
+        if (!PVGDeviceInfoParseUInt32(token, &key) ||
+            !PVGDeviceInfoParseUInt32(eq + 1, &value) || key == 0) {
+            dprintf(STDERR_FILENO, "VirtualMac PVG: malformed deviceinfo override refused\n");
             continue;
-        BOOL replaced = NO;
-        for (size_t i = 0; i < gDevInfoExtraCount; ++i) {
-            if (gDevInfoExtras[i].key == key) {
-                gDevInfoExtras[i].value = value;
-                replaced = YES;
-                break;
-            }
         }
-        if (!replaced && gDevInfoExtraCount <
-                sizeof(gDevInfoExtras) / sizeof(gDevInfoExtras[0]))
-            gDevInfoExtras[gDevInfoExtraCount++] =
-                (VMDevInfoPair){key, value};
+        if (!PVGDeviceInfoNarrowPair(gDevInfoExtras, gDevInfoExtraCount, key, value))
+            dprintf(STDERR_FILENO,
+                    "VirtualMac PVG: deviceinfo override refused key=%u value=%u (narrowing only)\n",
+                    key, value);
     }
     free(copy);
 }
@@ -161,65 +151,31 @@ static void TraceGetDeviceInfo(id self, SEL selector, uint32_t keyLimit,
     uint8_t *page = vmmhook_host_address_for_ipa(
         (uint64_t)replyFrame << 14, 0x4000);
     if (page == NULL) {
+        dprintf(STDERR_FILENO, "VirtualMac PVG: deviceinfo no-host-map pfn=0x%x\n", replyFrame);
         Trace(@"DEVICEINFO\tno-host-map\tpfn=0x%x", replyFrame);
         return;
     }
     // The reply starts at the same offset inside the guest page that the
     // original handler used: dst = mappedVA + *(device + 0x1F0).
-    uint64_t replyOffset = *(const uint64_t *)((const char *)self + 0x1F0);
-    if (replyOffset >= 0x4000) {
-        Trace(@"DEVICEINFO\tbad-offset=0x%llx\tpfn=0x%x",
-              (unsigned long long)replyOffset, replyFrame);
-        return;
-    }
-    uint32_t *pairs = (uint32_t *)(page + replyOffset);
-    uint32_t capacity = (uint32_t)((0x4000 - replyOffset) / 8);
+    uint64_t replyOffset = 0;
     // The guest's walker stops at `count` pairs or a zero pair. Existing pairs
     // can never exceed what the page holds, but a count larger than capacity
     // means the last physical slot must remain a terminator or the walk reads
     // past the page — reserve it rather than spending it on an answer.
-    uint32_t limit = MIN(count, capacity);
-    uint32_t usable = count > capacity ? capacity - 1 : limit;
-    uint32_t n = 0;
-    while (n < limit && (pairs[2 * n] != 0 || pairs[2 * n + 1] != 0))
-        ++n;
-    uint32_t applied = 0, dropped = 0;
-    for (size_t i = 0; i < gDevInfoExtraCount; ++i) {
-        uint32_t key = gDevInfoExtras[i].key;
-        uint32_t value = gDevInfoExtras[i].value;
-        if (key >= keyLimit) {
-            ++dropped;
-            continue;
-        }
-        BOOL found = NO;
-        for (uint32_t j = 0; j < n; ++j) {
-            if (pairs[2 * j] == key) {
-                pairs[2 * j + 1] = value;
-                found = YES;
-                break;
-            }
-        }
-        if (!found) {
-            if (n >= usable) {
-                ++dropped;
-                continue;
-            }
-            pairs[2 * n] = key;
-            pairs[2 * n + 1] = value;
-            ++n;
-        }
-        ++applied;
+    PVGDeviceInfoReplyResult result = PVGDeviceInfoAugmentReply(
+        page, 0x4000, replyOffset, count, keyLimit,
+        gDevInfoExtras, gDevInfoExtraCount);
+    if (result.status != PVGDeviceInfoReplyOK) {
+        dprintf(STDERR_FILENO,
+                "VirtualMac PVG: deviceinfo reply refused status=%u offset=0x%llx count=%u\n",
+                result.status, (unsigned long long)replyOffset, count);
+        return;
     }
+    uint32_t n = result.pairs;
+    uint32_t applied = result.applied, dropped = result.dropped;
     // The walk stops at a zero pair or the pair count, whichever comes first.
     // If the page is full yet the guest will read further, the last slot is
     // spent on the terminator rather than left holding a stale pair.
-    if (n < limit) {
-        pairs[2 * n] = 0;
-        pairs[2 * n + 1] = 0;
-    } else if (count > capacity) {
-        pairs[2 * (capacity - 1)] = 0;
-        pairs[2 * (capacity - 1) + 1] = 0;
-    }
     Trace(@"DEVICEINFO\tkeyLimit=%u\tcount=%u\tpfn=0x%x\toff=0x%llx"
           "\tpairs=%u\tapplied=%u\tdropped=%u",
           keyLimit, count, replyFrame,
@@ -619,6 +575,7 @@ static void *TranslatedTaskAddress(void *task, uint64_t offset,
 
 static void *SegmentedAddressForOffset(id self, SEL selector,
                                        uint64_t offset, uint64_t length) {
+    (void)selector;
     // Preserve PGTask's native range validation and exception behavior.
     void *nativeAddress = ((void *(*)(id, SEL, uint64_t, uint64_t))
         objc_msgSend)(self, gOriginalAddressForOffsetSelector, offset, length);
@@ -630,6 +587,7 @@ static void *SegmentedAddressForOffset(id self, SEL selector,
 static void *SegmentedMappedAddressForOffset(id self, SEL selector,
                                              uint64_t offset,
                                              uint64_t length) {
+    (void)selector;
     // The original method maintains PGTask's mapped-range tracker and maps the
     // requested range on demand through the descriptor callback. Keep that side
     // effect, but never trust its base+offset result, which assumes the whole
@@ -1783,14 +1741,24 @@ static void InstallPVGTrace(void) {
         if (gDevInfoCapsEnabled) {
             SEL getDeviceInfoSelector =
                 NSSelectorFromString(@"getDeviceInfo:length:dst:");
-            memcpy(gDevInfoExtras, gDevInfoDefaults,
-                   sizeof(gDevInfoDefaults));
-            gDevInfoExtraCount =
-                sizeof(gDevInfoDefaults) / sizeof(gDevInfoDefaults[0]);
+            id<MTLDevice> hostDevice = MTLCreateSystemDefaultDevice();
+            for (size_t index = 0; index < sizeof(gDevInfoDefaults) / sizeof(gDevInfoDefaults[0]); ++index) {
+                VMDevInfoPair resolved;
+                if (PVGDeviceInfoResolveHostPair(hostDevice, gDevInfoDefaults[index], &resolved))
+                    gDevInfoExtras[gDevInfoExtraCount++] = resolved;
+            }
             ParseDevInfoExtra(getenv("PVG_DEVICEINFO_EXTRA"));
+            dprintf(STDERR_FILENO, "VirtualMac PVG: deviceinfo profile=%s pairs=%zu serializer=unchanged\n",
+                    PVGDeviceInfoCapsProfile, gDevInfoExtraCount);
+            for (size_t index = 0; index < gDevInfoExtraCount; ++index)
+                dprintf(STDERR_FILENO, "VirtualMac PVG: deviceinfo key=%u value=%u\n",
+                        gDevInfoExtras[index].key, gDevInfoExtras[index].value);
             Method getDeviceInfoMethod = class_getInstanceMethod(
                 cls, getDeviceInfoSelector);
-            if (getDeviceInfoMethod != NULL) {
+            char returnType[8] = {0};
+            if (getDeviceInfoMethod != NULL)
+                method_getReturnType(getDeviceInfoMethod, returnType, sizeof(returnType));
+            if (gDevInfoExtraCount != 0 && PVGDeviceInfoMethodSupported(getDeviceInfoMethod)) {
                 gOriginalGetDeviceInfo =
                     (void (*)(id, SEL, uint32_t, uint32_t, uint32_t))
                         method_setImplementation(
@@ -1799,6 +1767,10 @@ static void InstallPVGTrace(void) {
                       "\tpairs=%u", (unsigned)gDevInfoExtraCount);
             } else {
                 gDevInfoCapsEnabled = NO;
+                dprintf(STDERR_FILENO,
+                        "VirtualMac PVG: deviceinfo hook refused args=%u return=%s pairs=%zu\n",
+                        getDeviceInfoMethod == NULL ? 0 : method_getNumberOfArguments(getDeviceInfoMethod),
+                        returnType, gDevInfoExtraCount);
                 Trace(@"HOOK\tgetDeviceInfo:length:dst:\tmissing");
             }
         }

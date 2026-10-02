@@ -61,6 +61,13 @@
 - vmmhook.m = VMM 进程兼容层：`hv_*` 全套 interpose、USB HCI swizzle（restore 桥服务端）、xpc/IOService/IOSurfaceCreate 改写、VMM 内存放宽至 2×physical（GPU 重载相关的真实约束）。
 - 已知疑点：客机 `system_profiler SPDisplaysDataType` 输出空；App `makeConfiguration` 有字典下标 SIGSEGV 历史崩溃（9/20，vmfix1 在装）；vzboot.m 输入类注释与运行日志矛盾。
 
+### 2026-10-02 晚间更新：84基线与实验增强配置
+
+- 用户已安装84并反馈Godot正常；客机 `.build=84-513cc8ea9272d5f3`、GL SHA/signature核对一致。未做性能基准，不声称零损耗。
+- 用户当次明确接受实验包可能导致宿主panic/整机重启，要求审核后重建；不延伸为主动安装、重启或运行中VMM注入授权。保留84作为回滚基线，不在book-buster commit/push。
+- 当前源码的新实验 profile=`host-clamped-v1`：App缺省on，新preference false可关，VMM仍仅精确env1；旧4095/Apple9参考表不直接发送。宿主family最高Apple7，shader flag逐getter查询，协议/资源位不全开；AIR/serializer保持原值，known sample-position路径不开。实际应用/性能仍待首启验收。
+- c137代码的 `_PGDevice+0x1F0` 是 `_rootTaskBase`指针，不是页内offset；hv_vm_map得到物理页后从offset0扩展。新增reply owner修复容量0下溢；extra只能收窄，不能追加或扩大能力。规则以新headers为准，旧参考表不是可直接发送的能力表。研究§N/WORKLOG晚间条目含证据与测试。
+
 ## 4. 文档索引
 
 | 文件 | 内容 |

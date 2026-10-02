@@ -5,9 +5,10 @@
 
 #define PVGDeviceInfoCapsPreference @"PVGDeviceInfoCapsExperimental"
 #define PVGDeviceInfoCapsEnvironment "PVG_DEVICEINFO_CAPS_EXPERIMENTAL"
+#define PVGDeviceInfoCapsProfile "host-clamped-v1"
 
 static inline BOOL PVGDeviceInfoCapsPreferenceRequested(id value) {
-    return [value isKindOfClass:NSNumber.class] && [value boolValue];
+    return value == nil || ([value isKindOfClass:NSNumber.class] && [value boolValue]);
 }
 
 static inline BOOL PVGDeviceInfoCapsEnvironmentRequested(const char *value) {

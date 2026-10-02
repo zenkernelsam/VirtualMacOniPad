@@ -187,3 +187,14 @@
 - 单个 Godot 转译问题可在新启动的诊断进程设置 `VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER=0`，恢复此前 shader 行为（原已知粒子 crash 也会恢复）；不写全局 launchctl 环境。
 - App/VM 首启异常时停止尝试；保存日志后，确认 VM 已停止，再重装事先保留的可启动旧包。若旧包含实验能力扩展，必须先安排该版本的扩展关闭，不能把原本的过度能力上报重新带回。
 - VM bundle/磁盘不作回滚覆盖，不用恢复旧盘抹掉新数据；客机 GuestTools 的回退由旧 App 启动时重新安装旧 payload 或经备份手动恢复，恢复前另行确认。
+
+## 2026-10-02 晚间 — 已安装84；实验增强包的源码审计与修正
+
+- 用户安装1.2.3(84)，反馈 Godot 看起来正常。客机核对 `/Library/VirtualMac/.build=84-513cc8ea9272d5f3`、已安装 GL SHA256 `056c9d015d49777700e6a4b015d60529f88ac93cb3e03a7db98ca2baf6c0882d`，严格签名验证通过；未测 FPS，不声称性能零损耗。
+- 两份旧包已复制飞牛 `VirtualMacOniPad_iOS` 并比对 SHA256；NAS 上传完成状态未核验。用户明确接受宿主 panic/整机重启的实验风险，并要求先审核 Git 中 GPU 补丁、提高成功率后重建。本轮只源码/构建/交付，不安装或重启，不碰 book-buster 原仓库，不向运行中 VMM 注入。
+- 审核 5906e1b、046abc6、c137b13、598e6cd、b87c465 的相关改动；保留既有 mappedAddressForOffset 校验、分段映射、BC/OpenGL 和 Godot 修复，不重新引入原始错误地址回退。
+- 发现 c137 回复地址错误：`_PGDevice+0x1F0` 为 `_rootTaskBase`，ObjC类型 `^v`。原函数的 `rootTaskBase+temporaryOffset` 是新映射的临时别名；hv_vm_map helper 返回的是客机物理页本身，必须从 offset0写。静态解析及反汇编证据在 `.diag/check-pg-deviceinfo-abi.py`；方法编码 `v28@0:8I16I20I24`、IMP `0x100011df0`。旧扩展可能一直提前退出，不能把旧包视为已验证生效。
+- 另复现页尾算术下溢：replyOffset=0x3ffc、count=1 时旧代码 `capacity=0 usable=4294967295`。抽出有界 reply owner，拒绝短尾/越界/必要哨兵缺失，不覆盖原有完整回答；从页首扩展。
+- 新 `host-clamped-v1` 默认开，显式新 preference false 可回退；VMM env仍精确1、iPadOS<16拒绝方法hook；不写用户 preference，84回滚缺省仍off。参考表在运行时按宿主查询裁剪，不发送 Apple9、提高AIR/serializer、共享资源/命令跳转等未证协议位。详见研究文档§N。
+- 覆写改为只能收窄解析后的 profile，legacy extra无法重开 serializer=8、flags=4095或Apple9；无匹配getter的字段省略。启动常规stderr打印实际profile/key/value，错误不再只依赖debug trace。
+- 新策略/profile/ABI回归、ASan+UBSan reply回归（全部16385个页偏移）、Godot shader回归通过；pvg_trace iOS arm64e严格语法检查通过，App仅已有UIKit弃用警告。尚未安装新配置，硬件/传输执行和性能未验证。下一步独立构建并核验包内库。

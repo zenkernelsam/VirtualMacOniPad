@@ -366,7 +366,7 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 
 #### K.2 deviceInfo 扩展实现（`pvg_trace.m` `TraceGetDeviceInfo` + `vmmhook.m` 映射表）
 
-**注入点**：swizzle `-[_PGDevice getDeviceInfo:length:dst:]`（IDA 确认其 IMP=`sub_100011DF0`，仅存根通道 `0x3a` 命令（`sub_1000203D8`）调用；参数序 = `[key_table_len][count][reply_pfn]`）。流程：调原 IMP → `reply_pfn<<14` 经 vmmhook `hv_vm_map` 记录表换算宿主 VA → `+*(device+0x1F0)` 复现 dst → 走哨兵 → 追加/覆写扩展 key（`<keyLimit` 门控，语义与 Ventura `keyLimit>K` 逐位一致）→ 重写 `{0,0}` 哨兵（`count>capacity` 时末位保留哨兵——Reims `info_reply::encode` 同款语义）。客机在完成 stamp 前阻塞是先前的时序判断，仍需首启验证映射与回复有效性。
+**注入点**：swizzle `-[_PGDevice getDeviceInfo:length:dst:]`（IMP=`sub_100011DF0`，仅存根通道 `0x3a` 命令（`sub_1000203D8`）调用；参数序 = `[key_table_len][count][reply_pfn]`，ObjC 编码 `v28@0:8I16I20I24`）。**2026-10-02 晚间审计纠正**：`device+0x1F0` 是 `_rootTaskBase`（类型 `^v`），不是客机页内偏移。原函数分配临时 root-task offset，映射 `reply_pfn<<14` 的一个 16KB 页，写入 `rootTaskBase+temporaryOffset`，随后解除别名映射。`hv_vm_map` 记录表已直接得到同一客机物理页的宿主 VA，因此扩展从该页 offset=0 开始，不能再加 rootTaskBase。旧实现可能在 bad-offset 分支提前退出，旧包未证明能力扩展实际生效。新流程：原 IMP → 物理页 VA → 从页首按 keyLimit/count 扩展 → 保留终止哨兵；方法 ABI 不匹配、无映射、回复越界或缺少必要哨兵时拒绝扩展并输出常规日志。完成 stamp 时序来自处理器调用链，实际首启和能力执行仍待验收。
 
 **默认表尚未完整验证**：keys 17–41 参照 Reims `DEVICE_INFO_CAPS`，洞位 20/22/38/39 不发、42/44 不服务 macOS15。审计发现 key37=1009/Apple9 **不在本机 M1 实测支持集合**；key33=4095 将全部 12 位开启，其中包含 `CommandBufferJump`、`SharedMemoryHeap`、`SharedTexturePlacement` 等协议/资源能力，不能由公开 MTLDevice 查询全部证明。本轮没有部署该表，也没有证明它会触发新 opcode；这些属于必须收窄或逐位验证的风险项。此前“每项均有宿主实测背书”的说法撤回，旧 deb 不视为已验证满血版本。
 
@@ -406,4 +406,19 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 - CPU 回归验证默认 off、旧配置隔离、严格 env 解析、Godot 源结构转换；App/VMM iOS 编译通过。93 个 Mach-O 的 iOS14.5 平台/最低系统版本检查及包 stage audit 通过；缺少14.5 DSC，完整 ABI audit 未执行。
 - 解包核实 App 与两个 VMM hook 的新策略、编译输出 hash、trustcache，以及 GuestTools 内三架构 GL 库的严格签名和输出 hash。库 SHA256 `056c9d015d49777700e6a4b015d60529f88ac93cb3e03a7db98ca2baf6c0882d`。
 - **包内提取库实际验证**：同一 pre-title 场景、GPU 粒子保留，3 次独立运行各60帧/1152×648 GPU读回、exit0。证据 `.diag/godot-conservative-build/scene-run-{1,2,3}.{log,png}`。仍不代表全游戏或其他应用正常。
-- 本轮未安装或重启，iPad 新 App/VMM 首启、GuestTools 自动更新和全游戏测试待安装验收。安装脚本会结束运行中的 VMM；先保存数据、备份当前基线并正常关机，再安排安装。完整验收/回滚清单见 `WORKLOG.md` 的“保守包交付与验收”。
+- 交付时未安装或重启。用户随后安装 build84 并报告 Godot 场景看起来正常；客机核对 `.build=84-513cc8ea9272d5f3`、GL 库 SHA256 与上述值一致、严格签名验证通过。全游戏和其他应用仍未验收。安装脚本会结束运行中的 VMM；先保存数据、备份当前基线并正常关机，再安排安装。完整验收/回滚清单见 `WORKLOG.md` 的“保守包交付与验收”。
+
+### N. 审计后的默认开启实验增强配置（2026-10-02 晚间）
+
+用户明确接受宿主 panic/整机重启风险，选择先审核并裁剪旧补丁，再构建合并实验包；本轮仍不安装、不重启、不向运行中 VMM 注入。已安装且用户反馈 Godot 正常的 build84 是回退基线，不覆盖旧包。
+
+- 保留 Godot shader 修复、既有 OpenGL/BC 纹理兼容、分段 GPU 内存映射和 5906e1b 的 mappedAddressForOffset 校验；没有跳过 GPU/Metal 校验。
+- App 缺省启用 `host-clamped-v1`，新 preference `PVGDeviceInfoCapsExperimental=NO` 可关闭；不持久化默认值，回退84后缺省仍 off。旧 preference 不改变选择。VMM 仍只接受新 env 的精确 `1`，iPadOS<16 仍不安装该方法 hook。
+- `PVGDeviceInfoProfile.h` 从真实宿主 MTLDevice 查询并裁剪参考表：family 最高 Apple7 且不能超过宿主；compute threads/memory 不超过宿主及参考上限；Tile/Imageblock/ROG/atomics/large-MRT 与部分 shader flags 只有匹配返回 ABI 的宿主 getter 报 YES 才追加。缺少 getter 的 GPU cores/array layers/predication 不猜常数。
+- key33 只允许 bit5..9（最高 `0x3e0`）：argument-buffer bit 仅在宿主报告枚举 Tier2 时设置，其他位逐 getter 查询。保持 LargeUserTasks/LargeKernelTasks/CommandBufferJump/RangeBuffer/SharedMemoryHeap/ComputeCompressedTextureWrite/SharedTexturePlacement 位关闭；不能用 GPU 支持证明这些协议能力。
+- 不追加 keys17/18/19/21/41，不提高原 key10；不补 vertex-amplification/rasterization-rate/2025 fields。AIR 2.7 是客机上限，不是本宿主 compiler 兼容证明；采样位置有已知 serializer 不匹配，不能重新开启。keys32/40 保留参考对齐量，其他硬件数值仍不能视为端到端执行证明。
+- 覆写仅能收窄已解析 profile：拒绝新增 key、增加资源上限、扩大位掩码、Apple9、serializer=8、负数/溢出/垃圾后缀；对齐量收窄方向是更严格的2次幂，不是减少字节数。
+- `PVGDeviceInfoReply.h` 修复页尾容量为0时 `capacity-1` 下溢；key0即停止、physical tail 保留哨兵，越界与缺少必要哨兵的回复不修改。旧算术最小复现得到 `capacity=0 usable=4294967295`，不是某次真实启动崩溃的证据。
+- 验证：reply 回归启用 ASan/UBSan，覆盖全部16385个页偏移和越界/哨兵/覆盖规则；mock profile/方法 ABI/策略回归及 Godot shader 回归通过 `-Wall -Wextra -Werror`。pvg_trace iOS arm64e 同样严格语法检查通过；App iOS arm64 检查仅有既存 UIKit deprecation。
+
+该配置比84更积极，但不是恢复旧4095全开表，也不是已证明 MATLAB/Chromium/Vulkan 全部可用。首启必须核对 `profile=host-clamped-v1`、实际 key/value 和 `caps augmented ... applied ... dropped`；新 profile 的实际应用执行和性能尚未验证。

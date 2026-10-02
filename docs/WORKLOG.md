@@ -307,6 +307,7 @@
 - [x] 该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的 `brk #0` 条件一致，确认这是 guest hypervisor/JIT capability 边界，不是当前 GPU renderer/MSAA/FBO 缺口。
 - [x] 不把 getter 强制返回1加入 VirtualMac；那等价于应用二进制症状补丁，且未证明 JIT 写保护/执行内存契约。90 继续保持证据闸门，不构建。
 - [x] 追加 JIT probe：匿名 RWX `mmap` 返回 `errno=13/EACCES`，`pthread_jit_write_protect_np` 切换不崩但不提供执行内存；进一步证明不能只伪造 getter。
+- [x] Instance1（macPad iPadOS16.3 kernelcache）只读 Hex-Rays：`_proc_check_map_anon @0xfffffe00092a68c4` 的 MAP_JIT 路径要求 developer mode/device unlocked 并查询 `dynamic-codesigning` entitlement；kernel strings 明确 `MAP_JIT requires sandboxing` / `MAP_JIT requires the dynamic-codesigning entitlement`。这把 MATLAB JIT 缺口从猜测提升为内核证据；Instance2/3 仅用于上下文，未改 IDB。
 ## 2026-10-03 — 90 候选：GuestTools repair 风暴上限
 
 - [x] 新鲜 iPad 宿主证据：88 仍安装，`guest menu extra not acknowledged; repair attempt` 已到至少 595，且每次 payload current；没有新 GPU fault 字段。

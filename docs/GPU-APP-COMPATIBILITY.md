@@ -68,3 +68,7 @@ pthread_jit_write_protect_supported_np=0
 该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的逐字证据一致：CEF 在返回 0 时触发 `brk #0`。VirtualMac 当前 GPU/Metal/GL shim 没有改变 hypervisor JIT capability；把 getter 强制返回 1 会复刻 Desktop/Patch 的应用症状补丁，不能称 GPU 直通修复。若要消除该补丁，必须先证明 guest JIT entitlement、写保护切换和执行内存契约能在 VM 中合法实现；当前没有这样的运行时证据。
 
 追加 probe 还尝试了匿名 RWX 映射和 `pthread_jit_write_protect_np` 切换：`supported=0`、`mmap ... errno=13 (EACCES)`；切换调用本身没有崩溃，但没有建立可执行内存契约。该结果进一步排除只伪造 getter 作为正式修复。
+
+### Instance1 内核证据
+
+只读核对 macPad 的 Instance1（iPadOS 16.3 kernelcache）后，Hex-Rays 的 `_proc_check_map_anon @ 0xfffffe00092a68c4` 显示 `MAP_JIT` 路径必须经过 developer-mode/device-unlock 状态，并从进程 entitlement 查询 `dynamic-codesigning`；缺失时返回拒绝。kernel 字符串还明确写出 `MAP_JIT requires sandboxing` 与 `MAP_JIT requires the dynamic-codesigning entitlement`。因此 MATLAB CEF 的 JIT workaround 是 VM guest execution-policy 缺口，不能由 GPU 直通层安全伪造。

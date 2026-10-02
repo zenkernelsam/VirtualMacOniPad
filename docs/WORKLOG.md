@@ -269,3 +269,8 @@
 - [x] 这些二进制证据加强现有决策：不强升 Tier2/207、不伪造 getter/serializer；GPU fault 的停车语义是 PGFIFO 设计事实，不能用进程存活掩盖。
 - [x] readiness 修复包完成：`VirtualMac/build/release/VirtualMac_1.2.3_0658b082ec.deb`，版本 `2:1.2.3+89.0658b08.gpuready`，SHA256=`dd3fa1ecbea974996e58a5c799f6a9c3de7857ec476f6f2200a06ba0d130d66c`；包内 GuestTools 与独立修复构建 SHA256 均为 `b2a3cd74fe3b04d03c2718de25b1257c6401a728cace4a5c677ef8e024fa1c95`，codesign strict 通过。
 - [x] 89 包已复制到本地飞牛 `VirtualMacOniPad_iOS` 并逐字节 hash 一致；未安装、未重启、未操作运行中 VMM。下一步仍需用户在正常关机后安装，验收 `guest menu extra acknowledged` 不再出现 repair 增长，再做 MATLAB/Devin 的真实 compositor/像素 A/B。
+## 2026-10-02 — 89 尚未安装；新增 ReportCrash 诊断边界
+
+- [x] SSH 只读核对：宿主 `/tmp/vmm.stderr.log` 仍为 22:47 的 88 启动，未出现 89 readiness acknowledgement；本次 `dpkg-query` 无版本输出，不能声称 89 已安装。
+- [x] 拉取 23:17、23:18、23:21、23:24 的四份小型 `ReportCrash-*.ips`。逐字证据均显示崩溃进程是 iPadOS `/System/Library/CoreServices/ReportCrash`，`SIGABRT` 位于 `dyld4::Atlas::ProcessSnapshot::Serializer::deserialize`，不是 VirtualMac VMM、GuestTools 或 GPU fault；证据保存在 `.diag/post-89-check-20261002/`。
+- [ ] 89 仍待用户正常关闭 VM 后安装；安装前不做运行中替换。安装后首要检查 readiness marker、repair attempt 是否停止，以及新的 VMM/GPU 日志。

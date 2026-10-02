@@ -280,3 +280,9 @@
 - [x] 基础路径连续通过：uniform shader、VBO、indexed/non-indexed draw、FBO、`glReadPixels`，全部 `gl-error=0`、exit0。
 - [x] 新增 ignored `.diag/msaa-probe-20261002/`：独立 4x multisample texture FBO + shader/VBO draw + `glBlitFramebuffer` resolve + `glReadPixels`，输出 `msaa-fbo=0x8cd5 draw-error=0x0 blit-error=0x0 read-error=0x0 pixel=255,0,0,255`、exit0。
 - [x] 证据把 MATLAB figure 缺口收窄到窗口 drawable/present、上下文复用或 MATLAB 特有多通道状态；不能再把“VirtualMac 不支持 MSAA/FBO”作为根因，也不应因此扩大协议能力表。下一步需做窗口交换与连续多帧生命周期 probe。
+## 2026-10-03 — 保持 88；90 版本闸门与 swap hook 静态审计
+
+- [x] 用户选择先保持 88，隔壁项目继续工作；未安装 89、未重启、未碰运行中 VMM。
+- [x] 核对 iPad 实际 dpkg：仍为 `2:1.2.3+88.bb005a7dfe.gpuvulkan`；宿主 `VirtualMac.log` 的 readiness repair 已增长至至少 attempt 409。89 readiness 修复没有运行时证据。
+- [x] 静态审计 `OpenGLPVGCompat.m` 与 host framebuffer/XPC 代码：guest shim 没有 CGLFlushDrawable/glSwapBuffers/drawable present hook；现有 frame callback/IOSurface ACK 在 host VMM 侧，不应未经窗口像素证据就全局 hook。
+- [x] 结论：当前不构建重复或猜测性的 90；90 必须等待 89 首启握手验收和 MATLAB 窗口 present/context 生命周期失败证据。闸门写入 `docs/GPU-APP-COMPATIBILITY.md`。

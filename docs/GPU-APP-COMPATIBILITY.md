@@ -32,3 +32,13 @@
 3. Devin：仅在有 GPU helper 和真实 WebView 像素读回的基线后，才做一次去掉 `disable-hardware-acceleration` 的应用级 A/B；不改 `Desktop/Patch`，不把进程存活当成功。
 4. 若 MATLAB/Devin 仍失败，按最小失败栈选择 Metal/IOSurface、MSAA/VBO 或 JIT 独立方向；禁止恢复 Tier2/协议 207、Apple9/4095 或全局 bypass。
 
+## 90 版本闸门（2026-10-03）
+
+当前不直接构建 90。静态审计确认 `OpenGLPVGCompat.m` 没有 `CGLFlushDrawable`、`glSwapBuffers` 或 drawable present hook；它只处理 capability、render-pass sample descriptor、Rosetta vertex buffer 和限定 particle shader。全局加入 flush/present hook 会改变 MATLAB、Devin、Godot 及其他 OpenGL 应用的时序，现有证据不足以证明它能修复 MATLAB figure。
+
+构建 90 前必须同时满足：
+
+1. 89 readiness 修复已在真实 guest 首启中产生 `guest menu extra acknowledged token`，且 repair attempt 不再增长；
+2. MATLAB 取得带时间戳的窗口 drawable/屏幕像素失败证据，证明失败发生在 present 或上下文生命周期；
+3. 新 hook 有最小进程范围、关闭开关、窗口/离屏负回归，并通过连续多帧读回；
+4. Devin 的 GPU helper/WebView 像素 A/B 与 MATLAB 证据分开，不能用任一应用代替另一应用。

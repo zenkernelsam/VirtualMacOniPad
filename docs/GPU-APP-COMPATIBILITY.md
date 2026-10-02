@@ -91,6 +91,8 @@ pthread_jit_write_protect_supported_np=0
 
 正式 Qoder profile 的 attached workbench renderer 进一步完成 WebGL2 `clear + readPixels`：`version=WebGL 2.0 (OpenGL ES 3.0 Chromium)`、`renderer=WebKit WebGL`、`pixel=[51,77,102,255]`、`error=0`。因此当前 Qoder 实际硬件 WebGL 路径可用；“软件渲染”文案仍作为 outstanding issue，待定位其状态来源，不作为 VirtualMac GPU 失败证据。
 
+Qoder `main.js` 的状态逻辑也已核对：只有 `gpu_compositing` 为 `disabled_software`/`unavailable_software` 才把 GPU state 判为 software；`enabled`、`enabled_on`、`enabled_force`、`enabled_force_on`、`enabled_readback` 均判为 hardware。另有两个独立原因会触发提示：`AICODING_GPU_DISABLED_BY_USER=1` 或 GPU crash guard 状态。当前正式 CDP 结果是 `gpu_compositing=enabled`，所以提示来源应继续查用户会话/历史 crash guard，而不是改 VirtualMac GPU。
+
 需要区分产品：当前 `/Applications` 只有 `Qoder CN IDE.app`，另有 `~/.qoder-cn/bin/qoderclicn` CLI；历史 Qoder 独立 App 日志曾出现 `--use-gl=disabled`，但对应 bundle 当前不存在。不能把历史独立 App 的软件回退命令行套到当前 IDE，也不能把 IDE 的 Chromium GPU 状态直接套到 CLI。Qoder outstanding issue 仍待取得用户当时看到的原文提示和对应进程命令行。
 
 ### Instance1 内核证据

@@ -285,3 +285,11 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 - 楔死现场 `sample` VMM（无需重启）→ 判 faultAtOffset 停车 vs decodeSegments 挂起；
 - diagnostic hook：`faultAtOffset:stampValue:` 记返回地址→定位 fault 源 Cmd；
 - 若宿主 Metal 失败坐实 → 沿 metalshim 模式枚举 iPadOS16.3 AGX 缺失能力逐项 shim（或 payload 代际升级根治）。
+
+### I. 楔死现场自动捕获（2026-10-02 重启后部署）
+
+- `VirtualMac/vz/development/probes/gpu-wedge-watch.sh` 常驻（3s 轮询客机 DiagnosticReports）：新 gpuRestart → 自动抓 报告+tailspin+guest `log show`(fault interrupt 5m 窗)+宿主 `stackshot -p`+vmm.stderr tail → `.diag/wedge-watch/`。
+- guest 侧 fault 信号：`AppleParavirtGPU::handleFaultInterrupt` @ `0xfffffe0008cdbda0` → IOLog `"handleFaultInterrupt: Received fault interrupt"`（**客机 log show/dmesg 可见**，早于 gpuRestart 报告生成）→ 逐通道 vtbl+0x198 判 faulted → `[x19+0x158](1, [channel+0x18]faultCode)` 上报。channel+0x18 = 每通道 fault code 字段。
+- iPad 栈采集现状：无 sample/lldb；`stackshot -p <pid>` 实测可用（kcdata blob）；`task_for_pid` 在 vzxpchook spawn 路径里已证可行（`vzxpchook.m` task_for_pid kr 日志）→ 可做最小 PC-dump 诊断工具（待定，需用户点头才往 iPad 上传二进制）。
+- stackshot kcdata 解码器：待写（wedge 证据到了再补；thread name + PC 即可定位 PGFifoThread 停在哪）。
+- 序列化特性协商再确认：payload `MTLSerializerFeatures` 8 键（supportsOpenGL/supportsSharedTextures/supportsReflectionSerializationVersion/…）→ 客机 `PGSerializerFeatures` 消费其中 5 键；`DeserializerVersion` 由宿主上报、客机 serializer 按此出料。

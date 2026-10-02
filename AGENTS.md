@@ -32,12 +32,13 @@
 | **SSH 到 iPad** | `sshpass -p cisco ssh -p 2222 root@192.168.64.1`（NAT 网关即 iPad；22/2222 都通；密码见用户消息，勿写入会入库的文件——本条注意：密码只保留在会话上下文，文档里写"密码问用户"） |
 | iPad 上关键路径 | App: `/var/jb/Applications/VirtualMac.app` → `/private/preboot/.../procursus/Applications/`；payload: `/var/root/VirtualMac/payload/`；VM 数据: `/var/mobile/Media/VirtualMac/`（`Sequoia.bundle/`、`Settings.plist`、`Diagnostics/`） |
 | 网络 | 客机经 NAT 出网；飞牛 NAS 中转 `~/Library/CloudStorage/飞牛同步-HomeNAS/` |
-| 工具 | Xcode/clang/brew；`ldid`/`dpkg-deb`/`sshpass`/`expect`；IDA Pro 9.2 + ida-pro-mcp（Instance1-3 被别的项目占用；需要时让 Instance4 @13340，由用户加载二进制）；`dyldex`/`ipsw-a2sb` 在 `VirtualMac/build/toolchain/` |
+| 工具 | Xcode/clang/brew；`ldid`/`dpkg-deb`/`sshpass`/`expect`；IDA Pro 9.2 + ida-pro-mcp（Instance1-3 被别的项目占用；需要时让 Instance4 @13340，由用户加载二进制）；`dyldex`/`ipsw-a2sb` 在 `VirtualMac/build/toolchain/`；**iPad 探针**：iOS 版二进制须放 `/var/jb` 前缀下 + ldid 签 `iokit-user-client-class`(IOGPU/AGX 系列)+`platform-application`+`get-task-allow`，否则 MTLCreateSystemDefaultDevice 返回 nil / 被 AMFI 杀 |
 | 陷阱 | **无 `timeout` 命令**（用 `nc -G`/ssh `ConnectTimeout`/后台任务）；无 fakeroot/Theos；macOS 15 的 `dyld_info`/`ld` 读不了重建件（chained fixups）→ 用 `llvm-objdump` + `-Wl,-ld_classic` |
 
-### 🔴 iPad 侧红线（用户特别强调）
-- **只能只读**：cat/ls/find(限定深度)/ps/unzip -l|unzip -p(单文件)。宿主上跑着本 VM（`com.apple.Virtualization.VirtualMachine` PID 变动，~275% CPU）+ macPad 项目也在动内核文件——**任何可能 panic iPadOS 的操作都会一波带走当前会话**。
-- 禁止：launchctl kickstart/unload、kill 系统进程、sysctl -w、nvram 写、注入运行中进程、全文件系统 find、大文件下载（诊断 zip ~1.1GB/个，只拉需要的条目）、在 iPad 上编译。
+### 🔴 iPad 侧红线（用户授权规则，2026-10-02 更新）
+- **唯一硬门槛 = 不得制造 panic/一波带走宿主+VM+macPad 的风险**。除此之外用户已默认放行：拉文件、跑用户态探针（Metal/IOKit 查询等）、scp 上传小工具到 `/var/jb` 前缀、往 `/tmp` 写诊断文件等都允许。
+- 仍禁止（=panic 风险）：launchctl 重启系统服务、kill 系统进程、sysctl -w、nvram 写、注入/挂钩运行中进程、内核态操作、全文件系统 find。**往 VMM/PG 等运行中进程注入 hook 也属于此类，须先问**。
+- 效率约定（非安全线，但别浪费）：iPad 上不做大文件下载（诊断 zip ~1.1GB/个，只拉需要的条目）、不在 iPad 上编译。
 
 ### 🔄 iPad 重启后的恢复（2026-10-01 发生过一次）
 - iPad 重启 = **本客机断电，当前会话死**。重启后 Dopamine 需重新越狱（semi-untethered），respring 后 OpenSSH 才恢复；然后用户启动 VirtualMac App → 客机启动 → 新 CLI 会话。

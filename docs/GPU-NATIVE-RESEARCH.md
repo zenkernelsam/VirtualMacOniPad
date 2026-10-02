@@ -229,3 +229,59 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 2. **一条 hook 定案**（diagnostic，见 G.4）：pvg_trace 增量包装 `faultAtOffset:stampValue:`（覆盖面 = 全部 Cmd\* 校验失败 + Invalid opid + Deprecated + ExecIndirect2 完成错误）——记录 `currentCommandOffset`、stamp、返回地址（→哪个 Cmd）、payload 头部若干字节，一次复现即可定位元凶。当前 pvg_trace 只包 task 级方法（`getTaskID`/`createTaskID`/`deleteTaskID`/commit/`mappedAddressForOffset`），**不碰 dispatcher**——需要新增。
 3. 若元凶落在 Cmd\* 校验或 deprecated/invalid opid → 属协议层：查客机对应 opid 是什么新命令 → 选修法（宿主侧转实现 / 客机侧绕开 / 对齐 binaryVersion 协商）。
 4. 若元凶落在 `decodeSegments` 或完成错误 → 属序列化代际：dump indirect segment 内容比对 MetalSerializer 版本字段；长期解 = payload 代际升级（换 15.x MetalSerializer/PG 全套，工作量大但有 VMGPU 黄金基线比对流程兜底）。
+
+### H. 客机侧 opcode 词表（guest kext 反汇编，2026-10-02）
+
+**提取**：boot kernelcache（Preboot）→ `ipsw kernel dec` → `ipsw kernel extract` 出 `com.apple.driver.AppleParavirtGPUIOGPUFamily`（15.0.0，arm64，396KB，符号在）。本地存档 `.diag/guest-kext-15.6.1/`（gitignored）。
+
+**方法**：`AppleParavirtGPU::commandDescriptor(queue,task,AppleParavirtGPUFIFOCommandID)` @ `0xfffffe0008cdc8e8` 的全部 ~30 个调用点回溯 `mov w3,#imm` → guest 侧 FIFO 命令枚举实况：
+
+| guest opid | 发送者（逐字符号） | Ventura 宿主归宿 |
+|---|---|---|
+| 0x1 | `AppleParavirtDisplay::setupSharedStateEv` | CmdDisplaySetSharedStatePage ✓ |
+| 0x2 | `AppleParavirtDisplay::handleHostInterruptEv` | CmdDisplayAck ✓ |
+| 0x4 | `program_hardware_cursor_gated` | CmdDisplayCursorGlyph ✓ |
+| 0x8 | `program_hardware_swap_gated` | CmdDisplaySwapMapping ✓ |
+| 0x9 | `do_power_state_change_gated` | CmdDisplaySleepState ✓ |
+| 0xA | `program_hardware_swap_gated`(二参) | CmdDisplaySetProperties ✓ |
+| 0xB | `setParameter` | **default → Invalid → fault** |
+| 0xC | `setGuestICCProfile` | **default → Invalid → fault** |
+| 0x20 | `AppleParavirtTask::free` | CmdDeleteTask ✓ |
+| 0x22 | `MemoryMap::releaseFromGPUPageTable` | CmdUnmapMemory ✓ |
+| 0x25 | `Resource::deleteHostResourceID` / `Device::deleteMemorylessTexture` | CmdDeleteResource ✓ |
+| 0x28 | `Device::deleteObject` | CmdDeleteObject ✓ |
+| 0x30 | `VirtualChannel::init` | CmdDefineChildFIFO ✓ |
+| 0x31 | `VirtualChannel::free` | CmdDeleteChildFIFO ✓ |
+| 0x33 | `Task::setResourceHeap`（feature byte@task+0x595 **清零时**） | CmdSetObjectList ✓ |
+| 0x35 | `Resource::synchronize` | CmdSynchronizeResources ✓ |
+| **0x37** | `CommandQueue::processSegmentKernelCommand` | **CmdExecIndirect2 ✓** |
+| 0x38 | `Task/KernelTask::defineHostTask` | CmdDefineTask2 ✓ |
+| 0x3A | `GPU::setupDeviceInfo` | CmdGetDeviceInfo ✓ |
+| 0x3B | `Device::createComputePipeline` | CmdGetComputeInfo ✓ |
+| 0x3E/0x3F | `Resource::synchronizeAndDiscard` | SyncAndDiscard/DiscardResources ✓ |
+| 0x40 | `Device::heapTextureSizeAndAlign` | CmdHeapTextureSizeAndAlign ✓ |
+| **0x41** | `Resource::deleteHostSharedTextureBacking`（仅资源类型 0xB/0xC 进入） | **>0x40 → Invalid → fault → 停车** |
+| **0x42** | `Device::resetRasterizationRateMap` | **Invalid → 楔死** |
+| **0x43** | `CommandQueue::processSegmentKernelCommand`（新 IOGPU 内核命令类型→即 **CmdExecIndirect3** 等价物） | **Invalid → 楔死** |
+| **0x44** | `Task::setResourceHeap`（feature byte@task+0x595 **置位时**，否则退回 0x33） | **Invalid → 楔死** |
+
+#### H.1 协商是诚实的——新 opcode 有门控（修正预期）
+
+- `setResourceHeap` 明文二选一：task+0x595 feature byte 置位→0x44，清零→0x33（Ventura 旧命令）。**guest 对 0x44 有显式降级**。
+- 客机 Metal 插件的 APVFeatures schema 里 `supportsCmdExecIndirect3` 是协商位 → 0x43 仅在宿主自报支持时发出。
+- `deleteHostSharedTextureBacking` 只对资源类型 0xB/0xC 发——这类资源只在宿主协商了共享纹理后才会被创建。
+- 序列化版本同样是诚实协商：插件 `initWithDevice:objectRefAllocator:deserializerVersion:` —— **客机按宿主自报的 DeserializerVersion 出料**。
+- 宿主 `setBinaryVersion` @ `0x100011efc`：guest 请求值 **clamp 到 ≤43**（`a3>=0x2B→43`），按版本层叠出 feature bitmask 写 device+1220（v40 会清 0xFF0000 位，v42/43 各加位）；`v6<0` → "unsupported binary version" error。
+
+#### H.2 修正后的嫌疑排序（协商诚实 ⇒ 新 opcode 正常不会发出）
+
+1. **宿主 Metal 执行失败**（iPadOS 16.3 AGXMetal 跑不动 Ventura 反序列化器发出的合法内容）→ `addCompletedHandler` 见 `status==5` → fault→park。**与 metalshim 已补 BC 纹理同类——iPadOS16.3 的 Metal 功能缺口可能不止 BC**。不依赖任何协议 skew，最干净解释"多应用随机踩中"。
+2. 客机未门控路径/资源生命周期竞态（如资源先删后引用 → Cmd* 校验 fault）。
+3. 合法 opid 的 payload 布局漂移（同 binaryVersion 下 Ventura 实现与 15.6 出料对某些字段解释不同）。
+4. 新 opcode 误发——仅当某条路径忘了查 feature 位（待证伪）。
+
+#### H.3 已备工具与待办
+
+- 楔死现场 `sample` VMM（无需重启）→ 判 faultAtOffset 停车 vs decodeSegments 挂起；
+- diagnostic hook：`faultAtOffset:stampValue:` 记返回地址→定位 fault 源 Cmd；
+- 若宿主 Metal 失败坐实 → 沿 metalshim 模式枚举 iPadOS16.3 AGX 缺失能力逐项 shim（或 payload 代际升级根治）。

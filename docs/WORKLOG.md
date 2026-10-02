@@ -89,3 +89,18 @@
 1. 楔死现场快照（不用重启）：下次复位时 `sshpass ... 'sample <vmm-pid> 3'` → PGFifoThread 停在 `faultAtOffset` condvar = fault 停车实锤
 2. diagnostic hook：pvg_trace 包 `faultAtOffset:stampValue:` 记 offset/stamp/返回地址/payload 头 → 定位是哪条 Cmd 的哪段负载
 3. 长期方向分叉：协议层补命令 vs payload 代际升级（15.x MetalSerializer/PG）
+
+## 2026-10-02（续）— 客机侧 opcode 词表 + 协商机制取证（不依赖重启）
+
+- [x] **guest kext 提取**：boot kernelcache(Preboot) → `ipsw kernel dec`+`extract` → `com.apple.driver.AppleParavirtGPUIOGPUFamily`（15.0.0, arm64, 396KB, 符号全）→ `.diag/guest-kext-15.6.1/` 存档（含全量反汇编 text.asm）
+- [x] **guest opid 词表**：`commandDescriptor` 全部 ~30 调用点回溯 → guest 实际会发 **0x41/0x42/0x43/0x44** 四个 Ventura 不存在的 opcode（详见 GPU-NATIVE-RESEARCH §H 全表）：0x41=deleteHostSharedTextureBacking、0x42=resetRasterizationRateMap、0x43≈CmdExecIndirect3、0x44=setResourceHeap 新变体
+- [x] **协商诚实性坐实**：`setResourceHeap` 按 task+0x595 feature byte 二选一（0x44↔0x33 显式降级）；插件含 `supportsCmdExecIndirect3` 协商位；序列化器 `initWithDevice:…:deserializerVersion:` 按宿主自报版本出料；宿主 setBinaryVersion @`0x100011efc` clamp≤43、按版本层叠 feature bitmask（device+1220）
+- [x] IDA 补漏：`CmdDeprecated`→fault+signal；`0x10001feac` completedHandler `status==5`(MTLCommandBufferStatusError)→`faultAtOffset` 停车——**宿主 Metal 执行错误同样楔死通道**；`barrierWait`→`[device waitStamps:…]` 内部等待
+- [x] **嫌疑收敛**（协商诚实⇒新 opcode 正常不发出）：①宿主 iPadOS16.3 AGXMetal 跑不动合法反序列化内容（metalshim 补 BC 纹理=同类先例）②未门控路径/资源生命周期竞态 ③合法 opid payload 布局漂移 ④某路径忘查 feature 位
+- [x] 宿主 stderr 快照存 `.diag/host-logs/`（本次 VM 启动后仅 10 行、无 GPU 相关——os_log 不落 stderr 与预期一致）；自重启以来无新 gpuRestart
+
+### 待办
+1. 用户方便时重启 VM → App 开 DebugLogging=next → 复现 → pvg-trace 会有协商 descriptor dump
+2. 楔死现场 SSH `sample <VMM pid>`（不需要重启，随时可做）
+3. diagnostic hook：`faultAtOffset:stampValue:` 包装记返回地址（pvg_trace 增量，标 diagnostic）
+4. 若坐实宿主 Metal 失败 → 枚举 iPadOS16.3 AGX 缺口沿 metalshim 模式逐项补 / 或 payload 代际升级

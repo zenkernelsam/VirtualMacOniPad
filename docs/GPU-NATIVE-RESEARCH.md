@@ -341,3 +341,23 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 **修复方向（新战线，独立于楔死）**：宿主侧 swizzle `getDeviceInfo:length:dst:`/`writeDeviceInfo`（落 vzxpchook/pvg_trace 现有 hook 架构），在回复尾部追加 15.6 认识的字段——`ArgumentBuffersTier`、`SupportFlags2024`（按 iPadOS16.3 AGX 真实能力逐项置位）、`HostGPUFamily`、`MaxMetalShaderVersion`、`SupportsSharedTextures` 等。**前置条件：先 dump iPadOS16.3 MTLDevice 真实能力表**（拔 iPad `/System/Library/PrivateFrameworks/Metal.framework`+AGXMetal13_3 静态取证或经用户批准跑 iPad 探针），**按真实能力上报，不多报**——报多了客机发出宿主执行不了的内容 = 正好落进楔死路径。
 - MATLAB 证据（`~/Desktop/Patch/MATLAB`）：CEF 合成残缺被迫 `--disable-gpu`；figure OpenGL 曲线不显示+MSAA 后管线全毁（OpenGLPVGCompat 未覆盖 VBO+shader+MSAA）；Java2D Metal/OpenGL 全关。argbuf=0 + CEF wedge 修复后，Chromium 系（含嘉立创EDA/Devin）预期可去 `--disable-gpu`。
 - 遗留核实：客机 15.6 deviceInfo 顶层组 0x3ee-0x3f1 的子字段 id 全表（继续解 `setupDeviceInfo`）；`readWriteTextureSupport`/`supportsFamily:Metal3` 的字段来源。
+
+#### K.1 iPadOS16.3 宿主真实能力表（mtl-caps-dump 实测，`.diag/host-ipados16.3/mtl-caps.txt`）
+
+| 属性 | iPadOS16.3 M1 实测 | 客机 PV 实报 | 差距 |
+|---|---|---|---|
+| argumentBuffersSupport | **1 (tier1)** | 0 | 宿主有，客机不知 |
+| readWriteTextureSupport | **2 (tier2)** | 1 | 被砍半 |
+| supportsDynamicLibraries / FunctionPointers(FromRender) / RenderDynamicLibraries | **YES** | no | 全关 |
+| **supportsRaytracing(+FromRender)** | **YES** | no | M1 宿主驱动开光追（bundle 有 raytracing_rt.metallib 佐证） |
+| supportsPullModelInterpolation / ShaderBarycentricCoordinates | **YES** | no | — |
+| supportsFamily | Apple1-7 + Common1-3 + **Metal3** | Mac1/Mac2/Common1-3 | 客机连 Apple family/Metal3 都不报 |
+| counterSets | GPU timestamp set | (null) | — |
+| maxBufferLength | 3.83GB | 5GB（客机合成值） | 客机值反而更大 |
+| recommendedMaxWorkingSetSize | 10.2GB | 6.67GB | — |
+| maxArgumentBufferSamplerCount | 1024 | 2048（客机合成值） | — |
+| sparseTileSizeInBytes | 16384 | 16384 | 一致 |
+
+**iPad 侧探针操作要点（已验证）**：二进制须放 `/var/jb` 前缀下执行（AMFI/trustcache 范围）；`MTLCreateSystemDefaultDevice` 无 entitlement 返回 nil；需 ldid 签 entitlements：`com.apple.security.iokit-user-client-class`(IOGPUUserClient/AGXDeviceUserClient/AGXSharedUserClient…)+`platform-application`+`get-task-allow`。探针源=`probes/mtl-caps-dump.m`（iOS/macOS 同源，dlsym 弱解 MTLCopyAllDevices）。
+
+**结论**：宿主 AGX = 接近满血 Metal3 M1（含光追）；客机看到的 = 被 Ventura deviceInfo 词表（≤16 字段）阉割后的残血设备。swizzle writeDeviceInfo 追加字段的**每个值都有宿主实测依据**（tier=1 不是 2、RT=YES、dynlibs=YES——按此表上报即诚实）。

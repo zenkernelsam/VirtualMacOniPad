@@ -11,6 +11,7 @@
 #import <Metal/Metal.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <dlfcn.h>
 
 static void dumpProperties(id dev) {
     NSObject *o = dev;
@@ -48,8 +49,12 @@ static void dumpProperties(id dev) {
 
 int main(void) {
     @autoreleasepool {
-        NSArray *all = MTLCopyAllDevices();
-        printf("== MTLCopyAllDevices: %lu device(s)\n", (unsigned long)all.count);
+        // MTLCopyAllDevices is macOS-only; resolve weakly so the same source
+        // builds for iOS (where it does not exist).
+        NSArray *(*copyAll)(void) = dlsym(RTLD_DEFAULT, "MTLCopyAllDevices");
+        NSArray *all = copyAll ? copyAll() : @[];
+        printf("== MTLCopyAllDevices: %lu device(s)%s\n", (unsigned long)all.count,
+               copyAll ? "" : " (API absent — iOS)");
         id dev = MTLCreateSystemDefaultDevice();
         if (!dev) { printf("NO default device\n"); return 1; }
         printf("== default device: %s\n", [[dev name] UTF8String]);

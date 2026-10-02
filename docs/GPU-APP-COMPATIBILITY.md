@@ -59,6 +59,8 @@ VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD prof
 
 同一 CDP renderer 的 `navigator.gpu.requestAdapter()` 也成功返回 adapter，`maxBufferSize=4294967292`、`maxTextureDimension2D=16384`，并报告 BC/ASTC/ETC2、shader-f16、subgroups、texture-formats tier1/tier2 等 features。该结果证明 Devin 的基础 WebGPU adapter 路径也可用；它不等于所有 WebGPU workloads 或视频/WebView 组合已经验收。
 
+随后执行真实 WebGPU workload：创建 `bgra8unorm` texture，执行 clear render pass，提交 command buffer，copy 到 MAP_READ buffer 并读回像素；结果 `ok=true format=bgra8unorm pixel=[77,51,26,255]`。这证明基础 WebGPU resource/render/submit/readback 链路在当前 88 可执行。
+
 ## MATLAB JIT 能力边界（2026-10-03）
 
 在当前 VirtualMac 客机内直接编译并运行只读 probe，得到：

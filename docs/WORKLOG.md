@@ -323,6 +323,7 @@
 - [x] Devin CDP 像素闸门完成：`SystemInfo.getInfo` 报 `ANGLE_METAL`、Apple Paravirtual device、gpu_compositing/webgl/webgpu enabled、processCrashCount=0；attached workbench renderer 的 WebGL2 `clear/readPixels` 返回 `[26,51,77,255]`、error=0。证据 `.diag/devin-cdp-pixel-20261003-b/`。
 - [x] 结论：当前 88 已能支持 Devin ANGLE WebGL 基础硬件渲染，应用侧 `disable-hardware-acceleration` 对该基础路径不是必需；不自动修改用户 argv，复杂 WebView/视频/WebGPU 仍待单独验证。
 - [x] 同一隔离 CDP renderer 的 `navigator.gpu.requestAdapter()` 成功：maxBufferSize=4294967292、maxTextureDimension2D=16384，features 含 BC/ASTC/ETC2、shader-f16、subgroups、texture tier1/tier2；证据 `.diag/devin-webgpu-20261003/result.json`。
+- [x] Devin WebGPU 实际 workload 通过：bgra8unorm texture、clear render pass、command submit、copy/map-read，返回 pixel=`[77,51,26,255]`；证据 `.diag/devin-webgpu-render-20261003/result.json`。这证明基础 WebGPU 执行链可用，仍不等于所有 WebView/视频/复杂 workload 已验收。
 
 ## 2026-10-03 — 90 GPUReady 候选包完成
 

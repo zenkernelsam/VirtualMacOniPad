@@ -296,3 +296,8 @@
 - [x] 核对 `/Applications/Devin.app`：Electron Framework 为 arm64，链接 Metal、MetalKit、OpenGL、IOSurface；Chromium 内含 ANGLE WebGL/WebGL2、Metal/Vulkan、CAMetalLayer 与 texture-sharing 相关路径。
 - [x] 当前 `~/.devin/argv.json` 仍启用 `disable-hardware-acceleration`。VirtualMac GL shim 只覆盖 GLD，不覆盖 ANGLE Metal compositor/CAMetalLayer/IOSurface texture-sharing；不能据此删除 Devin workaround 或打 90。
 - [ ] 下一步若要改变 Devin 默认，必须取得 GPU helper、ANGLE backend、WebView 实际像素的独立 A/B；与 MATLAB CEF/JIT/figure 证据分开。
+## 2026-10-03 — GPU 回归复核与 MATLAB batch 边界
+
+- [x] 当前 HEAD 回归：particle shader lowering 严格编译/运行通过；Metal family compatibility 严格 warnings（含 IOKit）通过；deviceInfo reply ASan/UBSan 通过。
+- [x] MATLAB R2024a `-batch` 的只读 renderer/隐藏 figure/export 尝试 90 秒无输出、无 PNG，不能替代 GUI GPU 验证，也不足以归因 VirtualMac GPU；未修改 MATLAB 配置或用户文件。
+- [x] 本轮无功能源码变化、无 90 包；继续等待真实 MATLAB/Devin GUI 或 89 readiness 首启证据。

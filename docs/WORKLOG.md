@@ -242,3 +242,15 @@
 - CPU red/green及ASan/UBSan、已有Godot shader回归通过；MRC跨pool/NSZombie 50次default/copy/observer测试通过，argbuf仍tier1。新库x86_64/arm64/arm64e构建签名通过。
 - 仅新Godot进程使用新库，baseline与关闭新修复均exit-6同一pixelFormats校验崩溃；开启时Vulkan最小RGB/3D/GPU粒子3次30帧通过（RGB差0、绿色中心、白粒子507/510/561），实际标题Vulkan3次60帧通过（8697/8705/8706），GL3次60帧通过（8699/8698/8703），两条最终PNG已查看。全部在隔离副本，未动原book-buster、全局环境或宿主，未重启。
 - 证据 `.diag/build88-render-check/`、`.diag/inspect-guest-argument-gates.m`、`.diag/metal-family-live.m`；宿主86 profile的验收不等于88 App/VMM已安装验收。用户quota剩5%要求立即打包，停止扩展研究，目标build88完整包到飞牛，保留84/86/87。
+- 功能源码、CPU回归和研究/首启记录已提交推送 `bb005a7dfea749e26aae42e43ed2d43e83441dff`（第88个提交），没有在book-buster提交或推送。独立构建exit0，93个最低平台版本及stage audit通过；14.5完整ABI仍缺DSC跳过。继存dynamic_lookup/UIKit deprecation及构建工具shadow-framework missing-symbol警告保留，不能视为全版本运行验收。
+- 包版本 `2:1.2.3+88.bb005a7dfe.gpuvulkan`，App build88；App/VMM/Metal与编译输出hash、签名/trustcache、三架构GL、无VM数据检查通过；新getter/关闭开关/兼容代码存在于实际GuestTools库。预期GuestTools `88-46e1996c7b58fd11`、GL SHA256 `4bf929ed591f080ae2c459d5c7d2ee507556e4579dcc6db76e4b9aba33617ca2`。
+- 已复制 `VirtualMac_1.2.3_bb005a7dfe_GPUCombinedFull88.deb` 至release与飞牛VirtualMacOniPad_iOS，两处20,857,348 bytes、SHA256 `33258ae583c9e14c8b7b8373fbc7c3d027235fb7bc75f20f9426730cadde9811`相同；84回滚包两处hash仍正确，86/87未覆盖。NAS远端同步未核验。用户已收到交付通知；仍未安装/重启，App/VMM整包首启与其他应用待验收。
+- 最后实际deb提取库抽测通过：Vulkan RGB/3D/GPU粒子30帧（RGB差0、中心绿、白像素584）、GL实际标题60帧nonblack8700、Vulkan实际标题60帧nonblack8704，全部PNG读回/exit0。证据 `.diag/gpu-vulkan-build/packaged-render-check/`。原book-buster只读git status仍是已有uid_cache.bin与logo场景两个dirty文件，无写入/提交/推送。交付后这几条metadata记录保存在本地文档，功能源码及源测试已推送。
+
+## 2026-10-02 22:53后 — 用户重启iPad、重新越狱并已安装88；超级handover
+
+- 用户报告macPad工作期间VM满载卡死、强关无效，重启iPad、重新越狱、顺便安装88。未经日志/采样证实原因，不能从时间关联归咎macPad/88/GPU。此后不是旧86启动会话，旧host日志只保留为历史。
+- 轻量核对：guest boot22:47:19、核对时uptime6min/load4.13/14.74/9.94；`.build=88-46e1996c7b58fd11`，安装GL SHA256 `4bf929ed591f080ae2c459d5c7d2ee507556e4579dcc6db76e4b9aba33617ca2`、严格signature通过。IORegistry recoveryCount=0/lastRecoveryTime=0。
+- 显式加载安装库的只读MRC寿命查询50轮跨pool/default/copy/observer通过，Mac2=0/legacyMac2=0/targetless=0/argbuf0(tier1)。原生清空DYLD_INSERT_LIBRARIES查询Apple1–5/Mac1–2/Common1–3、RW texture2、PullInterpolationYES，动态库/函数指针/光追/barycentric仍NO。未提交GPU绘制/压力工作，未修改开关/全局env/host，未重启。
+- 新host dpkg/App/VMM profile/字段/augmentation、安装后Godot实际GPU场景及长期稳定性尚未核验。首要任务交给新Agent；此前包后“未安装”结论仅属于构建/抽测时点。原book-buster只读status依旧两个原dirty文件，无写入/提交/推送。
+- 用户额度将尽，明确请求超级handover与Codex CLI启动prompt。重写 `docs/AGENT-SUPER-HANDOVER.md` 为vendor-neutral自足手册，保留旧构建/黄金基线/安全知识，覆盖版本指纹、两条Godot因果链、Tier2协议207vs43、开启/关闭字段、源码和本地证据、构建/回归命令、新boot/卡死取证、P0/P1/P2任务与prompt。文件不含凭据；`.diag`不会随Git克隆自动带走。handover文档提交不会改变88的源码来源与已交付包。

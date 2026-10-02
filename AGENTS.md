@@ -85,12 +85,21 @@
 - 包内容/签名/trustcache/来源及93个最低平台版本检查通过，14.5完整ABI仍缺DSC；包内GL在86宿主3次60帧实景通过，GPU recoveryCount仍0。87 App/VMM未安装，预期GuestTools `87-477fc0fc695d8790`、GL SHA256 `08aaeb5014a27e2ce3d8a5063e6d4be67243e173b9f0408c9cbbf39e05da0529`。证据 `.diag/gpu-combined-build/verification-receipt.json`、packaged-gl-results.json。
 - 86正常可继续使用，不需仅为重打包立即重装87；若安装必须正常关闭VM。未改开关、重启或操作VM磁盘，本轮文档更新尚未commit/push；不要将其误认为缺少功能源码提交，包来源HEAD此前已推送。
 
-### 88新增增强与紧急交付（研究阶段验收通过，待打包）
+### 88新增增强与紧急交付（已构建、核验并复制到飞牛）
 
 - 用户明确选择研究新增增强而非仅换编号，随后quota剩5%要求立即构建交付。Tier2已定位为APVFeatures.supportsArgumentBuffers门控，当前false，207档才开启而Ventura最高43；不强升协议/serializer或假报Tier2。
 - 新增完整Mac2 gate：只对运行时APVFeatures类型的设备，在识别原生BOOL getter ABI且supportsRenderPassWithoutRenderTarget=false时收窄Mac2及legacy ordinal10005。未知ABI/缺getter/其他声明保持，GL Apple7 profile保留；三个Metal工厂返回+1与observer语义保持。进程开关VIRTUAL_MAC_METAL_FAMILY_COMPAT=0可关闭，未改全局env或宿主。
 - CPU red/green、严格warnings、ASan/UBSan、既有shader回归及MRC/NSZombie50轮跨pool工厂/observer寿命通过。原生baseline/关闭新修复均pixelFormats校验exit-6；新库Vulkan RGB/3D/粒子3次30帧、Vulkan标题3次60帧、GL标题3次60帧通过，最终PNG已查看。仅arm64实景；三架构构建签名完成。
-- 新源码待提交推送后独立 `.diag/build-gpu-vulkan.sh` 构建 `.diag/gpu-vulkan-build`（5 jobs/background）；验证/交付脚本 `.diag/verify-gpu-vulkan-deb.py`、`.diag/export-gpu-vulkan-deb.py`。完整合并既有修复及host-clamped-v1，不伪装全部Metal/所有应用/性能已验证；仍须正常关VM后安装。不要在book-buster提交/推送，保留84/86/87。
+- 源码与回归已提交推送bb005a7dfea749e26aae42e43ed2d43e83441dff；独立build88 exit0（5 jobs/background），93个最低平台版本/stage audit及包内容、签名、trustcache、来源通过，14.5完整ABI缺DSC跳过。已复制 `VirtualMac_1.2.3_bb005a7dfe_GPUCombinedFull88.deb` 到release与飞牛；20,857,348 bytes、SHA256 `33258ae583c9e14c8b7b8373fbc7c3d027235fb7bc75f20f9426730cadde9811`，84两处完整，86/87未覆盖，NAS远端待确认。预期GuestTools88-46e1996c7b58fd11，GL SHA4bf929ed591f080ae2c459d5c7d2ee507556e4579dcc6db76e4b9aba33617ca2。
+- 实际deb提取库再抽测Vulkan RGB/3D/粒子30帧（差0、白像素584），GL/Vulkan实际标题各60帧、PNG读回、exit0（nonblack8700/8704）；证据 `.diag/gpu-vulkan-build/packaged-render-check/` 和verification-receipt.json。未安装/重启，App/VMM整包首启待验，不伪装全部Metal/所有应用/性能已验证；先正常关VM再安装。book-buster仅原有两个dirty文件，未修改/提交/推送。本段包后记录尚未提交，不影响已推送的功能源码。
+
+### 2026-10-02 22:53后最新状态：iPad重启，88已安装，正式交接
+
+- 用户报告macPad操作期间VM满载卡死且无法强关，随后重启iPad、重新越狱并安装88。时间关联不是根因证明；未取得卡死前采样/新host报告，不能归因macPad或GPU/88。此前“88未安装”只描述包构建/抽测时点。
+- 当前guest boot=22:47:19，`.build=88-46e1996c7b58fd11`，安装GL SHA4bf929ed591f080ae2c459d5c7d2ee507556e4579dcc6db76e4b9aba33617ca2及严格签名通过；recoveryCount/lastRecoveryTime=0。显式加载安装库的只读查询Mac2/legacyMac2=0、targetless=0、argbuf0(tier1)，50次跨pool工厂/observer寿命通过。原生清空注入仍Mac2=YES/Apple1–5、RW texture2/PullInterpolationYES、动态库/函数指针/光追/barycentricNO，环境不同不是矛盾。
+- 88这次启动的新App/VMM日志、实际profile/字段、Godot实景/正常GUI注入和长期稳定性仍待验收。不要复用旧86日志冒充新启动，不跑压力/运行中VMM注入，重启前卡死待取证。原book-buster仍只有原来的两个dirty文件，未写入/提交/推送。
+- 自足接手手册已重写 `docs/AGENT-SUPER-HANDOVER.md`（含最新状态、精确包/库指纹、源码/证据地图、已纠正结论、操作边界、P0/P1/P2任务、验证命令及Codex启动prompt）。新Agent先读本文和该手册；不要求Devin/Qoder私有记忆工具，不去启动旧USB/macPad路线。
+- 88功能源码来源仍bb005a7dfea749e26aae42e43ed2d43e83441dff；handover后文档提交计数可能超过88，不代表交付包换版本，不要重打相同包或改写已推送历史。`.diag`为本地ignored证据，换机器须另取必要证据。
 
 ## 4. 文档索引
 

@@ -422,3 +422,5 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 - 验证：reply 回归启用 ASan/UBSan，覆盖全部16385个页偏移和越界/哨兵/覆盖规则；mock profile/方法 ABI/策略回归及 Godot shader 回归通过 `-Wall -Wextra -Werror`。pvg_trace iOS arm64e 同样严格语法检查通过；App iOS arm64 检查仅有既存 UIKit deprecation。
 
 该配置比84更积极，但不是恢复旧4095全开表，也不是已证明 MATLAB/Chromium/Vulkan 全部可用。首启必须核对 `profile=host-clamped-v1`、实际 key/value 和 `caps augmented ... applied ... dropped`；新 profile 的实际应用执行和性能尚未验证。
+
+交付 `VirtualMac_1.2.3_341fb8f146_GPUExperimental.deb`，version `2:1.2.3+86.341fb8f146.gpuexp`，SHA256 `4b5adc68ccc156cb340be92115d7703676171bed8a2a2d7b4f2704829ba9b3c1`。已复制release与飞牛VirtualMacOniPad_iOS目录，84回滚包保留。93个Mach-O平台/最低版本、stage audit、包内版本/库hash/签名/trustcache检查通过；14.5完整ABI仍未执行。包内GL库在现有84宿主上又通过3次60帧GPU标题场景读回，exit0；不等于新profile已部署验证。GuestTools预期build `86-7c3f1508d5328f78`、GL SHA256 `28b4f670311bfc5292e776f23f16e3e1fbb5db5b83d007874255f69d189e0150`。未安装/重启；简化安装与回退步骤见WORKLOG“实验增强包交付”。

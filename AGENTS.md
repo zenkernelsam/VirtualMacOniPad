@@ -67,6 +67,7 @@
 - 用户当次明确接受实验包可能导致宿主panic/整机重启，要求审核后重建；不延伸为主动安装、重启或运行中VMM注入授权。保留84作为回滚基线，不在book-buster commit/push。
 - 当前源码的新实验 profile=`host-clamped-v1`：App缺省on，新preference false可关，VMM仍仅精确env1；旧4095/Apple9参考表不直接发送。宿主family最高Apple7，shader flag逐getter查询，协议/资源位不全开；AIR/serializer保持原值，known sample-position路径不开。实际应用/性能仍待首启验收。
 - c137代码的 `_PGDevice+0x1F0` 是 `_rootTaskBase`指针，不是页内offset；hv_vm_map得到物理页后从offset0扩展。新增reply owner修复容量0下溢；extra只能收窄，不能追加或扩大能力。规则以新headers为准，旧参考表不是可直接发送的能力表。研究§N/WORKLOG晚间条目含证据与测试。
+- 实验包已交付release+飞牛VirtualMacOniPad_iOS：`VirtualMac_1.2.3_341fb8f146_GPUExperimental.deb`，build86/version `2:1.2.3+86.341fb8f146.gpuexp`，SHA256 `4b5adc68ccc156cb340be92115d7703676171bed8a2a2d7b4f2704829ba9b3c1`。包内GL又通过3次60帧GPU场景读回；当前仍是84宿主，不证明新profile执行。未安装/重启，NAS远端同步待确认。预期GuestTools `.build=86-7c3f1508d5328f78`；源码来源341fb8f，不随后续文档提交变化。
 
 ## 4. 文档索引
 
@@ -107,5 +108,16 @@ bash VirtualMac/scripts/development/build-opengl-guest-compat.sh
 ```
 
 GL 回归必须显式加载目标 guest shim，且日志确认 `Apple Paravirtual device`，不能将 `Apple Software Renderer` 当 GPU 成功；GPU 测试串行，保留 PNG 读回和 shader/error 日志。尚未安装的测试库不要写进全局 launchctl 环境。
+
+### deviceInfo CPU回归验证
+
+```bash
+clang -Wall -Wextra -Werror -fsanitize=address,undefined VirtualMac/scripts/tests/deviceinfo-reply-test.c -o /tmp/virtualmac-deviceinfo-reply-test
+/tmp/virtualmac-deviceinfo-reply-test
+clang -fobjc-arc -fblocks -Wall -Wextra -Werror -framework Foundation -framework Metal VirtualMac/scripts/tests/deviceinfo-profile-test.m -o /tmp/virtualmac-deviceinfo-profile-test
+/tmp/virtualmac-deviceinfo-profile-test
+clang -fobjc-arc -Wall -Wextra -Werror -framework Foundation VirtualMac/scripts/tests/deviceinfo-policy-test.m -o /tmp/virtualmac-deviceinfo-policy-test
+/tmp/virtualmac-deviceinfo-policy-test
+```
 
 > 最高优先级：**用户当下指令 > 代码/配置 > 文档/记忆**。发现文档与现实不符 → 以证据为准并更新文档。

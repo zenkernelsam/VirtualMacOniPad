@@ -197,4 +197,19 @@
 - 另复现页尾算术下溢：replyOffset=0x3ffc、count=1 时旧代码 `capacity=0 usable=4294967295`。抽出有界 reply owner，拒绝短尾/越界/必要哨兵缺失，不覆盖原有完整回答；从页首扩展。
 - 新 `host-clamped-v1` 默认开，显式新 preference false 可回退；VMM env仍精确1、iPadOS<16拒绝方法hook；不写用户 preference，84回滚缺省仍off。参考表在运行时按宿主查询裁剪，不发送 Apple9、提高AIR/serializer、共享资源/命令跳转等未证协议位。详见研究文档§N。
 - 覆写改为只能收窄解析后的 profile，legacy extra无法重开 serializer=8、flags=4095或Apple9；无匹配getter的字段省略。启动常规stderr打印实际profile/key/value，错误不再只依赖debug trace。
-- 新策略/profile/ABI回归、ASan+UBSan reply回归（全部16385个页偏移）、Godot shader回归通过；pvg_trace iOS arm64e严格语法检查通过，App仅已有UIKit弃用警告。尚未安装新配置，硬件/传输执行和性能未验证。下一步独立构建并核验包内库。
+- 新策略/profile/ABI回归、ASan+UBSan reply回归（全部16385个页偏移）、Godot shader回归通过；pvg_trace iOS arm64e严格语法检查通过，App仅已有UIKit弃用警告。尚未安装新配置，硬件/传输执行和性能未验证。
+
+### 实验增强包交付（源341fb8f14618345e9008f94e23a6f39c0270e122）
+
+- 独立构建 `.diag/gpu-enhanced-build`，限流5 jobs、taskpolicy background；App/VMM/Metal兼容库/GuestTools重建，框架和辅助组件复制复用，不覆盖旧产物。构建exit0；93个Mach-O平台/最低版本、stage audit通过；14.5完整ABI检查仍因缺少DSC跳过。源码提交341fb8f已推送。
+- 交付名 `VirtualMac_1.2.3_341fb8f146_GPUExperimental.deb`，App build86，version `2:1.2.3+86.341fb8f146.gpuexp`，20,858,804 bytes。SHA256 `4b5adc68ccc156cb340be92115d7703676171bed8a2a2d7b4f2704829ba9b3c1`。编译目录原名无GPUExperimental后缀，仅复制交付时加实验标记，字节一致。
+- 已复制 `VirtualMac/build/release/` 与 `~/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/`；两处copy/hash核验通过。两处84回滚包的SHA仍为 `59a5130ab76bab424dda26d74907d9358ed4a2d52603ac5850d965f967d38307`。不覆盖c137；NAS远端同步完成状态未核验。
+- 解包检查App default-on profile、新env、两个VMM hook及MetalCompat与编译输出hash一致；App/VMM/Metal库CDHash匹配trustcache，无VM磁盘/数据目录或禁止的Apple系统路径替换。GL arm64/arm64e/x86_64、严格签名通过；包内GL SHA256 `28b4f670311bfc5292e776f23f16e3e1fbb5db5b83d007874255f69d189e0150`，预期GuestTools `.build=86-7c3f1508d5328f78`。
+- 包内提取GL库再次通过3次独立标题场景测试：每次60帧/1152×648、GPU粒子保留、exit0；nonblack samples 8704/8700/8702。证据 `.diag/gpu-enhanced-build/scene-run-{1,2,3}.{log,png}`、`verification-receipt.json`、`packaged-gl-results.json`。这些运行使用现有84宿主，不验证新profile执行，不构成FPS或全应用证明。
+- 本轮未安装、修改现用GuestTools、启用宿主新profile或重启。新包是审计合并实验增强版，不是4095机械全开或已证明全Metal支持；MATLAB/Chromium/Vulkan问题未全部修复。
+
+安装与回退的最小步骤：
+1. 确认飞牛已同步，iPad外部能拿到新实验包和当前84回滚包；保存客机工作与重要数据。正常关闭macOS，确认VM停止，再安装86；不得从运行中的本客机安装。
+2. 首启App应记 `[PVGDeviceInfo] experimental=1 profile=host-clamped-v1 (default on)`；若先前显式设置新preference为NO，仍会关。VMM还须出现 `deviceinfo profile=host-clamped-v1`、实际key/value和 `caps augmented ... dropped=0`，不能仅凭开机视为扩展成功；key37不超过1007、key33不能含0..4或10..11位、key10保持原值。
+3. GuestTools更新后核对上述build/hash，再新启动Godot。顺手测试实际想改善的应用即可；不预设MATLAB/Chromium必定正常。
+4. 若首次启动失败、图形异常或宿主panic，停止反复尝试；先从iPad导出VirtualMac诊断包、App/VMM crash或panic报告，保存 `/tmp/VirtualMac.log`、`/tmp/vmm.stderr.log`（若仍存在；宿主重启可能丢失）。确认VM停止后重装84。不要覆盖VM磁盘或还原旧盘抹掉新数据；旧App恢复GuestTools后应重新得到84的build/hash。

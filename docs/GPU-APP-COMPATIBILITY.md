@@ -77,6 +77,12 @@ pthread_jit_write_protect_supported_np=0
 
 追加 probe 还尝试了匿名 RWX 映射和 `pthread_jit_write_protect_np` 切换：`supported=0`、`mmap ... errno=13 (EACCES)`；切换调用本身没有崩溃，但没有建立可执行内存契约。该结果进一步排除只伪造 getter 作为正式修复。
 
+后续 `MAP_JIT` 专用 probe 修正了测试条件：未签名样本也能 `MAP_JIT errno=0`，写入 arm64 JIT code、开启 write-protect、执行并返回 `42`。这支持一个默认关闭的诊断 interpose：`VIRTUAL_MAC_JIT_CAPABILITY_COMPAT=1` 时仅把错误的 getter 结果纠正为 1；它尚未通过未补丁 MATLAB CEF A/B，因此不默认开启、不作为 90 正式能力。
+
+## Qoder CN outstanding issue（2026-10-03）
+
+用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”。只读证据存在矛盾：用户配置 `~/.qoder-cn/argv.json` 中硬件禁用项是注释；隔离 Qoder CDP 的 `SystemInfo.getInfo` 报 `ANGLE_METAL`、`Apple Paravirtual device`、`gpu_compositing=enabled`、`opengl=enabled_on`、`webgl=enabled`、`webgpu=enabled`、`processCrashCount=0`，启动参数只有 `--disable-skia-graphite`。待取得正式 Qoder UI/CLI 的原文提示、当前用户 profile 的 featureStatus 和 WebGL/WebGPU 像素读回，才能判断是 Qoder 的 Graphite 状态误报、GPU crash guard、还是实际渲染回退。不要擅改 Qoder 配置或 app bundle。
+
 ### Instance1 内核证据
 
 只读核对 macPad 的 Instance1（iPadOS 16.3 kernelcache）后，Hex-Rays 的 `_proc_check_map_anon @ 0xfffffe00092a68c4` 显示 `MAP_JIT` 路径必须经过 developer-mode/device-unlock 状态，并从进程 entitlement 查询 `dynamic-codesigning`；缺失时返回拒绝。kernel 字符串还明确写出 `MAP_JIT requires sandboxing` 与 `MAP_JIT requires the dynamic-codesigning entitlement`。因此 MATLAB CEF 的 JIT workaround 是 VM guest execution-policy 缺口，不能由 GPU 直通层安全伪造。

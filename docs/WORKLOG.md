@@ -307,6 +307,13 @@
 - [x] 该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的 `brk #0` 条件一致，确认这是 guest hypervisor/JIT capability 边界，不是当前 GPU renderer/MSAA/FBO 缺口。
 - [x] 不把 getter 强制返回1加入 VirtualMac；那等价于应用二进制症状补丁，且未证明 JIT 写保护/执行内存契约。90 继续保持证据闸门，不构建。
 - [x] 追加 JIT probe：匿名 RWX `mmap` 返回 `errno=13/EACCES`，`pthread_jit_write_protect_np` 切换不崩但不提供执行内存；进一步证明不能只伪造 getter。
+- [x] `MAP_JIT` 专用 probe（未签名样本）成功分配、写入 arm64 code、write-protect 后执行返回42；新增默认关闭 diagnostic interpose，显式 env 回归通过，未打包。
+
+## 2026-10-03 — Qoder CN outstanding issue 取证
+
+- [x] 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”，列入 outstanding issue。
+- [x] 只读核对 `~/.qoder-cn/argv.json`：`disable-hardware-acceleration` 注释；隔离 Qoder CDP 运行时报告 ANGLE Metal / Apple Paravirtual device、gpu_compositing/opengl/rasterization/webgl/webgpu enabled、processCrashCount=0；命令行仅有 `--disable-skia-graphite`。
+- [ ] 待取正式 Qoder 用户 profile 的原文提示、featureStatus 和 WebGL/WebGPU 像素读回；在此之前不修改 Qoder 配置、bundle 或默认 GPU 策略。
 - [x] Instance1（macPad iPadOS16.3 kernelcache）只读 Hex-Rays：`_proc_check_map_anon @0xfffffe00092a68c4` 的 MAP_JIT 路径要求 developer mode/device unlocked 并查询 `dynamic-codesigning` entitlement；kernel strings 明确 `MAP_JIT requires sandboxing` / `MAP_JIT requires the dynamic-codesigning entitlement`。这把 MATLAB JIT 缺口从猜测提升为内核证据；Instance2/3 仅用于上下文，未改 IDB。
 ## 2026-10-03 — 90 候选：GuestTools repair 风暴上限
 

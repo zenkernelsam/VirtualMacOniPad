@@ -5,6 +5,7 @@
 #import <OpenGL/gl3.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <pthread.h>
 
 #ifndef EXPERIMENTAL_UNREAL_GAMES
 #define EXPERIMENTAL_UNREAL_GAMES 0
@@ -33,6 +34,24 @@ static void InstallRenderEncoderCompatibility(id encoder);
 static BOOL DebugEnabled(void) {
     const char *value = getenv("VIRTUAL_MAC_OPENGL_DEBUG");
     return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+// Diagnostic only: the guest's pthread getter reports false even though a
+// MAP_JIT allocation, write-protect toggle, and generated-code execution are
+// all runtime-confirmed to work. Keep the correction opt-in until an unpatched
+// MATLAB CEF A/B proves that this removes its stale CHECK without changing
+// other applications' JIT policy.
+static int PVGJITCapability(void) {
+    // The interpose table supplies the original symbol for this direct call;
+    // using dlsym(RTLD_NEXT) here recurses on the rebuilt dyld image.
+    int supported = pthread_jit_write_protect_supported_np();
+    const char *compat = getenv("VIRTUAL_MAC_JIT_CAPABILITY_COMPAT");
+    if (supported || compat == NULL || strcmp(compat, "1") != 0)
+        return supported;
+    if (DebugEnabled())
+        fprintf(stderr, "OpenGLPVGCompat: diagnostic JIT capability compat "
+                        "enabled (native=%d)\n", supported);
+    return 1;
 }
 
 static NSUInteger ShaderTokenCount(NSString *source, NSString *token) {
@@ -641,6 +660,8 @@ INTERPOSE(pvg_metal_devices_observer, PVGCopyAllDevicesWithObserver,
 INTERPOSE(pvg_iogl_property, PVGCreateRegistryProperty,
           IORegistryEntryCreateCFProperty);
 INTERPOSE(pvg_particle_shader_source, PVGShaderSource, glShaderSource);
+INTERPOSE(pvg_jit_capability, PVGJITCapability,
+          pthread_jit_write_protect_supported_np);
 #if EXPERIMENTAL_UNREAL_GAMES
 INTERPOSE(pvg_gpu_registry_properties, PVGCreateRegistryProperties,
           IORegistryEntryCreateCFProperties);

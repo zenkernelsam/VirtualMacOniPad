@@ -315,6 +315,13 @@
 - [x] 独立构建回归：`matlabwindowhelper` 默认 `supported=1` 且 JIT code result=42；同进程 env0 返回0；普通 helper 默认/env0均返回0且 result=42。构建库 SHA256=`7566985177a456c9965a51c24a944d4411728faa80ea1013a2dc794ed2cf632`。
 - [ ] 91 完整包待构建；未补丁 MATLAB CEF A/B 尚未执行，不能提前宣称应用补丁已可删除。
 
+## 2026-10-03 — 91 GPUJIT 候选包完成
+
+- [x] 91 完整构建/stage audit通过；包 `VirtualMac/build/release/VirtualMac_1.2.3_4ee27896e9.deb`，version=`2:1.2.3+91.4ee2789.jitcompat`，SHA256=`c1f193d1f866f4780e220887bf2354d45790ff038ab7ed198d62b3d91084a726`，20,856,548 bytes。
+- [x] 包内 `OpenGLPVGCompat.dylib` 为 x86_64/arm64/arm64e，含 JIT compat/env 字符串，GuestTools strict signature通过；App内 repair suppression 字符串存在。
+- [x] 已复制 `VirtualMac_1.2.3_4ee2789_GPUJIT91.deb` 到飞牛目录，两处 hash 一致；未安装、未重启、未设置 env、未操作运行中 VMM。
+- [ ] 91 的 MATLAB CEF 未补丁实景 A/B 仍未做；安装前保留 90/88 回退，不能把 91 包构建成功当成 MATLAB patch 已可删除。
+
 ## 2026-10-03 — Qoder CN outstanding issue 取证
 
 - [x] 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”，列入 outstanding issue。

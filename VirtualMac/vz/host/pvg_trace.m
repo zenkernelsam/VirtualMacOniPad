@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
+#import "PVGDeviceInfoPolicy.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import <dlfcn.h>
@@ -75,10 +76,10 @@ extern uint8_t *vmmhook_host_address_for_ipa(uint64_t ipa, size_t size);
 // the completion stamp until after getDeviceInfo returns, so appending pairs
 // inside this method is race-free.
 //
-// Values mirror what Apple's own newer host serves (cross-checked against the
-// Reims vGPU wire model and the measured iPadOS 16.3 M1 device). Every entry
-// is still gated by the guest's own keyLimit, so an older guest parser never
-// sees a key it cannot dispatch.
+// Values are an unverified newer-host reference, available only after an
+// explicit experimental opt-in, not a measured M1 end-to-end capability table.
+// Entries are gated by the guest's keyLimit, which prevents unknown keys but
+// does not prove the associated transport or execution capabilities.
 // ---------------------------------------------------------------------------
 
 static void Trace(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
@@ -1773,12 +1774,12 @@ static void InstallPVGTrace(void) {
         // Ventura arm64e IMPs cannot safely round-trip through older runtimes.
         BOOL canInstallAuthenticatedMethods = !HostPredatesIPadOS16();
 
-        // DeviceInfo reply augmentation is functional, not diagnostic: the
-        // guest Metal plugin builds its capability table from this reply once
-        // at boot, so the hook must run on every boot unless disabled.
-        const char *capsFlag = getenv("PVG_DEVICEINFO_CAPS");
+        // DeviceInfo reply augmentation is experimental and off by default:
+        // the guest Metal plugin builds its capability table from this reply
+        // once at boot, so unverified fields require a new explicit opt-in.
+        const char *capsFlag = getenv(PVGDeviceInfoCapsEnvironment);
         gDevInfoCapsEnabled = canInstallAuthenticatedMethods &&
-            (capsFlag == NULL || strcmp(capsFlag, "0") != 0);
+            PVGDeviceInfoCapsEnvironmentRequested(capsFlag);
         if (gDevInfoCapsEnabled) {
             SEL getDeviceInfoSelector =
                 NSSelectorFromString(@"getDeviceInfo:length:dst:");

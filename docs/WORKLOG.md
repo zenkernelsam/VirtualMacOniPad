@@ -154,3 +154,12 @@
 - Vulkan 另有独立缺陷：MoltenVK1.2.0 由 Mac2 推断 attachmentless 支持，但 guest Metal 拒绝 all-invalid pipeline。诊断只收窄 Mac2 后 MoltenVK 原生 dummy attachment 路径有效（保留 rasterization，writeMask0）；最小 RGB/3D/GPU 粒子读回通过，标题场景也捕获成功。该诊断不写入正式默认。
 - **交付边界**：新 guest dylib 位于 `.diag/godot-vulkan/guest-opengl-fixed/OpenGLPVGCompat.dylib`，只在新测试 Godot 中加载，未替换 `/Library/VirtualMac`、未重启/注入宿主 VMM、未重建 deb。UID/空 shader-global/退出资源警告仍在，未测试全游戏、全部 3D 粒子朝向、MATLAB、Chromium；不能称全 GPU 完美修复。
 - 下一闸门：用户确认目标场景并扩大实景测试；审计并收窄 deviceInfo 默认表，再整合新 guest shim 到可回滚 deb，受控首启验收。
+
+## 2026-10-02 — 保守 Godot 修复包：源码安全闸门
+
+- 用户授权先整合可验收修复包，不安装、不重启 VM 或宿主。
+- `PVGDeviceInfoPolicy.h` 统一 App/VMM 的开关契约；扩展默认 off。App 只读新的 `PVGDeviceInfoCapsExperimental`，旧 `PVGDeviceInfoCaps=YES` 不触发；只接受 NSNumber true。VMM 只读新的 `PVG_DEVICEINFO_CAPS_EXPERIMENTAL`，仅精确字符串 `1` 可启用，unset/空/0/true/YES/2 等均关闭；旧 env 忽略。关闭时清理传入 VMM 的 legacy flag 与 extra，不修改用户原有 preferences。
+- 实验参考表仍在源码，但不会在默认启动时追加 Apple9/4095 等字段；表自身的协议/执行支持没有因默认关闭而得到证明，不应自行启用。
+- 新 `scripts/tests/deviceinfo-policy-test.m` 通过；Godot 源结构回归再次通过，均使用 `-Wall -Wextra -Werror`。App arm64 与 pvg_trace arm64e iOS14.5-target 语法检查通过，仅既存 UIKit `setScreen:` deprecation warning。
+- 独立构建目录计划 `.diag/godot-conservative-build`；复用的框架/辅助组件复制到新目录，源码变动的 VMM 与 App/GuestTools 重新构建，旧输出及 deb 保留。最终 deb/包内库/签名/trustcache/版本验证尚待构建完成。
+- 安装风险核实：现有 `preinst`/`prerm` 会 killall VMM，`postinst` 会更新 helper job，并可能请求 userspace restart；因此必须先正常关闭客机并另行安排安装，不能从正在运行的本 VM 直接执行 dpkg 安装。VM 数据目录不作打包输入；本轮不会调用部署/安装脚本。

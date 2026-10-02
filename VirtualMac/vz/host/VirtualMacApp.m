@@ -16,6 +16,7 @@
 #import "VZSupport.h"
 #import "VZGuestTools.h"
 #import "VZGuestRuntimePolicy.h"
+#import "PVGDeviceInfoPolicy.h"
 #import "VZTrackpadScrollBridge.h"
 #include <dlfcn.h>
 #include <objc/runtime.h>
@@ -5216,21 +5217,23 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
     setenv("VZ_METAL_BC_SUPPORT", metalBCSupport ? "1" : "0", 1);
 
     // PVG device-info capability augmentation (VMM-side swizzle on
-    // -[_PGDevice getDeviceInfo:length:dst:]). On by default; both switches
-    // forward to the VMM process so a bad table can be backed out with
-    //   defaults write <bundle> PVGDeviceInfoCaps -bool NO
-    // and extra pairs can be added/overridden without a rebuild via
-    //   defaults write <bundle> PVGDeviceInfoExtra "10=8;33=4095"
+    // -[_PGDevice getDeviceInfo:length:dst:]). Experimental and off by default.
+    // The new opt-in ignores legacy settings; it can be backed out with
+    //   defaults write <bundle> PVGDeviceInfoCapsExperimental -bool NO
+    // Extra pairs are forwarded only after an explicit experimental opt-in;
+    // PVGDeviceInfoExtra values still require protocol and execution validation.
     NSUserDefaults *deviceInfoDefaults = [NSUserDefaults standardUserDefaults];
-    id capsOverride = [deviceInfoDefaults objectForKey:@"PVGDeviceInfoCaps"];
-    BOOL capsEnabled = capsOverride == nil || [capsOverride boolValue];
-    setenv("PVG_DEVICEINFO_CAPS", capsEnabled ? "1" : "0", 1);
+    id capsOverride = [deviceInfoDefaults objectForKey:PVGDeviceInfoCapsPreference];
+    BOOL capsEnabled = PVGDeviceInfoCapsPreferenceRequested(capsOverride);
+    unsetenv("PVG_DEVICEINFO_CAPS");
+    setenv(PVGDeviceInfoCapsEnvironment, capsEnabled ? "1" : "0", 1);
     NSString *capsExtra =
         [deviceInfoDefaults stringForKey:@"PVGDeviceInfoExtra"];
-    if (capsExtra.length)
+    if (capsEnabled && capsExtra.length)
         setenv("PVG_DEVICEINFO_EXTRA", capsExtra.UTF8String, 1);
     else
         unsetenv("PVG_DEVICEINFO_EXTRA");
+    fprintf(stderr, "[PVGDeviceInfo] experimental=%d (default off)\n", capsEnabled);
 
     setStatus(VZL(@"Loading extracted Apple virtualization frameworks…"));
     BOOL guestToolsEnabled =

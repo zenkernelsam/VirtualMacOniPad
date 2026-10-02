@@ -158,7 +158,74 @@ Guest 侧 PGSerializer 类族：`PGSerializer{Render,Compute,Blit,Info,}CommandE
 
 **deviceInfo schema**（客机要宿主填的探测字典）：`SupportFlags2024` 位域=`SupportsLargeUserTasks/LargeKernelTasks/CommandBufferJump/RangeBuffer/SharedMemoryHeap/ArgumentBuffers/SIMDReduction/Float16BCubicFiltering/SIMDShuffleAndFill/ConditionalLoadStore/ComputeCompressedTextureWrite/SharedTexturePlacement`；另有 `DeserializerVersion`、`HostGPUFamily`、`ArgumentBuffersTier`、`MaxVertexAmplificationCount`、`MaxMetalShaderVersion(Major/Minor)` 等。
 
-### F. 具体根因假设（证据链已收紧）
+### F. 具体根因假设（已被 IDA 证据修正——见 §G）
 
-`supportsCmdExecIndirect3` 存在 ⇒ 协议存在 `CmdExecIndirect3`；宿主 32 条 Cmd 词表只有 `CmdExecIndirect2`。**假设**：客机在某些提交（可能正是带 barrier/indirect 的路径）发出 CmdExecIndirect3（或任一 opcode>宿主表），Ventura PGFIFO 打 `Invalid FIFO command ... opid=%u on channel %u` 后停止消费该 FIFO → guest 见 `submitEvent:INCOMPLETE` 永不 retire → IOGPUScheduler restart → channel→global reset 风暴。**完美解释"仅 Exec 通道积压、Object/Memory 排空"的通道排水图**。
-- 验证：SSH 恢复后 `grep -iE "opid|invalid fifo|unsupported.*binary" /tmp/vmm.stderr.log`；若中，反编译确认该命令的 binary-version 门控，然后选修法（宿主侧假完成 / 客机侧降级到 ExecIndirect2 / 对齐 payload 代际）。
+~~`supportsCmdExecIndirect3` 存在 ⇒ 客机发出 CmdExecIndirect3（或任一 opcode>宿主表）触发 `Invalid FIFO command`~~ —— **修正**：IDA 逆向后确认 gpuRestart 报告中最后卡住的 `CMD=0x37` 恰是 `CmdExecIndirect2`（合法 opcode），非未知命令。见 §G。
+
+### G. IDA 逆向：Ventura PGFIFO 命令分发器全解码（2026-10-01 深夜，Instance4）
+
+二进制：`VMGPU/Frameworks/ParavirtualizedGraphics.framework/Versions/A/ParavirtualizedGraphics`（Ventura 13.2.1 payload，黄金基线只读样本）。
+
+#### G.1 分发器本体
+
+`-[PGFIFO processFifo]` @ `0x100021594`（NSThread 名为 `PGFifoThread`，由 `-[PGFIFO start]` @ `0x10001bcb0` 用 `initWithTarget:selector:` 拉起）。循环逻辑：
+
+1. `getFifoBytes:into:` 读 12B 头 → `{cmdLen(v33), barrierCount(v32), opid(v31), stampValue(v34)}`；
+2. cmdLen ∉ [12, commandLength] → `os_log_error` `"Invalid FIFO command length (%lu <= %u <= %llu) opid=%u on channel %u"`；
+3. `barrierWait:barrier:`（≤32 barrier，v32<0x21）→ `advance` → `pushStamp:cmdID:`；
+4. `switch(opid)` 分发到 `Cmd*:stampValue:withPayload:payloadSize:`；
+5. **opid>0x40** → `"Invalid FIFO command: %u on channel %u"` → `sub_10001C504`（dump payload）→ `faultAtStampValue:` + `signalStampValue:` —— **坏命令被打 fault 并 signal 后循环继续消费**（非宿主停摆；客机侧看到该 stamp 完成但带 fault → 客机触发通道 teardown → 其后所有排队/续交命令全部 `submitEvent:INCOMPLETE`）。
+
+#### G.2 Ventura opid→Cmd 全表（switch 逐 case 解出）
+
+| opid | 命令 | opid | 命令 |
+|---|---|---|---|
+| 0 | CmdDebug | 0x22 | CmdUnmapMemory |
+| 1 | CmdDisplaySetSharedStatePage | 0x25 | CmdDeleteResource |
+| 2 | CmdDisplayAck | 0x28 | CmdDeleteObject |
+| 4 | CmdDisplayCursorGlyph | 0x30 | CmdDefineChildFIFO |
+| 5 | CmdDisplayCursorShow | 0x31 | CmdDeleteChildFIFO |
+| 6 | CmdDisplayTransaction2_DEPRECATED | 0x33 | CmdSetObjectList |
+| 7 | CmdDisplayTransaction3 | 0x34 | CmdInvalidateResources |
+| 8 | CmdDisplaySwapMapping | 0x35 | CmdSynchronizeResources |
+| 9 | CmdDisplaySleepState | 0x36 | CmdDeleteIOSurfaceBacking2 |
+| 0xA | CmdDisplaySetProperties | **0x37** | **CmdExecIndirect2** |
+| 0x1E | CmdNOP | 0x38 | CmdDefineTask2 |
+| 0x20 | CmdDeleteTask | 0x39 | CmdMapMemory2 |
+| 0x3A | CmdGetDeviceInfo | 0x3E | CmdSynchronizeAndDiscardResources |
+| 0x3B | CmdGetComputeInfo | 0x3F | CmdDiscardResources |
+| 0x3C | CmdReplacePhysical | 0x40 | CmdHeapTextureSizeAndAlign |
+| 0x3D | CmdDelay | **>0x40** | Invalid → fault+signal |
+| **3, 0x1F, 0x21, 0x23, 0x24, 0x26, 0x27, 0x29–0x2F, 0x32** | **→ CmdDeprecated（`"Guest used deprecated command=%u"`）** | | |
+
+PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ `0x100029c50`，57 项）：`processFifo=0x100021594`、`faultAtOffset:stampValue:=0x10001bdd8`、`faultAtStampValue:=0x10001bf00`、`signalStampValue:=0x10001c0b4`、`barrierWait:barrier:=0x10001bfa4`、`pushStamp:cmdID:=0x10001c274`、`CmdExecIndirect2=0x10001f4b4` 等。
+
+#### G.3 CmdExecIndirect2 内部（`0x10001f4b4` → block `0x10001f9f8`）
+
+- 信封 payload：`u32 taskID; u32 resourceCount; u32 cmdBufferCount;` + `24B×resources` + `16B×{offset,length}×cmdBuffers`（长度不符→`objc_exception_throw`）。
+- `[device getTaskID:]`→`[task runBlock:]`（= `shared_mutex lock_shared` + 执行 block，`0x10000bd4c`，**无 @catch**）。
+- Block 内：`[task prepareResources:count:event:value:]` → 取 `device.execQueue` 建 host `commandBuffer` → 可选 `encodeWaitForEvent:value:` → 逐 cmdBuffer `mappedAddressForOffset:length:`（取 guest 序列化流宿主映射地址）→ **`[task deserializer] decodeSegments:lengths:count:into:`** → `addCompletedHandler:`（block `0x10001feac`，内做 stamp signal）→ `encodeSignalEvent:value:` → `commit` → `completeResources:count:sync:completionHandler:`。
+- `deserializer` = PGTask ivar@+48，类型 `<MTLDeserializer>`，由 **`@loader_path/../../../MetalSerializer.framework`**（payload 内置 Ventura 版 MetalSerializer）提供。→ **15.6 客机序列化器 ↔ Ventura 反序列化器的代际差就压在 `decodeSegments:` 这一行里。**
+
+#### G.4 楔死闭环：`faultAtOffset:stampValue:` 停车语义（决定性）
+
+`-[PGFIFO faultAtOffset:stampValue:]` @ `0x10001bdd8`（`faultAtStampValue:` @ `0x10001bf00` 是其薄封装）逐字行为：
+
+1. 在 stamp 环上等空位（`a1+412/416` 环形表 + `a1+432` condvar）；
+2. 置 `*(a1+773)=1`（fault 位）→ `setFaultOffset:` → `[device signalFault]`（通知客机）；
+3. **若 `*(a1+772)`（quiesce 位）未置 → `condition_variable::wait(a1+664)` 停车** —— FIFO 线程就地冻结，直到 `quiesce` 被调（客机 GPU reset 通道重建时）。
+
+⇒ **一条 faulted 命令 = 整条通道楔死**（read 指针冻结于中流、GPUstamp 停于最后完成值、其后全部 INCOMPLETE）。与 gpuRestart 报告逐字节吻合：`Exec written-read=41064B`、GPUstamp `0x33c46b00`、pending `signalStamp 0x33c46c00–0x33c47500` 全 `CMD=0x37`；`Display[0]` 的 `CmdDisplaySwapMapping`(0x8) `barrier 0: stampIndex=0x1 stampValue=0x33c4b900` 正是**被楔住的 Exec stamp 拖死的 barrier**。
+
+**Fault 触发面全集**（stub xref 枚举）：`faultAtStampValue:` 约 29 个调用点覆盖**几乎全部 Cmd\* handler**（每个 Cmd 自己校验 payload，失败即 fault）+ dispatcher 3 处（bad length / bad opid / deprecated 路径）+ `CmdDeprecated`；`faultAtOffset:` 直调 3 处——`faultAtStampValue` 壳、CmdDeleteIOSurfaceBacking2 内联、`0x10001feac` = **ExecIndirect2 的 addCompletedHandler block**（宿主 Metal CB 带 error 完成 → fault → 同样 park）。
+
+⇒ 模型 A（协议/内容校验 fault）与模型 B（宿主 Metal error 完成）**殊途同归，全是 `faultAtOffset` 停车**。异常路径（`objc_exception_throw`）存在但无 @catch → 若真发生 = VMM 整机 abort，与实际观测（VM 活、仅 GPU reset）不符，降权。
+
+**一条 hook 定案**：`faultAtOffset:stampValue:`（或 `setFaultOffset:`/`signalFault`）——包装后记录 fault 时的 `currentCommandOffset`/stamp/返回地址 → 直接给出是哪个 Cmd/哪段负载触发的 fault（diagnostic 用，非修复）。
+
+#### G.5 下一步取证（排序）
+
+1. **楔死现场快照**（最廉价、不用重启 VM）：下次 GPU 复位发生时 SSH `sample <VMM pid>`（只读）——若 `PGFifoThread` 停在 `faultAtOffset` 的 `condition_variable::wait` ⇒ 模型 A/B·fault 停车实锤；若停在 `decodeSegments`/Metal 内部 ⇒ 纯挂起模型。
+2. **一条 hook 定案**（diagnostic，见 G.4）：pvg_trace 增量包装 `faultAtOffset:stampValue:`（覆盖面 = 全部 Cmd\* 校验失败 + Invalid opid + Deprecated + ExecIndirect2 完成错误）——记录 `currentCommandOffset`、stamp、返回地址（→哪个 Cmd）、payload 头部若干字节，一次复现即可定位元凶。当前 pvg_trace 只包 task 级方法（`getTaskID`/`createTaskID`/`deleteTaskID`/commit/`mappedAddressForOffset`），**不碰 dispatcher**——需要新增。
+3. 若元凶落在 Cmd\* 校验或 deprecated/invalid opid → 属协议层：查客机对应 opid 是什么新命令 → 选修法（宿主侧转实现 / 客机侧绕开 / 对齐 binaryVersion 协商）。
+4. 若元凶落在 `decodeSegments` 或完成错误 → 属序列化代际：dump indirect segment 内容比对 MetalSerializer 版本字段；长期解 = payload 代际升级（换 15.x MetalSerializer/PG 全套，工作量大但有 VMGPU 黄金基线比对流程兜底）。

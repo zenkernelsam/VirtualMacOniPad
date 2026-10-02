@@ -74,3 +74,18 @@
 1. **拿决定性证据需一次 VM 重启**：App 设 DebugLogging=next → 重启 VM（客机断电）→ 复现 → 拉 pvg-trace.log（含 `PGNewDeviceWithDescriptor` 协商 descriptor dump！）+ vmm.stderr.log
 2. 或用户把 witchontheholynight 放回客机跑一会儿，等自然复位看 vmm.stderr.log 是否打印 opid
 3. IDA Instance4(:13340) 仍未加载——等用户开：目标是 PGFIFO dispatch 表 → CMD=0x37/0x1e/0x8 映射
+
+## 2026-10-02 — IDA 逆向突破：PGFIFO 分发器全解码 + 楔死闭环定位（Instance4）
+
+- [x] **`-[PGFIFO processFifo]` @ `0x100021594` 全反编译**：PGFifoThread 消费循环 → 12B 头 `{cmdLen,barrierCount,opid,stamp}` → `barrierWait` → `pushStamp` → `switch(opid)` 分发
+- [x] **Ventura opid→Cmd 全表解出**（32 项 + deprecated 洞 3/0x1F/0x21/0x23/0x24/0x26/0x27/0x29-0x2F/0x32 → CmdDeprecated；>0x40 → Invalid→fault）：**`0x37=CmdExecIndirect2`、`0x1E=CmdNOP`、`0x39=CmdMapMemory2`、`0x30=CmdDefineChildFIFO`、`0x33=CmdSetObjectList`、`0x8=CmdDisplaySwapMapping`** —— gpuRestart 里卡住的命令全是合法 opcode → 旧假设"未知 opcode 触发 Invalid"**被推翻**
+- [x] **`CmdExecIndirect2` @ `0x10001f4b4` 流程解码**：payload={taskID,resCount,cmdBufCount}+24B×res+16B×{off,len}×cmds → `[task runBlock:]`（shared_mutex lock_shared，无 @catch）→ `prepareResources`→`execQueue`→`commandBuffer`→（可选`encodeWaitForEvent`）→ 逐 cmd `mappedAddressForOffset:length:` → **`[task deserializer] decodeSegments:lengths:count:into:`**（`<MTLDeserializer>`，来自 payload 内置 **Ventura MetalSerializer.framework**）→ `addCompletedHandler`+`encodeSignalEvent`+`commit` → `completeResources:…`
+- [x] **楔死闭环**：`faultAtOffset:stampValue:` @ `0x10001bdd8` = 置 fault 位 + `setFaultOffset:` + `[device signalFault]` + **condvar 停车等 quiesce** —— 一条 faulted 命令即冻结整条通道（read 指针停、GPUstamp 停、后续全 INCOMPLETE）。最新报告逐字吻合：Display[0] 的 `CmdDisplaySwapMapping`(0x8) `barrier 0: stampIndex=0x1 stampValue=0x33c4b900` 被楔住的 Exec stamp 拖死
+- [x] **Fault 触发面全集**：~29 处 `faultAtStampValue:`（每个 Cmd* 自校验 + dispatcher 的 bad-len/bad-opid/deprecated）+ `faultAtOffset:` 直调 3 处（含 `0x10001feac` = ExecIndirect2 的 addCompletedHandler → **宿主 Metal CB 带 error 完成也会 fault→park**）→ 协议层与内容层殊途同归
+- [x] `objc_exception_throw` 路径存在但无 @catch → 真触发=VMM abort（与观测不符），降权
+- 全细节（地址/表/流程/判别手段）见 `docs/GPU-NATIVE-RESEARCH.md` §G
+
+### 下一步（决策点·已更新）
+1. 楔死现场快照（不用重启）：下次复位时 `sshpass ... 'sample <vmm-pid> 3'` → PGFifoThread 停在 `faultAtOffset` condvar = fault 停车实锤
+2. diagnostic hook：pvg_trace 包 `faultAtOffset:stampValue:` 记 offset/stamp/返回地址/payload 头 → 定位是哪条 Cmd 的哪段负载
+3. 长期方向分叉：协议层补命令 vs payload 代际升级（15.x MetalSerializer/PG）

@@ -262,3 +262,10 @@
 - [x] 根因收窄到握手条件：`VirtualMacGuestToolsApp.m` 的 readiness marker 被 `statusItem.button/menu` 条件挡住，而 host configuration/OpenGL policy 已先执行。最小修复是 marker 只依赖 ReadyToken，避免宿主每10秒重复 payload repair；不改变 GPU 声明/协议/应用开关。
 - [x] 独立构建 `.diag/guest-tools-ready-fix-build/` 通过，arm64/x86_64 guest tools、tar payload、codesign strict 均通过；未安装、未重启、未改运行中 VMM。
 - [ ] 下一次含此改动的包首启验收 readiness acknowledgement、repair计数、wakeups，再进行 MATLAB/Devin GPU compositor 与屏幕像素 A/B。
+## 2026-10-02 — IDA 13340 复核 PG 协议边界与 readiness 修复包
+
+- [x] 用户加载 `ida-pro-mcp` Instance4；通过 `http://127.0.0.1:13340/mcp` health 核对：IDB=`VMGPU/Frameworks/ParavirtualizedGraphics.framework/ParavirtualizedGraphics.i64`，imagebase=`0x100000000`，auto-analysis/Hex-Rays ready。13337–13339 未使用。
+- [x] IDA 反编译证据保存 `.diag/ida-13340-gpu-evidence-20261002/`：`writeDeviceInfo @0x100002a04` 逐项读取真实 Metal getter；`setBinaryVersion @0x100011efc` 对请求版本执行 `min(request,43)`；`faultAtOffset @0x10001bdd8` 设置 fault offset、signalFault 后在 condvar 等待；selector xrefs 与 PGFifoThread 初始化也保存。
+- [x] 这些二进制证据加强现有决策：不强升 Tier2/207、不伪造 getter/serializer；GPU fault 的停车语义是 PGFIFO 设计事实，不能用进程存活掩盖。
+- [x] readiness 修复包完成：`VirtualMac/build/release/VirtualMac_1.2.3_0658b082ec.deb`，版本 `2:1.2.3+89.0658b08.gpuready`，SHA256=`dd3fa1ecbea974996e58a5c799f6a9c3de7857ec476f6f2200a06ba0d130d66c`；包内 GuestTools 与独立修复构建 SHA256 均为 `b2a3cd74fe3b04d03c2718de25b1257c6401a728cace4a5c677ef8e024fa1c95`，codesign strict 通过。
+- [x] 89 包已复制到本地飞牛 `VirtualMacOniPad_iOS` 并逐字节 hash 一致；未安装、未重启、未操作运行中 VMM。下一步仍需用户在正常关机后安装，验收 `guest menu extra acknowledged` 不再出现 repair 增长，再做 MATLAB/Devin 的真实 compositor/像素 A/B。

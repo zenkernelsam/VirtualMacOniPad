@@ -138,5 +138,5 @@
 - **Reims 协议层当 oracle 拿到 deviceInfo key 全表**（`regs.rs`）：key 1-44 全解码（43=Apple 自家跳号死位）；macOS15 客机 keyLimit=42、macOS26=45；真实宿主服务表确认——argbuf 来自 key33 SupportFlags2024 bit5（非 key38）；key10=SerializerVersion 各 rung 语义明确（≥6=OpenGL 词表）。
 - **宿主侧回复管线全解**（IDA Instance4）：`getDeviceInfo:length:dst:` IMP=`sub_100011DF0`（无 xref=仅方法表调）；内部 MTLRangeAllocator map `pfn<<14`+0x4000 → `writeDeviceInfo(dev,keyLimit,count,dst=va+*(dev+0x1F0))` → unmap。writeDeviceInfo 字段门控 `keyLimit>K` 与 Reims 逐位吻合。
 - **实现**（`pvg_trace.m`+`vmmhook.m`+`VirtualMacApp.m`）：swizzle getDeviceInfo→orig→hv_vm_map 表换算客机页 VA→追加 key17-41 扩展集（Apple 真实宿主值）→重写哨兵。env 可配：`PVG_DEVICEINFO_CAPS`（总开关）/`PVG_DEVICEINFO_EXTRA`（逐 key 覆写，含 key10）。
-- **deb 已构建验证**：`VirtualMac_1.2.3_a983c775b6.deb`（构建时工作树=未提交代码，commit 后需重建对齐 hash）。
+- **deb 已构建验证**：安装用 `VirtualMac_1.2.3_c137b1306a.deb`（=commit c137b13，provenance 对齐；同目录 `a983c775b6` 包是同内容预提交版，勿装）。
 - 待 VM 重启验证：vmm.stderr 应有 `deviceinfo caps augmented`；客机 mtl-caps-dump 应对照翻表（argbuf→1、readWrite→2、dynLibs/funcPtrs→YES 等）；watcher 盯楔死。

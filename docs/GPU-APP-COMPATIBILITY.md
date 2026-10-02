@@ -42,3 +42,9 @@
 2. MATLAB 取得带时间戳的窗口 drawable/屏幕像素失败证据，证明失败发生在 present 或上下文生命周期；
 3. 新 hook 有最小进程范围、关闭开关、窗口/离屏负回归，并通过连续多帧读回；
 4. Devin 的 GPU helper/WebView 像素 A/B 与 MATLAB 证据分开，不能用任一应用代替另一应用。
+
+## Devin Electron 静态映射（2026-10-03）
+
+已检查 `/Applications/Devin.app`（Electron 42.2.0 / Devin 1.126.0）：其 Electron Framework 的 load commands 同时包含 `Metal.framework`、`MetalKit.framework`、`OpenGL.framework` 和 `IOSurface.framework`；内部字符串包含 ANGLE WebGL、Metal、Vulkan、`CAMetalLayer` 与 WebGL2 路径。`~/.devin/argv.json` 当前启用 `disable-hardware-acceleration`，因此现状不能证明 ANGLE 的哪条后端失败。
+
+VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD profile、特定 render-pass descriptor、Rosetta vertex buffer 和已知粒子 shader 做处理；它没有覆盖 Chromium/ANGLE 的 Metal texture-sharing、`CAMetalLayer` present 或 WebGL backend。删除 Devin 的软件渲染开关前，必须用 GPU helper 存在、ANGLE backend 日志和真实 WebView 像素读回来证明这些路径；不能用 GLD probe 或进程存活替代。

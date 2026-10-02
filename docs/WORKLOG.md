@@ -291,3 +291,8 @@
 - [x] 新建 ignored `.diag/window-gl-probe-20261003/`，用 `NSOpenGLView`、真实 window drawable、VAO/VBO、shader、连续 `flushBuffer`、`glReadPixels` 跑 2 秒；142 帧、`failed=0`、exit0。渲染器字符串在 context teardown 后为 null，不能据此判失败。
 - [x] 初版探针曾在 core profile 漏绑 VAO，导致 `glEnableVertexAttribArray` 的 `GL_INVALID_OPERATION (0x502)`；已定位为测试程序错误并修正。不能把初版失败误归因 VirtualMac 的 window present。
 - [x] 当前没有足够证据构建 90；窗口 drawable 基线也通过，MATLAB figure 的特有失败仍需在 MATLAB 实际进程取得屏幕像素/上下文日志后再改。
+## 2026-10-03 — Devin Electron/ANGLE 静态能力映射
+
+- [x] 核对 `/Applications/Devin.app`：Electron Framework 为 arm64，链接 Metal、MetalKit、OpenGL、IOSurface；Chromium 内含 ANGLE WebGL/WebGL2、Metal/Vulkan、CAMetalLayer 与 texture-sharing 相关路径。
+- [x] 当前 `~/.devin/argv.json` 仍启用 `disable-hardware-acceleration`。VirtualMac GL shim 只覆盖 GLD，不覆盖 ANGLE Metal compositor/CAMetalLayer/IOSurface texture-sharing；不能据此删除 Devin workaround 或打 90。
+- [ ] 下一步若要改变 Devin 默认，必须取得 GPU helper、ANGLE backend、WebView 实际像素的独立 A/B；与 MATLAB CEF/JIT/figure 证据分开。

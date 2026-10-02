@@ -61,6 +61,10 @@ VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD prof
 
 随后执行真实 WebGPU workload：创建 `bgra8unorm` texture，执行 clear render pass，提交 command buffer，copy 到 MAP_READ buffer 并读回像素；结果 `ok=true format=bgra8unorm pixel=[77,51,26,255]`。这证明基础 WebGPU resource/render/submit/readback 链路在当前 88 可执行。
 
+### MATLAB 当前启动状态
+
+在临时 HOME/`MATLAB_PREFDIR` 下启动当前 MATLAB R2024a，未修改安装或用户配置。25 秒采样时主 MATLAB 进程仍在，CEF 相关命令行出现 `--use-gl=disabled`；这确认现有应用侧 workaround 正在强制软件 GL。该结果不证明 VirtualMac 的硬件 CEF 路径失败，因为当前实验没有还原未补丁 CEF，也没有 GUI 像素 A/B。
+
 ## MATLAB JIT 能力边界（2026-10-03）
 
 在当前 VirtualMac 客机内直接编译并运行只读 probe，得到：

@@ -325,6 +325,11 @@
 - [x] 同一隔离 CDP renderer 的 `navigator.gpu.requestAdapter()` 成功：maxBufferSize=4294967292、maxTextureDimension2D=16384，features 含 BC/ASTC/ETC2、shader-f16、subgroups、texture tier1/tier2；证据 `.diag/devin-webgpu-20261003/result.json`。
 - [x] Devin WebGPU 实际 workload 通过：bgra8unorm texture、clear render pass、command submit、copy/map-read，返回 pixel=`[77,51,26,255]`；证据 `.diag/devin-webgpu-render-20261003/result.json`。这证明基础 WebGPU 执行链可用，仍不等于所有 WebView/视频/复杂 workload 已验收。
 
+## 2026-10-03 — MATLAB 当前应用侧软件 GL 状态
+
+- [x] 临时 HOME/`MATLAB_PREFDIR` 启动当前 R2024a desktop 只读观察：主 MATLAB 进程启动，采样命令行出现 `--use-gl=disabled`；证据 `.diag/matlab-desktop-probe-20261003/`。
+- [x] 该参数确认现有 Patch workaround 在位；没有还原未补丁 CEF、没有 GUI 像素 A/B，因此不能把它当作 VirtualMac 硬件 CEF 失败证据，也不自动移除 patch。
+
 ## 2026-10-03 — 90 GPUReady 候选包完成
 
 - [x] 90 候选包含两项真实稳定性改动：GuestTools readiness marker 不依赖 status-item button/menu；同一 guest-agent connection 的 payload repair 最多3次，之后每60秒只 probe，reconnect 重置上限。

@@ -312,3 +312,16 @@
 - [x] 新鲜 iPad 宿主证据：88 仍安装，`guest menu extra not acknowledged; repair attempt` 已到至少 595，且每次 payload current；没有新 GPU fault 字段。
 - [x] `VZGuestTools.m` 新增按 guest agent connection generation 的 repair 上限：最多3次 payload repair；超过后每60秒只做 readiness probe，agent reconnect 会重置 generation。这样即使 marker 再次丢失，也不会无限复制 payload/制造 wakeup。
 - [ ] 需严格编译、宿主日志静态检查和完整包内容验证后，才交付 90 候选；不安装、不重启、不操作运行中 VMM。
+
+## 2026-10-03 — Devin 隔离硬件模式运行时证据
+
+- [x] 临时 HOME/用户目录启动 Devin，不改用户 `~/.devin/argv.json`；GPU helper 正常创建，命令行无 `--disable-gpu`/`--use-gl=disabled`。
+- [x] GPU helper `vmmap` 保存在 `.diag/devin-hwprobe-20261003-c/`，加载 `AppleParavirtGPUMetalIOGPUFamily`、Metal/MetalKit、IOSurface、IOGPU、OpenGL。
+- [ ] 尚未取得 WebView/ANGLE 实际像素或 `chrome://gpu` diagnostics；不把 GPU helper 存活当作完全修复。
+
+## 2026-10-03 — 90 GPUReady 候选包完成
+
+- [x] 90 候选包含两项真实稳定性改动：GuestTools readiness marker 不依赖 status-item button/menu；同一 guest-agent connection 的 payload repair 最多3次，之后每60秒只 probe，reconnect 重置上限。
+- [x] 限流5 jobs/background完整构建、stage audit通过。包：`VirtualMac/build/release/VirtualMac_1.2.3_17dfa3e47a.deb`；Debian version=`2:1.2.3+90.17dfa3e.gpuready`；SHA256=`869328336372ab5dcee4b59e2ac9c62cfd87169a58339c3a356e704604f50262`；20,858,104 bytes。
+- [x] 解包验证：App二进制含 suppression 字符串；包内 GuestTools 与修复构建 SHA256=`b2a3cd74fe3b04d03c2718de25b1257c6401a728cace4a5c677ef8e024fa1c95`；App ldid CodeDirectory/CDHash 可读；包未含 VM 数据。
+- [x] 已复制为 `VirtualMac_1.2.3_17dfa3e47a_GPUReady90.deb` 到本地飞牛目录，两处 hash 一致；未安装、未重启、未注入运行中 VMM。90 仍需首启验证后才能声称减少 wakeups 或解决卡死风险。

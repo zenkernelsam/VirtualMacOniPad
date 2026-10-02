@@ -45,11 +45,15 @@
 
 90 候选新增的宿主稳定性保护是 GuestTools repair 上限：同一 guest agent connection 最多执行 3 次 payload repair；仍未收到 readiness 后改为每 60 秒只 probe，不再复制/重装 payload。新 agent connection 会重置 generation 并重新允许 repair。该保护不改变 GPU 能力、协议或应用开关，目的是避免 readiness 故障放大成 VMM wakeup/内存压力。
 
+90 候选包已构建为 `2:1.2.3+90.17dfa3e.gpuready`，但尚未安装；包交付 hash 和证据见 WORKLOG。该版本解决的是 GuestTools 负载放大风险，不声称已经改善 ANGLE、MATLAB CEF JIT 或全部 Metal 能力。
+
 ## Devin Electron 静态映射（2026-10-03）
 
 已检查 `/Applications/Devin.app`（Electron 42.2.0 / Devin 1.126.0）：其 Electron Framework 的 load commands 同时包含 `Metal.framework`、`MetalKit.framework`、`OpenGL.framework` 和 `IOSurface.framework`；内部字符串包含 ANGLE WebGL、Metal、Vulkan、`CAMetalLayer` 与 WebGL2 路径。`~/.devin/argv.json` 当前启用 `disable-hardware-acceleration`，因此现状不能证明 ANGLE 的哪条后端失败。
 
 VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD profile、特定 render-pass descriptor、Rosetta vertex buffer 和已知粒子 shader 做处理；它没有覆盖 Chromium/ANGLE 的 Metal texture-sharing、`CAMetalLayer` present 或 WebGL backend。删除 Devin 的软件渲染开关前，必须用 GPU helper 存在、ANGLE backend 日志和真实 WebView 像素读回来证明这些路径；不能用 GLD probe 或进程存活替代。
+
+隔离硬件模式启动 Devin（临时 HOME、临时 `--user-data-dir`，不读取用户配置）时，正常创建了 `Devin Helper --type=gpu-process`，且没有 `--disable-gpu` 或 `--use-gl=disabled`。该 GPU helper 的 `vmmap` 逐字显示加载 `AppleParavirtGPUMetalIOGPUFamily`、Metal、MetalKit、IOSurface、IOGPU 和 OpenGL。它证明 88 的 VirtualMac GPU 栈可被 Electron GPU 进程打开，但尚未证明 WebView/ANGLE 最终像素正确。
 
 ## MATLAB JIT 能力边界（2026-10-03）
 

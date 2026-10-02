@@ -48,3 +48,13 @@
 已检查 `/Applications/Devin.app`（Electron 42.2.0 / Devin 1.126.0）：其 Electron Framework 的 load commands 同时包含 `Metal.framework`、`MetalKit.framework`、`OpenGL.framework` 和 `IOSurface.framework`；内部字符串包含 ANGLE WebGL、Metal、Vulkan、`CAMetalLayer` 与 WebGL2 路径。`~/.devin/argv.json` 当前启用 `disable-hardware-acceleration`，因此现状不能证明 ANGLE 的哪条后端失败。
 
 VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD profile、特定 render-pass descriptor、Rosetta vertex buffer 和已知粒子 shader 做处理；它没有覆盖 Chromium/ANGLE 的 Metal texture-sharing、`CAMetalLayer` present 或 WebGL backend。删除 Devin 的软件渲染开关前，必须用 GPU helper 存在、ANGLE backend 日志和真实 WebView 像素读回来证明这些路径；不能用 GLD probe 或进程存活替代。
+
+## MATLAB JIT 能力边界（2026-10-03）
+
+在当前 VirtualMac 客机内直接编译并运行只读 probe，得到：
+
+```text
+pthread_jit_write_protect_supported_np=0
+```
+
+该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的逐字证据一致：CEF 在返回 0 时触发 `brk #0`。VirtualMac 当前 GPU/Metal/GL shim 没有改变 hypervisor JIT capability；把 getter 强制返回 1 会复刻 Desktop/Patch 的应用症状补丁，不能称 GPU 直通修复。若要消除该补丁，必须先证明 guest JIT entitlement、写保护切换和执行内存契约能在 VM 中合法实现；当前没有这样的运行时证据。

@@ -301,3 +301,8 @@
 - [x] 当前 HEAD 回归：particle shader lowering 严格编译/运行通过；Metal family compatibility 严格 warnings（含 IOKit）通过；deviceInfo reply ASan/UBSan 通过。
 - [x] MATLAB R2024a `-batch` 的只读 renderer/隐藏 figure/export 尝试 90 秒无输出、无 PNG，不能替代 GUI GPU 验证，也不足以归因 VirtualMac GPU；未修改 MATLAB 配置或用户文件。
 - [x] 本轮无功能源码变化、无 90 包；继续等待真实 MATLAB/Devin GUI 或 89 readiness 首启证据。
+## 2026-10-03 — MATLAB CEF JIT 原生能力实测
+
+- [x] 客机只读 probe `.diag/jit-capability-20261003/` 直接调用 `pthread_jit_write_protect_supported_np`，输出 `=0`；符号来自 libSystem。
+- [x] 该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的 `brk #0` 条件一致，确认这是 guest hypervisor/JIT capability 边界，不是当前 GPU renderer/MSAA/FBO 缺口。
+- [x] 不把 getter 强制返回1加入 VirtualMac；那等价于应用二进制症状补丁，且未证明 JIT 写保护/执行内存契约。90 继续保持证据闸门，不构建。

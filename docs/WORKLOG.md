@@ -274,3 +274,9 @@
 - [x] SSH 只读核对：宿主 `/tmp/vmm.stderr.log` 仍为 22:47 的 88 启动，未出现 89 readiness acknowledgement；本次 `dpkg-query` 无版本输出，不能声称 89 已安装。
 - [x] 拉取 23:17、23:18、23:21、23:24 的四份小型 `ReportCrash-*.ips`。逐字证据均显示崩溃进程是 iPadOS `/System/Library/CoreServices/ReportCrash`，`SIGABRT` 位于 `dyld4::Atlas::ProcessSnapshot::Serializer::deserialize`，不是 VirtualMac VMM、GuestTools 或 GPU fault；证据保存在 `.diag/post-89-check-20261002/`。
 - [ ] 89 仍待用户正常关闭 VM 后安装；安装前不做运行中替换。安装后首要检查 readiness marker、repair attempt 是否停止，以及新的 VMM/GPU 日志。
+## 2026-10-02 — 当前 88 客机 OpenGL 复杂离屏基线
+
+- [x] 使用当前客机已构建的 arm64 OpenGL probe，显式加载 `/Library/VirtualMac/OpenGLPVGCompat.dylib`；renderer=`Apple Paravirtual device`、GL=`4.1 Metal`。
+- [x] 基础路径连续通过：uniform shader、VBO、indexed/non-indexed draw、FBO、`glReadPixels`，全部 `gl-error=0`、exit0。
+- [x] 新增 ignored `.diag/msaa-probe-20261002/`：独立 4x multisample texture FBO + shader/VBO draw + `glBlitFramebuffer` resolve + `glReadPixels`，输出 `msaa-fbo=0x8cd5 draw-error=0x0 blit-error=0x0 read-error=0x0 pixel=255,0,0,255`、exit0。
+- [x] 证据把 MATLAB figure 缺口收窄到窗口 drawable/present、上下文复用或 MATLAB 特有多通道状态；不能再把“VirtualMac 不支持 MSAA/FBO”作为根因，也不应因此扩大协议能力表。下一步需做窗口交换与连续多帧生命周期 probe。

@@ -213,3 +213,32 @@
 2. 首启App应记 `[PVGDeviceInfo] experimental=1 profile=host-clamped-v1 (default on)`；若先前显式设置新preference为NO，仍会关。VMM还须出现 `deviceinfo profile=host-clamped-v1`、实际key/value和 `caps augmented ... dropped=0`，不能仅凭开机视为扩展成功；key37不超过1007、key33不能含0..4或10..11位、key10保持原值。
 3. GuestTools更新后核对上述build/hash，再新启动Godot。顺手测试实际想改善的应用即可；不预设MATLAB/Chromium必定正常。
 4. 若首次启动失败、图形异常或宿主panic，停止反复尝试；先从iPad导出VirtualMac诊断包、App/VMM crash或panic报告，保存 `/tmp/VirtualMac.log`、`/tmp/vmm.stderr.log`（若仍存在；宿主重启可能丢失）。确认VM停止后重装84。不要覆盖VM磁盘或还原旧盘抹掉新数据；旧App恢复GuestTools后应重新得到84的build/hash。
+
+## 2026-10-02 21:03首启 — 用户已安装86，客机初步验收
+
+- 用户报告已安装 `341fb8f146_GPUExperimental` / 1.2.3(86)。本次客机启动时间21:03:20；`.build=86-7c3f1508d5328f78`、安装GL SHA256 `28b4f670311bfc5292e776f23f16e3e1fbb5db5b83d007874255f69d189e0150`，codesign严格验证exit0；HostConfiguration build一致、OpenGLAllowed/Acceleration=true。安装件与交付包相符。
+- 从源码重新编译客机Metal探针，执行时清空DYLD_INSERT_LIBRARIES，避免GL shim的family兼容声明混入原生能力查询。结果：readWriteTextureSupport=2、PullModelInterpolation=YES、families Apple1–5/Mac1–2/Common1–3；argumentBuffers=0(tier1)，dynamic libraries/function pointers/raytracing/barycentric仍no，Metal3未报。较研究K节旧快照有部分上报变化；不是完整功能执行或84/86受控性能对照。
+- 实景脚本 `.diag/accept-build86-current.py` 只让新启动Godot显式加载已安装86 GL库，不替换系统库、不改全局环境。隔离book-buster标题场景：20节点/1个GPU粒子节点，PVG加速OpenGL、粒子switch转译日志出现；60帧1152×648、nonblack_samples=8692、PNG读回成功、exit0。图片已查看，完整标题和粒子可见。项目自身空资源/UID回退及退出资源未释放警告仍存在，不宣称全游戏无误。
+- `.diag/build86-first-boot-acceptance/` 保存 guest-metal-caps.txt、godot-scene.log/png、ioreg-before/after.txt、receipt.json及argument-buffer-gates-arm64e.txt。IORegistry测试前后 recoveryCount=0、lastRecoveryTime=0；本次启动前的旧gpuRestart/Godot报告不能归因于86。启动日志有talagentd/nsattributedstringagent sandbox拒绝，不能直接等同GPU重启。
+- 当前guest arm64e插件再反汇编确认：0x1b838先读一处+0x31并要求等于1，再读另一处+0x80的bit5，任一道不满足返回tier1；不能仅凭tier1就判key33未发或实验扩展全关，尚未确定是哪道门未满足。
+- 阻塞：`ssh -p2222 -oBatchMode=yes root@192.168.64.1`返回身份认证失败，网络/SSH可达但无可用认证；已请用户恢复认证或导出VirtualMac日志。尚未取得本次App/VMM实际profile/key/value和caps augmented计数，也未核对宿主panic报告，因此完整能力协商仍待验收。不要为此重启iPad/系统服务或改认证配置；诊断zip可能很大，有日志条目时只取需要的条目。
+- 暂无必须立即回滚的客机证据，可保留86做普通应用观察并保留84回滚包；不承诺性能提升或长期稳定，不开启更多字段，不把MATLAB/Chromium/Vulkan标为修复。此次没有commit/push，也没有修改原book-buster；它仍有原来的uid_cache.bin与logo场景两个未提交改动。
+
+## 2026-10-02 21:15起 — 宿主验收补齐，完整合并87重新构建交付
+
+- 用户说明SSH交互登录正常并提供认证，要求quota有限时优先完成完整包到飞牛。原失败是BatchMode无密码；22端口登录成功，不改认证配置、重启或运行中注入。密码只经进程环境传递，不保存入文件。SCP多来源第二次认证失败，第一份日志已完整到达；后续SSH流补齐另一份。采集脚本 `.diag/collect-build86-host.py`，只读取已知两份小日志。
+- dpkg宿主版本 `2:1.2.3+86.341fb8f146.gpuexp`；VMM stderr证明 `profile=host-clamped-v1 pairs=12 serializer=unchanged`，字段23=1/25=1/28=5/29=1024/30=32768/31=32768/32=16/33=224/34=8/35=2048/37=1007/40=256；`caps augmented keyLimit=42 count=2048 existingApplied=12 dropped=0`。据此确认扩展生效，不再把Tier1解释为全关；其他协商门仍待研究。
+- 本次App最新段配置校验成功、VM STARTED、原生PVG帧缓冲接入及GuestTools就绪；guest_did_panic等字符串是注册的RPC handler名，不是panic事件。当前及Retired/Panics报告列表未见本次新panic/VMM崩溃，Panics空。21:06 wakeups报告为225/s、Action taken:none，非崩溃；旧版20:16及更早也有同类，不能凭此判GPU失败或保证功耗正常。
+- 用户请求的“完整版”按当前已合并、已审核配置重新构建，不强开未知能力或宣称Tier2/Metal3全打通。源码HEAD `867ea956075ec98879876b6055d58dd471b1cd22`（其功能代码与341fb8f一致，后一个提交仅交付记录），未修改功能源码。独立 `.diag/gpu-combined-build`，脚本 `.diag/build-gpu-combined.sh`，5 jobs/taskpolicy background；重建App/VMM/Metal/GuestTools，复用框架与既有辅助组件，保留旧输出。
+- 构建exit0，93 Mach-O平台/最低版本及stage audit通过；14.5完整ABI仍因缺DSC跳过。包内App build87、版本 `2:1.2.3+87.867ea95607.gpucombined`，签名/trustcache/源码版本/重建库hash和无VM数据检查通过。新包App/VMM未安装；86首启的实际profile验收不冒充87已安装运行。
+- 从87 deb提取GL库，在当前86宿主上串行3次标题场景均exit0、60帧1152×648、粒子保留、GPU读回；nonblack=8700/8698/8698。最终IORegistry recoveryCount=0/lastRecoveryTime=0。新GuestTools预期 `.build=87-477fc0fc695d8790`，GL SHA256 `08aaeb5014a27e2ce3d8a5063e6d4be67243e173b9f0408c9cbbf39e05da0529`。证据 `.diag/gpu-combined-build/verification-receipt.json` 与 packaged-gl-results.json。
+- 已交付 `VirtualMac_1.2.3_867ea95607_GPUCombinedFull.deb` 至 `VirtualMac/build/release/` 和飞牛 `VirtualMacOniPad_iOS`；20,857,004 bytes，SHA256 `847bba626efb7d1daf95782c35f6ee79f16d6d6c039e56351bfb6f57838812fd`，两处核验通过；84回滚包两处仍为 `59a5130ab76bab424dda26d74907d9358ed4a2d52603ac5850d965f967d38307`。NAS远端同步仍由用户确认。87功能配置与86一致，当前86正常可继续使用，不需仅为重新打包立即安装；若安装，必须先正常关闭VM，保留84，不覆盖VM磁盘。
+- 本轮未安装、改开关或重启，也未commit/push；首启及交付记录保存在本仓库文档和gitignored证据中，book-buster原仓库没有写入、提交或推送。
+
+## 2026-10-02 21:35起 — 用户选择研究新增增强，随后要求优先交付88
+
+- Tier2的第一道失败门已确认：原生APVFeatures.supportsArgumentBuffers=false，版本207档才开启，Ventura最高43；不强升协议或serializer，不改getter为YES。host-clamped-v1和原12字段保留。
+- 新增Mac2完整性处理依据原生supportsRenderPassWithoutRenderTarget=false，而非按app/设备名白名单返回常数。只在APV类型及已识别ABI上收窄Mac2和legacy ordinal10005；保持其他答案、缺getter/未知ABI、GL Apple7 profile，保留三个Metal工厂+1所有权及observer流程。VIRTUAL_MAC_METAL_FAMILY_COMPAT=0可关闭。源码回归新测试为 `VirtualMac/scripts/tests/metal-family-compat-test.m`。
+- CPU red/green及ASan/UBSan、已有Godot shader回归通过；MRC跨pool/NSZombie 50次default/copy/observer测试通过，argbuf仍tier1。新库x86_64/arm64/arm64e构建签名通过。
+- 仅新Godot进程使用新库，baseline与关闭新修复均exit-6同一pixelFormats校验崩溃；开启时Vulkan最小RGB/3D/GPU粒子3次30帧通过（RGB差0、绿色中心、白粒子507/510/561），实际标题Vulkan3次60帧通过（8697/8705/8706），GL3次60帧通过（8699/8698/8703），两条最终PNG已查看。全部在隔离副本，未动原book-buster、全局环境或宿主，未重启。
+- 证据 `.diag/build88-render-check/`、`.diag/inspect-guest-argument-gates.m`、`.diag/metal-family-live.m`；宿主86 profile的验收不等于88 App/VMM已安装验收。用户quota剩5%要求立即打包，停止扩展研究，目标build88完整包到飞牛，保留84/86/87。

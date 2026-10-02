@@ -69,6 +69,29 @@
 - c137代码的 `_PGDevice+0x1F0` 是 `_rootTaskBase`指针，不是页内offset；hv_vm_map得到物理页后从offset0扩展。新增reply owner修复容量0下溢；extra只能收窄，不能追加或扩大能力。规则以新headers为准，旧参考表不是可直接发送的能力表。研究§N/WORKLOG晚间条目含证据与测试。
 - 实验包已交付release+飞牛VirtualMacOniPad_iOS：`VirtualMac_1.2.3_341fb8f146_GPUExperimental.deb`，build86/version `2:1.2.3+86.341fb8f146.gpuexp`，SHA256 `4b5adc68ccc156cb340be92115d7703676171bed8a2a2d7b4f2704829ba9b3c1`。包内GL又通过3次60帧GPU场景读回；当前仍是84宿主，不证明新profile执行。未安装/重启，NAS远端同步待确认。预期GuestTools `.build=86-7c3f1508d5328f78`；源码来源341fb8f，不随后续文档提交变化。
 
+### 2026-10-02 21:03 首启：用户已安装86，客机与宿主扩展启动验收通过
+
+- 用户安装86并启动新客机；`.build=86-7c3f1508d5328f78`，安装GL SHA256与包内一致、严格签名通过，HostConfiguration的OpenGLAllowed/Acceleration均true。先前“未安装/仍84”只描述构建交付时点。
+- 本次只做客机能力查询、IORegistry/日志取证和一轮60帧Godot实景，不改开关、不重启、不注入运行中VMM。证据 `.diag/build86-first-boot-acceptance/`，复现脚本 `.diag/accept-build86-current.py`。
+- 原生Metal探针清空DYLD_INSERT_LIBRARIES：Apple1–5/Mac1–2/Common1–3，readWriteTextureSupport=2、PullModelInterpolation=YES；argumentBuffers仍0(tier1)，dynamic libraries/function pointers/raytracing仍no。与早先K节快照有部分变化，不能代替84/86受控性能对照，也不能称全部扩展生效。
+- Godot明确加载已安装86 GL库、PVG加速路径；20节点/1个GPU粒子节点，60帧1152×648、nonblack=8692、PNG成功、exit0，已查看完整标题画面。项目资源/UID及退出资源警告仍存在。IORegistry recoveryCount在测试前后均0；不是长期稳定性或FPS证明。
+- 用户提供认证后通过22端口取得本次日志；原问题只是BatchMode未提供密码，不是SSH不可用。VMM确认host-clamped-v1/pairs=12、serializer=unchanged、key33=224、key37=1007、caps augmented keyLimit=42 count=2048 existingApplied=12 dropped=0；扩展实际生效。日志在上述证据目录，凭据不保存到文件。当前/Retired/Panics列表未见本次新panic或VMM崩溃；有非致命wakeups报告（225/s、Action taken:none），旧版也有同类，不能称所有问题解决。用户要求优先构建完整合并包到飞牛，沿用已审核86配置，不另开未验能力。
+- 重新反汇编当前guest arm64e插件：supportsArgumentBuffers@0x1b838确实要求一处+0x31==1与另一处+0x80 bit5同时成立。Tier1不能仅据此判key33没发或profile全关；哪道门未满足待取证。
+
+### 完整合并87交付（86配置不变）
+
+- 用户quota有限，要求验收后立即编完整包；已独立重建 `.diag/gpu-combined-build`，功能代码与86一致，源码HEAD867ea956075ec98879876b6055d58dd471b1cd22（后一个提交仅记录），App build87/version `2:1.2.3+87.867ea95607.gpucombined`。不强开未验能力，不承诺满血/性能。
+- `VirtualMac_1.2.3_867ea95607_GPUCombinedFull.deb` 已复制release和飞牛VirtualMacOniPad_iOS，两处SHA256 `847bba626efb7d1daf95782c35f6ee79f16d6d6c039e56351bfb6f57838812fd`、20,857,004 bytes一致；84回滚包仍完整。NAS远端同步未核验。
+- 包内容/签名/trustcache/来源及93个最低平台版本检查通过，14.5完整ABI仍缺DSC；包内GL在86宿主3次60帧实景通过，GPU recoveryCount仍0。87 App/VMM未安装，预期GuestTools `87-477fc0fc695d8790`、GL SHA256 `08aaeb5014a27e2ce3d8a5063e6d4be67243e173b9f0408c9cbbf39e05da0529`。证据 `.diag/gpu-combined-build/verification-receipt.json`、packaged-gl-results.json。
+- 86正常可继续使用，不需仅为重打包立即重装87；若安装必须正常关闭VM。未改开关、重启或操作VM磁盘，本轮文档更新尚未commit/push；不要将其误认为缺少功能源码提交，包来源HEAD此前已推送。
+
+### 88新增增强与紧急交付（研究阶段验收通过，待打包）
+
+- 用户明确选择研究新增增强而非仅换编号，随后quota剩5%要求立即构建交付。Tier2已定位为APVFeatures.supportsArgumentBuffers门控，当前false，207档才开启而Ventura最高43；不强升协议/serializer或假报Tier2。
+- 新增完整Mac2 gate：只对运行时APVFeatures类型的设备，在识别原生BOOL getter ABI且supportsRenderPassWithoutRenderTarget=false时收窄Mac2及legacy ordinal10005。未知ABI/缺getter/其他声明保持，GL Apple7 profile保留；三个Metal工厂返回+1与observer语义保持。进程开关VIRTUAL_MAC_METAL_FAMILY_COMPAT=0可关闭，未改全局env或宿主。
+- CPU red/green、严格warnings、ASan/UBSan、既有shader回归及MRC/NSZombie50轮跨pool工厂/observer寿命通过。原生baseline/关闭新修复均pixelFormats校验exit-6；新库Vulkan RGB/3D/粒子3次30帧、Vulkan标题3次60帧、GL标题3次60帧通过，最终PNG已查看。仅arm64实景；三架构构建签名完成。
+- 新源码待提交推送后独立 `.diag/build-gpu-vulkan.sh` 构建 `.diag/gpu-vulkan-build`（5 jobs/background）；验证/交付脚本 `.diag/verify-gpu-vulkan-deb.py`、`.diag/export-gpu-vulkan-deb.py`。完整合并既有修复及host-clamped-v1，不伪装全部Metal/所有应用/性能已验证；仍须正常关VM后安装。不要在book-buster提交/推送，保留84/86/87。
+
 ## 4. 文档索引
 
 | 文件 | 内容 |

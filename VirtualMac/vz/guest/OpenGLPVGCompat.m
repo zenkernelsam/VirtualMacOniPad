@@ -18,6 +18,9 @@
 // pass is serialized. Attachment sample counts, including MSAA, are unchanged.
 
 static IMP gSupportsFamily;
+static IMP gNativeSupportsFamily;
+static IMP gNativeSupportsFeatureSet;
+static const NSUInteger kPVGMac2FeatureSet = 10005;
 static IMP gNewCommandQueue;
 static IMP gCommandBuffer;
 static IMP gCommandBufferUnretained;
@@ -297,14 +300,109 @@ static BOOL ClearCustomSamplePositions(id descriptor, NSUInteger count) {
     return NO;
 }
 
+static BOOL BooleanMethodHasArguments(Method method, unsigned arguments) {
+    if (method == NULL || method_getNumberOfArguments(method) != arguments)
+        return NO;
+    char type[8] = {0};
+    method_getReturnType(method, type, sizeof(type));
+    if ((type[0] != 'B' && type[0] != 'c') || type[1] != '\0')
+        return NO;
+    if (arguments == 3) {
+        method_getArgumentType(method, 2, type, sizeof(type));
+        return (type[0] == 'Q' || type[0] == 'q') && type[1] == '\0';
+    }
+    return YES;
+}
+
+static BOOL CompleteMac2Supported(id device, BOOL supported) {
+    const char *enabled = getenv("VIRTUAL_MAC_METAL_FAMILY_COMPAT");
+    if (!supported || (enabled != NULL && strcmp(enabled, "0") == 0))
+        return supported;
+    SEL getter = NSSelectorFromString(@"supportsRenderPassWithoutRenderTarget");
+    if (!BooleanMethodHasArguments(
+            class_getInstanceMethod(object_getClass(device), getter), 2))
+        return supported;
+    return ((BOOL (*)(id, SEL))objc_msgSend)(device, getter);
+}
+
+static BOOL PVGNativeSupportsFamily(id self, SEL selector, NSUInteger family) {
+    BOOL supported = ((BOOL (*)(id, SEL, NSUInteger))gNativeSupportsFamily)(
+        self, selector, family);
+    return family == MTLGPUFamilyMac2
+        ? CompleteMac2Supported(self, supported) : supported;
+}
+
+static BOOL PVGNativeSupportsFeatureSet(id self, SEL selector, NSUInteger feature) {
+    BOOL supported = ((BOOL (*)(id, SEL, NSUInteger))gNativeSupportsFeatureSet)(
+        self, selector, feature);
+    return feature == kPVGMac2FeatureSet
+        ? CompleteMac2Supported(self, supported) : supported;
+}
+
+static void InstallMetalFamilyCompatibility(id device) {
+    device = UnderlyingDevice(device);
+    Ivar features = class_getInstanceVariable(object_getClass(device), "_features");
+    const char *encoding = features == NULL ? NULL : ivar_getTypeEncoding(features);
+    static const char prefix[] = "{APVFeatures=";
+    if (encoding == NULL || strncmp(encoding, prefix, sizeof(prefix) - 1) != 0)
+        return;
+    const char *enabled = getenv("VIRTUAL_MAC_METAL_FAMILY_COMPAT");
+    if (enabled != NULL && strcmp(enabled, "0") == 0)
+        return;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        Class cls = object_getClass(device);
+        if (BooleanMethodHasArguments(class_getInstanceMethod(
+                cls, @selector(supportsFamily:)), 3))
+            ReplaceMethod(cls, @selector(supportsFamily:),
+                          (IMP)PVGNativeSupportsFamily, &gNativeSupportsFamily);
+        if (BooleanMethodHasArguments(class_getInstanceMethod(
+                cls, @selector(supportsFeatureSet:)), 3))
+            ReplaceMethod(cls, @selector(supportsFeatureSet:),
+                          (IMP)PVGNativeSupportsFeatureSet, &gNativeSupportsFeatureSet);
+        if (DebugEnabled())
+            fprintf(stderr, "OpenGLPVGCompat: installed capability-derived Mac2 gate\n");
+    });
+}
+
+static id<MTLDevice> PVGCreateSystemDefaultDevice(void) NS_RETURNS_RETAINED {
+    id<MTLDevice> device = MTLCreateSystemDefaultDevice();
+    if (device != nil)
+        InstallMetalFamilyCompatibility(device);
+    return device;
+}
+
+static NSArray<id<MTLDevice>> *PVGCopyAllDevices(void) NS_RETURNS_RETAINED {
+    NSArray<id<MTLDevice>> *devices = MTLCopyAllDevices();
+    for (id<MTLDevice> device in devices)
+        InstallMetalFamilyCompatibility(device);
+    return devices;
+}
+
+static NSArray<id<MTLDevice>> *PVGCopyAllDevicesWithObserver(
+    id<NSObject> __strong *observer,
+    MTLDeviceNotificationHandler handler) NS_RETURNS_RETAINED {
+    MTLDeviceNotificationHandler wrapped = handler == nil ? nil :
+        ^(id<MTLDevice> device, MTLDeviceNotificationName name) {
+            InstallMetalFamilyCompatibility(device);
+            handler(device, name);
+        };
+    NSArray<id<MTLDevice>> *devices = MTLCopyAllDevicesWithObserver(observer, wrapped);
+    for (id<MTLDevice> device in devices)
+        InstallMetalFamilyCompatibility(device);
+    return devices;
+}
+
 static BOOL PVGSupportsFamily(id self, SEL selector, NSUInteger family) {
     // M1 and M2 implement at least Apple7. GLD selects its modern agx2 path
     // when Apple7 is present; PVG otherwise exposes only Mac/Common families.
     const NSUInteger maximumFamily = 1007;
     if (family >= 1001 && family <= maximumFamily)
         return YES;
-    return ((BOOL (*)(id, SEL, NSUInteger))gSupportsFamily)(
+    BOOL supported = ((BOOL (*)(id, SEL, NSUInteger))gSupportsFamily)(
         self, selector, family);
+    return family == MTLGPUFamilyMac2
+        ? CompleteMac2Supported(self, supported) : supported;
 }
 
 static id PVGRenderEncoder(id self, SEL selector, id descriptor) {
@@ -535,6 +633,11 @@ static CFTypeRef PVGCreateRegistryProperty(
         (const void *)&replacement, (const void *)&original                 \
     }
 
+INTERPOSE(pvg_default_metal_device, PVGCreateSystemDefaultDevice,
+          MTLCreateSystemDefaultDevice);
+INTERPOSE(pvg_all_metal_devices, PVGCopyAllDevices, MTLCopyAllDevices);
+INTERPOSE(pvg_metal_devices_observer, PVGCopyAllDevicesWithObserver,
+          MTLCopyAllDevicesWithObserver);
 INTERPOSE(pvg_iogl_property, PVGCreateRegistryProperty,
           IORegistryEntryCreateCFProperty);
 INTERPOSE(pvg_particle_shader_source, PVGShaderSource, glShaderSource);

@@ -424,3 +424,13 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 该配置比84更积极，但不是恢复旧4095全开表，也不是已证明 MATLAB/Chromium/Vulkan 全部可用。首启必须核对 `profile=host-clamped-v1`、实际 key/value 和 `caps augmented ... applied ... dropped`；新 profile 的实际应用执行和性能尚未验证。
 
 交付 `VirtualMac_1.2.3_341fb8f146_GPUExperimental.deb`，version `2:1.2.3+86.341fb8f146.gpuexp`，SHA256 `4b5adc68ccc156cb340be92115d7703676171bed8a2a2d7b4f2704829ba9b3c1`。已复制release与飞牛VirtualMacOniPad_iOS目录，84回滚包保留。93个Mach-O平台/最低版本、stage audit、包内版本/库hash/签名/trustcache检查通过；14.5完整ABI仍未执行。包内GL库在现有84宿主上又通过3次60帧GPU标题场景读回，exit0；不等于新profile已部署验证。GuestTools预期build `86-7c3f1508d5328f78`、GL SHA256 `28b4f670311bfc5292e776f23f16e3e1fbb5db5b83d007874255f69d189e0150`。未安装/重启；简化安装与回退步骤见WORKLOG“实验增强包交付”。
+
+### O. Tier2协议门控与Mac2完整性修复（88候选，2026-10-02）
+
+- 86宿主首启已确认12字段、key33=224、key37=1007、dropped=0。只读运行时探针确认APVFeatures的supportsArgumentBuffers为false；本机驱动的版本表在207档才开启它，Ventura实现最高43。因此不能靠继续加key33、提高serializer或强改getter实现真实Tier2；88不改协议版本或启用新opcode。
+- 客机原生Mac2=true、legacy macOS_GPUFamily2_v1=true，但supportsRenderPassWithoutRenderTarget=false。MoltenVK1.2.0以Mac2推断renderWithoutAttachments，随后Metal原生校验报No valid pixelFormats set。Godot4.1.1的macOS构建静态链接MoltenVK；不能把原先“bundle没framework所以运行时缺loader”的推测当成已确认事实。
+- OpenGLPVGCompat在Metal设备三个工厂入口识别运行时APVFeatures类型，只对完整ABI可识别的family/feature-set方法安装一致性处理。Mac2及等价legacy ordinal10005只有在原声明为true且原生BOOL getter明确支持无目标render pass时保留；缺getter/未知ABI/其他family/其他feature-set均保持原答案。该ordinal来自本机MTLDevice.h；无新能力伪造、无descriptor修改/绕过校验/关rasterization，既有Apple7 GLD兼容profile不变。
+- 三个工厂返回值保留NS_RETURNS_RETAINED的+1所有权；observer初始列表及后续通知都先处理设备再转交原handler，不改observer的原生命周期。非APV类型不处理。回退开关为进程级VIRTUAL_MAC_METAL_FAMILY_COMPAT=0；不改宿主运行中进程或全局环境。
+- 新owner级CPU回归先失败后通过，覆盖原生不支持、确实支持、缺getter、未知返回ABI、原生拒绝不扩张、其他family及legacy feature-set、GL profile保持和关闭开关；严格warnings及ASan/UBSan通过。独立MRC调用者跨autorelease-pool验证50轮default/copy/observer生命周期，启用NSZombie也通过；Mac2/legacy从1/1收窄到0/0，targetless仍0，argbuf仍tier1。
+- 受控GPU测试在已安装86宿主上，仅新测试进程加载库：原生baseline和关闭新修复均exit-6、同一No valid pixelFormats set。开启后Vulkan RGB/3D/GPU粒子3次各30帧通过，RGB误差0、3D中心绿色、粒子白像素507/510/561；标题场景Vulkan3次各60帧，nonblack8697/8705/8706；GL标题场景3次各60帧，nonblack8699/8698/8703。两条路径截图均已查看；资源/退出警告仍存在，不保证全游戏、全部MoltenVK版本、所有Metal family完整性或性能。
+- 用户quota降至5%后要求立即交付，不继续扩大研究。按已有测试结果构建完整88；继承86/87全部既有修复和host-clamped-v1，新增上述兼容修复。包内库仍需核验，App/VMM未安装，ABI14.5缺DSC的限制保留。证据为ignored `.diag/build88-render-check/` 和 `.diag/guest-opengl-build88/`。

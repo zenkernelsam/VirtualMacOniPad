@@ -104,3 +104,16 @@
 2. 楔死现场 SSH `sample <VMM pid>`（不需要重启，随时可做）
 3. diagnostic hook：`faultAtOffset:stampValue:` 包装记返回地址（pvg_trace 增量，标 diagnostic）
 4. 若坐实宿主 Metal 失败 → 枚举 iPadOS16.3 AGX 缺口沿 metalshim 模式逐项补 / 或 payload 代际升级
+
+## 2026-10-02（午）— iPad 重启恢复后：楔死现场自动捕获就位 + guest fault 通路解码
+
+- [x] 重启恢复：SSH 通、VMM pid=571、vmm.stderr.log 干净（10 行）、`pvg-trace.log` 未生成（`DebugLogging=off` 未变——这次重启没开 debug）
+- [x] **guest fault 通路**：`AppleParavirtGPU::handleFaultInterrupt` @ `0xfffffe0008cdbda0` —— kernel/os_log 打 `"handleFaultInterrupt: Received fault interrupt"`（**客机 log show/dmesg 可见**），然后逐通道读 `[channel+0x18]` fault code 上报。→ 楔死检测信号比 gpuRestart 报告更早
+- [x] iPad 栈采集手段探明：无 `sample`/`lldb`；`stackshot -p <pid>` 可用（输出 kcdata 二进制，18KB/进程，已实测健康 VMM）；`task_for_pid` 在 vzxpchook 里已被证实可用 → 未来可写最小 PC-dump 工具
+- [x] **被动捕获已部署**：`vz/development/probes/gpu-wedge-watch.sh` 后台跑（pid 9024，3s 轮询）——新 gpuRestart 一出现即自动抓：报告本体 + tailspin + guest fault log（log show 5m 窗）+ 宿主 `stackshot -p` + vmm.stderr tail → `.diag/wedge-watch/`
+
+### 待办（不变，优先级更新）
+1. **等自然楔死**（watching）——或用户跑 witchontheholynight/Matlab 主动复现
+2. 用户下次重启 VM 前开 DebugLogging=next → 拿协商 descriptor dump（pvg-trace.log）
+3. diagnostic hook（`faultAtOffset:stampValue:` 包装）等坐实现场后再决定要不要写
+4. 需要时写 kcdata/stackshot 解码器（python，解 PGFifoThread 的 PC 落点）

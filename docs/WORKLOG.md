@@ -56,3 +56,21 @@
 - [x] 宿主 stderr 文件名确认：`vmm.stderr.log`/`vzxpchook.log`/`pvg-trace.log`（VZDiagnostics.m:609 收集清单逐字）；pvg_trace 会 dump `PGNewDeviceWithDescriptor` 的 descriptor（含协商后 APVFeatures/binaryVersion！）
 - [x] 发现宿主侧 `native_bc_texture_support.m`：VMM 进程内给 iPadOS 16.3 的 AGX 注入 16.4 才有的 14 条 BC 格式表项（BC1-7）。客机 BC7 成功靠它
 - [ ] 客机 dyld cache 提取失败（框架只有 stub，真身在 cache 但路径不可见）→ 若需要，改从宿主机 IPSW/挂载取
+
+## 2026-10-02（会话 2：iPad 重启后——SSH 恢复，证据链推进）
+
+### 完成
+- [x] SSH 恢复验证：22/2222 双通 `cisco`（首次连接曾 `UNIX authentication refused`——respring 未就绪所致，稍后自愈）
+- [x] 宿主环境实况：VMM pid 948 跑着本客机（~130%CPU）；VMM env：`PVG_TRACE=1`、`PVG_TASK_RESERVATION_MB=256`/`PVG_TASK_OVERFLOW_MB=2048`/`PVG_LARGE_TASK_RESERVATION_MB=2048`/`PVG_MIN_TASK_RESERVATION_MB=64`/`PVG_METALLIB_FALLBACK=1`、`VMMHOOK_TRACE_VCPU_LIMIT=8`
+- [x] **metalshim BC 注入实测成功**（vmm.stderr.log 逐字）：`[metalshim] enabled native BC texture formats in /System/Library/Extensions/AGXMetal13_3.bundle/AGXMetal13_3 after runtime ABI validation`
+- [x] **`/tmp/pvg-trace.log` 缺失之谜解开**：`Trace()` 无条件门控 `gDebugLogging`（`VZ_DEBUG_LOGGING`）；VMM env 里没设 → hook 装了但一个字不写。开关=App 设置 `DebugLogging` 键（off/next/always，`VZConsumeDebugLoggingForBoot` 每次开机消费 "next"）
+- [x] `systemhook.dylib` 身份澄清：Dopamine 自家注入 shim（`/usr/lib/systemhook.dylib`→basebin 符号链），不是项目组件
+- [x] iPad 统一日志死路：`log show --last 2m` 返回 **0 行**（rootless 下 logd store 不可达）→ 宿主侧只有 stderr/trace 文件两条路
+- [x] **Exec 压力测试（1,017,882 cmd buffer/90s，0 错误）**：纯 blit+sync 提交完全健康 → 楔死是命令**内容**特异的，非吞吐问题。新探针 `vz/development/probes/metal-exec-stress.m`（已入仓）
+- [x] 复活尝试：GitHub Desktop GPU helper（零拷贝光栅开了）+ Godot 都跑着，暂未触发复位——被动捕获已就位（`vmmwatch` 后台 tail vmm.stderr.log）
+- ⚠️ **教训记录**：`/tmp` 随重启清空 → 复位前的 vmm.stderr.log/pvg-trace 已永久丢失；以后**重启前先拉 /tmp 日志**
+
+### 下一步（决策点）
+1. **拿决定性证据需一次 VM 重启**：App 设 DebugLogging=next → 重启 VM（客机断电）→ 复现 → 拉 pvg-trace.log（含 `PGNewDeviceWithDescriptor` 协商 descriptor dump！）+ vmm.stderr.log
+2. 或用户把 witchontheholynight 放回客机跑一会儿，等自然复位看 vmm.stderr.log 是否打印 opid
+3. IDA Instance4(:13340) 仍未加载——等用户开：目标是 PGFIFO dispatch 表 → CMD=0x37/0x1e/0x8 映射

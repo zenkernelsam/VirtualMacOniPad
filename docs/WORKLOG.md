@@ -307,3 +307,8 @@
 - [x] 该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的 `brk #0` 条件一致，确认这是 guest hypervisor/JIT capability 边界，不是当前 GPU renderer/MSAA/FBO 缺口。
 - [x] 不把 getter 强制返回1加入 VirtualMac；那等价于应用二进制症状补丁，且未证明 JIT 写保护/执行内存契约。90 继续保持证据闸门，不构建。
 - [x] 追加 JIT probe：匿名 RWX `mmap` 返回 `errno=13/EACCES`，`pthread_jit_write_protect_np` 切换不崩但不提供执行内存；进一步证明不能只伪造 getter。
+## 2026-10-03 — 90 候选：GuestTools repair 风暴上限
+
+- [x] 新鲜 iPad 宿主证据：88 仍安装，`guest menu extra not acknowledged; repair attempt` 已到至少 595，且每次 payload current；没有新 GPU fault 字段。
+- [x] `VZGuestTools.m` 新增按 guest agent connection generation 的 repair 上限：最多3次 payload repair；超过后每60秒只做 readiness probe，agent reconnect 会重置 generation。这样即使 marker 再次丢失，也不会无限复制 payload/制造 wakeup。
+- [ ] 需严格编译、宿主日志静态检查和完整包内容验证后，才交付 90 候选；不安装、不重启、不操作运行中 VMM。

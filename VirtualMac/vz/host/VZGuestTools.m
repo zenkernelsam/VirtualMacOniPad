@@ -31,6 +31,11 @@ static NSString *gGuestBundlePath;
 static NSString *gGuestReadyToken;
 static BOOL gGuestToolsAcknowledged;
 static BOOL gGuestMenuRestartedForToken;
+// A missing/stale Aqua readiness marker must not turn into an endless payload
+// reinstall loop.  The guest agent connection is reset on a new guest boot;
+// within one connection, a few repairs are enough to recover an interrupted
+// install.  After that, keep probing at a low rate without copying payloads.
+static const NSUInteger kGuestToolsMaxRepairAttempts = 3;
 static uint64_t gGuestProvisioningGeneration;
 static NSUInteger gGuestConnectionCount;
 
@@ -795,6 +800,21 @@ static void VZGuestToolsProvisionDesktop(NSUInteger attempt)
             if (attempt == 0 || attempt % 6 == 0)
                 VZGuestToolsLog(@"guest menu extra not acknowledged; %@ attempt %lu",
                     attempt ? @"repair" : @"installing", (unsigned long)attempt + 1);
+            if (attempt >= kGuestToolsMaxRepairAttempts) {
+                if (attempt == kGuestToolsMaxRepairAttempts)
+                    VZGuestToolsLog(@"guest menu extra still not acknowledged; "
+                                    @"suppressing payload repairs until the "
+                                    @"guest agent reconnects");
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                    60 * NSEC_PER_SEC),
+                    dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                        if (generation == __atomic_load_n(
+                                &gGuestProvisioningGeneration,
+                                __ATOMIC_ACQUIRE) && !gGuestToolsAcknowledged)
+                            VZGuestToolsProvisionDesktop(attempt + 1);
+                    });
+                return;
+            }
             VZGuestToolsInstallPayload(generation, ^(BOOL installed) {
                 if (!installed && (attempt == 0 || attempt % 6 == 0))
                     VZGuestToolsLog(@"guest payload repair will be retried");

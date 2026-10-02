@@ -43,6 +43,8 @@
 3. 新 hook 有最小进程范围、关闭开关、窗口/离屏负回归，并通过连续多帧读回；
 4. Devin 的 GPU helper/WebView 像素 A/B 与 MATLAB 证据分开，不能用任一应用代替另一应用。
 
+90 候选新增的宿主稳定性保护是 GuestTools repair 上限：同一 guest agent connection 最多执行 3 次 payload repair；仍未收到 readiness 后改为每 60 秒只 probe，不再复制/重装 payload。新 agent connection 会重置 generation 并重新允许 repair。该保护不改变 GPU 能力、协议或应用开关，目的是避免 readiness 故障放大成 VMM wakeup/内存压力。
+
 ## Devin Electron 静态映射（2026-10-03）
 
 已检查 `/Applications/Devin.app`（Electron 42.2.0 / Devin 1.126.0）：其 Electron Framework 的 load commands 同时包含 `Metal.framework`、`MetalKit.framework`、`OpenGL.framework` 和 `IOSurface.framework`；内部字符串包含 ANGLE WebGL、Metal、Vulkan、`CAMetalLayer` 与 WebGL2 路径。`~/.devin/argv.json` 当前启用 `disable-hardware-acceleration`，因此现状不能证明 ANGLE 的哪条后端失败。

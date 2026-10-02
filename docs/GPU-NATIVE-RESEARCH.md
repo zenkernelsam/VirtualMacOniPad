@@ -316,3 +316,28 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 | D. metal2vulkan 路线 | — | iPadOS 无 Vulkan，MoltenVK 仍回落同一 AGXMetal | 排除 |
 
 **下一步（含 Reims 的）**：楔死现场字节流到手 → 用 `reims-vgpu-protocol::fifo` + `reims-vgpu-wire` 解同一段 → 若 Reims 能解而 Ventura 拒/错 = 反序列化器代差实锤；若两者行为一致 = 执行层（iPadOS16.3 AGXMetal）实锤。**这个对照实验比继续纯 IDA 盲逆快得多**。
+
+### K. 能力缺口闭环：宿主 deviceInfo 只写 ≤16 字段（2026-10-02 决定性发现）
+
+**客机实测**（`probes/mtl-caps-dump`，客机侧跑）：
+
+| 属性 | 客机 PV device | 真 M1 macOS15 |
+|---|---|---|
+| `argumentBuffersSupport` | **0** | 2 |
+| `readWriteTextureSupport` | 1 | 2 |
+| `supportsDynamicLibraries`/`FunctionPointers*`/`RenderDynamicLibraries` | no | YES |
+| `supportsPullModelInterpolation`/`ShaderBarycentricCoordinates` | no | YES |
+| `supportsFamily:Metal3` | 不报 | YES |
+| `counterSets` | (null) | 有 |
+| families | Mac1+Mac2+Common1-3 | +Apple7+Metal3 |
+
+**根因链路（逐字节证据）**：
+- 宿主 `writeDeviceInfo` @ `0x100002a04`（PG.framework）：按 `{u32 field_id, u32 value}` 对写，**字段词表止于 16**——1=MSAASamples,2=D24S8,3-5=MaxThreads xyz,6=MaxThreadgroupMem,7=FramebufferRead,8=RGB10A2Gamma,9=HWFP16,**10=DeserializerVersion=0（硬编码）**,11=PrimitiveTypes,12=dualPlane→Multiplane,13=LinearAlign,14-16=Heap 系。
+- 客机端字段词表（`AppleParavirtGPUMetalIOGPUFamily` 结构编码，约 40 字段）：17=BufferFromIOSurface,18=MaxMetalShaderVersion,19=SupportsSharedTextures,…,**33=SupportFlags2024**{SupportsArgumentBuffers,CommandBufferJump,SharedMemoryHeap,SIMDReduction,ComputeCompressedTextureWrite…},**37=HostGPUFamily,38=ArgumentBuffersTier,39=ArgumentBuffersMaxSamplerCount**…全部 ≥17 → **宿主永远不会写 → 客机 Defined=0 → 全读 0**。
+- `writeDeviceInfo` 的版本门 `a2>=N`：`a2` 来自客机 FIFO 命令载荷自己报的目标版本——客机报得再高，宿主也只写它认识的字段（旧 binary 不会有新代码）。
+- 客机 `setupDeviceInfo` @ plugin `0x188a4`：IOConnectCallMethod 取 kext 回复 → 按顶层组 {0x3ee,0x3ef,0x3f0,0x3f1} 解析子字段组。`argumentBuffersSupport` getter @ `0x1b870`→`supportsArgumentBuffers` @ `0x1b838`：ivar+0x31==1 且 ivar+0x80 bit5 才真——两字节都由 deviceInfo 驱动。**注意：客机此 getter 上限=BOOL(1)=tier1**，即便打开也只报 tier1（结构如此）。
+- 宿主 binary 里存在 `registerArgumentBufferLayoutForReference:`/`registerArgumentEncoderForReference:` —— Ventura 反序列化器**实现过 argbuf 编码**，缺的只是 deviceInfo 宣告。
+
+**修复方向（新战线，独立于楔死）**：宿主侧 swizzle `getDeviceInfo:length:dst:`/`writeDeviceInfo`（落 vzxpchook/pvg_trace 现有 hook 架构），在回复尾部追加 15.6 认识的字段——`ArgumentBuffersTier`、`SupportFlags2024`（按 iPadOS16.3 AGX 真实能力逐项置位）、`HostGPUFamily`、`MaxMetalShaderVersion`、`SupportsSharedTextures` 等。**前置条件：先 dump iPadOS16.3 MTLDevice 真实能力表**（拔 iPad `/System/Library/PrivateFrameworks/Metal.framework`+AGXMetal13_3 静态取证或经用户批准跑 iPad 探针），**按真实能力上报，不多报**——报多了客机发出宿主执行不了的内容 = 正好落进楔死路径。
+- MATLAB 证据（`~/Desktop/Patch/MATLAB`）：CEF 合成残缺被迫 `--disable-gpu`；figure OpenGL 曲线不显示+MSAA 后管线全毁（OpenGLPVGCompat 未覆盖 VBO+shader+MSAA）；Java2D Metal/OpenGL 全关。argbuf=0 + CEF wedge 修复后，Chromium 系（含嘉立创EDA/Devin）预期可去 `--disable-gpu`。
+- 遗留核实：客机 15.6 deviceInfo 顶层组 0x3ee-0x3f1 的子字段 id 全表（继续解 `setupDeviceInfo`）；`readWriteTextureSupport`/`supportsFamily:Metal3` 的字段来源。

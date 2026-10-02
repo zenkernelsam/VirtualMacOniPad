@@ -125,3 +125,10 @@
 - 协议新知：0x2d=Monterey DeviceInfo、0x3a=Tahoe DeviceInfo、DefineTask2 首字=(id<<1)|kernel、EXEC_INDIRECT2 三字段头。
 - 价值定位：规格书/oracle——`reims-vgpu-wire` 20 个线格式解码模块 = `decodeSegments` 所解字节流的可读版本；core 有串行参考解释器可做楔死字节流对照。
 - 换血评估：换 PG.framework→reims 模型为大工程（私有 SPI + LGPL + 同 AGXMetal 后端）；首要用途=对照解码器。详见 GPU-NATIVE-RESEARCH §J。
+
+### 2026-10-02（续2）：能力缺口根因定位——deviceInfo 字段代差
+- 客机探针 `probes/mtl-caps-dump`（新增）：客机 PV device 实报 `argumentBuffersSupport=0`、`readWriteTextureSupport=1`、dynlibs/functionPtrs/pullModel/barycentric 全关、无 Metal3 family、counterSets=null。
+- 宿主 `writeDeviceInfo`@0x100002a04 反编译：field id 词表止于 16；DeserializerVersion 硬编码 0。客机词表 ~40 字段，ArgumentBuffersTier=38/SupportFlags2024=33/HostGPUFamily=37 等全部 >16 → 客机全读 0。**这就是 Chromium/Matlab 类要 disableGPU 的协议级根因**。
+- MATLAB Patch 情报（~/Desktop/Patch/MATLAB）：CEF --disable-gpu、Java2D 全关、figure OpenGL 曲线不显示+MSAA 毁管线（OpenGLPVGCompat 覆盖不足）。定位全部对得上。
+- 修复方向成型：宿主 hook writeDeviceInfo 追加字段（vzxpchook/pvg_trace 架构内），前置=iPadOS16.3 AGX 真实能力表，按实上报。
+- reims-vgpu clone 移至 .diag/reims-vgpu 持久化。

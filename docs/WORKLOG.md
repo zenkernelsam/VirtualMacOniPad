@@ -161,5 +161,29 @@
 - `PVGDeviceInfoPolicy.h` 统一 App/VMM 的开关契约；扩展默认 off。App 只读新的 `PVGDeviceInfoCapsExperimental`，旧 `PVGDeviceInfoCaps=YES` 不触发；只接受 NSNumber true。VMM 只读新的 `PVG_DEVICEINFO_CAPS_EXPERIMENTAL`，仅精确字符串 `1` 可启用，unset/空/0/true/YES/2 等均关闭；旧 env 忽略。关闭时清理传入 VMM 的 legacy flag 与 extra，不修改用户原有 preferences。
 - 实验参考表仍在源码，但不会在默认启动时追加 Apple9/4095 等字段；表自身的协议/执行支持没有因默认关闭而得到证明，不应自行启用。
 - 新 `scripts/tests/deviceinfo-policy-test.m` 通过；Godot 源结构回归再次通过，均使用 `-Wall -Wextra -Werror`。App arm64 与 pvg_trace arm64e iOS14.5-target 语法检查通过，仅既存 UIKit `setScreen:` deprecation warning。
-- 独立构建目录计划 `.diag/godot-conservative-build`；复用的框架/辅助组件复制到新目录，源码变动的 VMM 与 App/GuestTools 重新构建，旧输出及 deb 保留。最终 deb/包内库/签名/trustcache/版本验证尚待构建完成。
-- 安装风险核实：现有 `preinst`/`prerm` 会 killall VMM，`postinst` 会更新 helper job，并可能请求 userspace restart；因此必须先正常关闭客机并另行安排安装，不能从正在运行的本 VM 直接执行 dpkg 安装。VM 数据目录不作打包输入；本轮不会调用部署/安装脚本。
+- 独立构建目录 `.diag/godot-conservative-build`：复用框架/辅助组件复制到新目录，源码变动的 VMM 与 App/GuestTools 重新构建，旧输出及 deb 保留。完整构建 exit0；93 个 Mach-O 平台/最低版本检查、package stage audit 通过。缺少 iPadOS14.5 DSC 导致完整 ABI 检查跳过，不能宣称完整跨版本 ABI 验证。
+- 安装风险核实：现有 `preinst`/`prerm` 会 killall VMM，`postinst` 会更新 helper job，并向安装器提示 Restart SpringBoard；脚本本身不主动重启。因此必须先正常关闭客机并另行安排安装，不能从正在运行的本 VM 直接执行 dpkg 安装。VM 数据目录不作打包输入；本轮没有调用部署/安装脚本。
+
+### 保守包交付与验收（源 commit 598e6cda2494e341f65cd08a0353b1f7bce65be5）
+
+- 文件：`VirtualMac/build/release/VirtualMac_1.2.3_598e6cda24.deb`；version `2:1.2.3+84.598e6cda24`、App build84、20,860,496 bytes。
+- SHA256：`59a5130ab76bab424dda26d74907d9358ed4a2d52603ac5850d965f967d38307`。构建源 commit 固定为 598e6cd；后续文档提交不改变这个包的来源或需要替换它。
+- 解包核对：App 中包含新开关与 default-off 状态信息；iPadOS16 与 iPadOS14 VMM hook 使用新 env，包内与编译输出 SHA 相同；App/两个 VMM hook 的 CDHash 与包内 trustcache 匹配；无 VM 数据、无 Apple bootpd/InternetSharing 系统路径替换。
+- GuestTools archive 里的 GL 库与编译输出 SHA 相同，arm64/arm64e/x86_64、严格签名通过；库 SHA256 `056c9d015d49777700e6a4b015d60529f88ac93cb3e03a7db98ca2baf6c0882d`。
+- **用包内解出的库实测**：GPU 加速 OpenGL、20 节点、1000 粒子的 pre-title 场景，3 次独立 60 帧/1152×648 读回，exit0；非黑采样数 8702、8699、8698。仍有原项目 UID/空 shader-global/退出资源警告，不称全游戏验收。证据 `.diag/godot-conservative-build/scene-run-{1,2,3}.{log,png}`、`.diag/verify-godot-conservative-deb.log`。
+- **本轮没有安装、更新现用库或重启**。尚未验证 iPad 上新 App/VMM 首启、GuestTools 自动更新、原工作项目完整运行、MATLAB/Chromium；这几个项目必须安装后验收。
+
+安装前：
+1. 先在 iPad 上记录当前 `dpkg-query -W com.mac.virtual` 的版本，保留对应可启动旧 deb；旧 c137 默认扩展未验证，不能盲选作安全回退。
+2. 保存所有客机工作，备份重要数据、宿主 VM 配置和 App preferences、客机 `/Library/VirtualMac` 与 GuestTools LaunchAgent。不要盲目复制 512GB 虚拟磁盘；先确认备份空间与成本。本轮不执行这些用户数据操作。
+3. 把新包转存到 VM 之外（iPad 本地、NAS 或另一台机器），检查 SHA256。然后从 macOS 正常关机；确认 App 显示 VM 已停止，再由 iPad 端安装。当前客机 CLI 会话会中断，回来从本日志恢复。
+
+安装后：
+1. 包版本必须为 `2:1.2.3+84.598e6cda24`；App/VM 启动时 `/tmp/VirtualMac.log` 应有 `[PVGDeviceInfo] experimental=0 (default off)`，不要打开实验扩展。
+2. 启动客机并等待 GuestTools 更新，`/Library/VirtualMac/.build` 应为 `84-513cc8ea9272d5f3`（App build + payload SHA256 前8字节）；验证 GL 库 SHA256 与上列一致、`codesign --verify --strict /Library/VirtualMac/OpenGLPVGCompat.dylib` 通过。新启动 Godot 才加载新库，已有进程必须退出重开。
+3. 确认 OpenGL 加速日志为 `Apple Paravirtual device` 而非 Software Renderer；重复加载报错场景，核对粒子、画面、shader 错误与新 `.ips`；再扩展其他应用测试。本包未修复 Vulkan attachmentless 问题。
+
+回滚：
+- 单个 Godot 转译问题可在新启动的诊断进程设置 `VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER=0`，恢复此前 shader 行为（原已知粒子 crash 也会恢复）；不写全局 launchctl 环境。
+- App/VM 首启异常时停止尝试；保存日志后，确认 VM 已停止，再重装事先保留的可启动旧包。若旧包含实验能力扩展，必须先安排该版本的扩展关闭，不能把原本的过度能力上报重新带回。
+- VM bundle/磁盘不作回滚覆盖，不用恢复旧盘抹掉新数据；客机 GuestTools 的回退由旧 App 启动时重新安装旧 payload 或经备份手动恢复，恢复前另行确认。

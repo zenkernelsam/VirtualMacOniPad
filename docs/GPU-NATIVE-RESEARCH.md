@@ -397,4 +397,13 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 
 **验证**：新增 `scripts/tests/opengl-particle-shader-test.m`，纯文本结构回归（2D/3D define、常量/顺序/缺失 break/错误 scope/普通 shader/过大输入），`-Wall -Wextra -Werror` 通过；build 脚本生成并签名 x86_64/arm64/arm64e 三架构。普通 indexed VBO + uniform 三角形回归确认硬件加速 PVG、FBO complete、像素 `(255,0,255,255)`、GL error0，未命中转译。实际渲染只验证 arm64 Godot 4.1.1 与该基础 GL probe，未验证全部 3D 粒子朝向、所有游戏场景、MATLAB 或 Chromium。
 
-**范围与遗留**：无需 deviceInfo 新表即可修复这个 GL compiler 触发点。现代宿主 OpenGL 编译器的公开同栈 Godot 问题支持上游 bug 假设，但没有实体 Mac 的同场景对照，因此不宣称完全排除 VirtualMac 的参与。标题场景仍有空 shader-global 资源、UID 和退出资源警告；退出码与截图不是全游戏兼容证明。新 dylib 仅被新启动的测试 Godot 加载，未替换系统安装件、未改变宿主/VMM，也未重新打包 deb。
+**范围与遗留（该轮实验结束时）**：无需 deviceInfo 新表即可修复这个 GL compiler 触发点。现代宿主 OpenGL 编译器的公开同栈 Godot 问题支持上游 bug 假设，但没有实体 Mac 的同场景对照，因此不宣称完全排除 VirtualMac 的参与。标题场景仍有空 shader-global 资源、UID 和退出资源警告；退出码与截图不是全游戏兼容证明。该轮新 dylib 仅被新启动的测试 Godot 加载，未替换系统安装件、未改变宿主/VMM；后续包交付见 §M。
+
+### M. 保守 Godot 修复包（源 598e6cd）
+
+- `VirtualMac/build/release/VirtualMac_1.2.3_598e6cda24.deb`，version `2:1.2.3+84.598e6cda24`、20,860,496 bytes。SHA256 `59a5130ab76bab424dda26d74907d9358ed4a2d52603ac5850d965f967d38307`。
+- 实验 deviceInfo 扩展默认关闭，不因旧 `PVGDeviceInfoCaps=YES` 或旧 env 自动开启；新 preference/env 的统一契约在 `PVGDeviceInfoPolicy.h`，新 env 仅精确 `1` 可启用，关闭时不传 extra。参考字段表仍未经完整协议/执行验证，不应开启。本包不包含 Mac2 诊断收窄或验证 bypass。
+- CPU 回归验证默认 off、旧配置隔离、严格 env 解析、Godot 源结构转换；App/VMM iOS 编译通过。93 个 Mach-O 的 iOS14.5 平台/最低系统版本检查及包 stage audit 通过；缺少14.5 DSC，完整 ABI audit 未执行。
+- 解包核实 App 与两个 VMM hook 的新策略、编译输出 hash、trustcache，以及 GuestTools 内三架构 GL 库的严格签名和输出 hash。库 SHA256 `056c9d015d49777700e6a4b015d60529f88ac93cb3e03a7db98ca2baf6c0882d`。
+- **包内提取库实际验证**：同一 pre-title 场景、GPU 粒子保留，3 次独立运行各60帧/1152×648 GPU读回、exit0。证据 `.diag/godot-conservative-build/scene-run-{1,2,3}.{log,png}`。仍不代表全游戏或其他应用正常。
+- 本轮未安装或重启，iPad 新 App/VMM 首启、GuestTools 自动更新和全游戏测试待安装验收。安装脚本会结束运行中的 VMM；先保存数据、备份当前基线并正常关机，再安排安装。完整验收/回滚清单见 `WORKLOG.md` 的“保守包交付与验收”。

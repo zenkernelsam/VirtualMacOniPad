@@ -58,3 +58,5 @@ pthread_jit_write_protect_supported_np=0
 ```
 
 该值与 MATLAB CEF `TS_PROCESS_CRASHED` 的逐字证据一致：CEF 在返回 0 时触发 `brk #0`。VirtualMac 当前 GPU/Metal/GL shim 没有改变 hypervisor JIT capability；把 getter 强制返回 1 会复刻 Desktop/Patch 的应用症状补丁，不能称 GPU 直通修复。若要消除该补丁，必须先证明 guest JIT entitlement、写保护切换和执行内存契约能在 VM 中合法实现；当前没有这样的运行时证据。
+
+追加 probe 还尝试了匿名 RWX 映射和 `pthread_jit_write_protect_np` 切换：`supported=0`、`mmap ... errno=13 (EACCES)`；切换调用本身没有崩溃，但没有建立可执行内存契约。该结果进一步排除只伪造 getter 作为正式修复。

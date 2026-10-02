@@ -322,6 +322,10 @@
 - [x] 已复制 `VirtualMac_1.2.3_4ee2789_GPUJIT91.deb` 到飞牛目录，两处 hash 一致；未安装、未重启、未设置 env、未操作运行中 VMM。
 - [ ] 91 的 MATLAB CEF 未补丁实景 A/B 仍未做；安装前保留 90/88 回退，不能把 91 包构建成功当成 MATLAB patch 已可删除。
 
+## 2026-10-03 — 91 仍未安装的设备复核
+
+- [x] iPad 只读复核：实际安装仍为 `2:1.2.3+88.bb005a7dfe.gpuvulkan`；GuestTools readiness repair 已继续增长到至少 `attempt 1399`。91 未安装，因此 repair suppression 和 MATLAB JIT compat 都没有运行时证据。
+
 ## 2026-10-03 — Qoder CN outstanding issue 取证
 
 - [x] 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”，列入 outstanding issue。

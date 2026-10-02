@@ -293,3 +293,26 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 - iPad 栈采集现状：无 sample/lldb；`stackshot -p <pid>` 实测可用（kcdata blob）；`task_for_pid` 在 vzxpchook spawn 路径里已证可行（`vzxpchook.m` task_for_pid kr 日志）→ 可做最小 PC-dump 诊断工具（待定，需用户点头才往 iPad 上传二进制）。
 - stackshot kcdata 解码器：待写（wedge 证据到了再补；thread name + PC 即可定位 PGFifoThread 停在哪）。
 - 序列化特性协商再确认：payload `MTLSerializerFeatures` 8 键（supportsOpenGL/supportsSharedTextures/supportsReflectionSerializationVersion/…）→ 客机 `PGSerializerFeatures` 消费其中 5 键；`DeserializerVersion` 由宿主上报、客机 serializer 按此出料。
+
+### J. Reims vGPU 对照评估（2026-10-02，steelbrain/reims-vgpu，LGPL-3.0，已 clone 至 /tmp/reims-vgpu）
+
+**它是什么**：同一协议（AppleParavirtGPU）宿主侧的**独立 Rust 重实现**——QEMU 设备（x86 PCI / arm64 sysbus MMIO）+ 线格式解码器 + Metal/Vulkan 执行后端。客机同样是 stock macOS + 苹果原生 kext。**我们方案不是"低效版本"**：VirtualMac 用的就是苹果的这套宿主实现本身（Ventura PG.framework+MetalSerializer 拆到 iPadOS），执行路径 = Metal 直连 iPad AGX，比 Reims 的 Vulkan→MoltenVK→Metal 还少一层。Reims 的价值在**规格书与对照**，不在性能。
+
+**协议表逐条核对结果**：`crates/reims-vgpu/src/model/regs.rs` 的 CHILD_COMMANDS 与我们 IDA 解出的 Ventura `processFifo` 分发表**完全一致**——0x37=EXEC_INDIRECT2、`opcode≤0x40` 上限+`>0x40` 非法、deprecated 洞位、0x25=DeleteResource/0x28=DeleteObject 区分等全对。独立来源双向印证，我们的逆向表可信。他们的新知：`0x2d`=Monterey 时代 DeviceInfo、`0x3a`="DEVICE_INFO_TAHOE"（跨代 DeviceInfo 两种形式）、`DefineTask2` 首 word=`(task_id<<1)|is_kernel`、EXEC_INDIRECT2 头 `{task_id, resource_count, cmdbuf_count}`。
+
+**对楔死排查的直接价值**：
+- `crates/reims-vgpu-wire/src/ops/` = MetalSerializer 线格式**完整重实现**（render/blit/compute/icb/heap_texture/tile/sampler/texture_view/depth_stencil…20 个解码模块）——正是我们宿主 `decodeSegments` 所解的字节流的可读规格；
+- `reims-vgpu-core` 有**串行参考解释器**（serial reference interpreter）+ wire fixtures——楔死现场抓到字节流后可直接过它的解码器，哪条记录拒解 = 嫌犯；
+- conformance/ 有 `native-apple-m4-macos15` 基线 + Swift harness（native 跑 Metal 期望值 vs guest 里跑同一套）；
+- 风险点：他们也只实现 `≤0x40` 词表（目标客机=Ventura），**0x41–0x44 在 Reims 里同样不存在**——无法借它消化 15.6 客机新 opcode（若真有发出的话）。
+
+**应用到 VirtualMacOniPad 的路径评估**：
+
+| 路径 | 成本 | 价值 | 结论 |
+|---|---|---|---|
+| A. 当规格书/oracle 用 | 零（已 clone） | 即时——楔死字节流对照解码 | **现在就用** |
+| B. `decodeSegments` 前加转译 shim（hook 内预处理序列化流） | 中 | 若根因=Ventura 反序列化器拒解某合法构造 → 精准修 | 取决于楔死证据 |
+| C. 换血：VMM 里用 reims 设备模型替 PG.framework | 大（VMM 是闭源 XPC，PG 经私有 SPI 挂载；LGPL 义务；后端仍是同一个 AGXMetal） | 仅当根因=反序列化器且 shim 不可行 | 长线备胎 |
+| D. metal2vulkan 路线 | — | iPadOS 无 Vulkan，MoltenVK 仍回落同一 AGXMetal | 排除 |
+
+**下一步（含 Reims 的）**：楔死现场字节流到手 → 用 `reims-vgpu-protocol::fifo` + `reims-vgpu-wire` 解同一段 → 若 Reims 能解而 Ventura 拒/错 = 反序列化器代差实锤；若两者行为一致 = 执行层（iPadOS16.3 AGXMetal）实锤。**这个对照实验比继续纯 IDA 盲逆快得多**。

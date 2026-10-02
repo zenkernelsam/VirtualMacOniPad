@@ -117,3 +117,11 @@
 2. 用户下次重启 VM 前开 DebugLogging=next → 拿协商 descriptor dump（pvg-trace.log）
 3. diagnostic hook（`faultAtOffset:stampValue:` 包装）等坐实现场后再决定要不要写
 4. 需要时写 kcdata/stackshot 解码器（python，解 PGFifoThread 的 PC 落点）
+
+### 2026-10-02（续）：Reims vGPU 发现与对照
+- 用户指出社区讨论的 "reims vgpu"——已定位 = `steelbrain/reims-vgpu`（LGPL-3.0），clone 至 `/tmp/reims-vgpu`（客机重启后需重拉）。
+- 它是 AppleParavirtGPU 协议宿主侧的独立 Rust 重实现（QEMU 设备 + 线格式解码 + Metal/Vulkan 后端；Metal 直连后端代码已存在 ~10.8k 行）。
+- opcode 表与 IDA 逆向结果**逐条一致**（≤0x40、0x37=EXEC_INDIRECT2、洞位/非法路径全对上）→ 我们逆向可信。
+- 协议新知：0x2d=Monterey DeviceInfo、0x3a=Tahoe DeviceInfo、DefineTask2 首字=(id<<1)|kernel、EXEC_INDIRECT2 三字段头。
+- 价值定位：规格书/oracle——`reims-vgpu-wire` 20 个线格式解码模块 = `decodeSegments` 所解字节流的可读版本；core 有串行参考解释器可做楔死字节流对照。
+- 换血评估：换 PG.framework→reims 模型为大工程（私有 SPI + LGPL + 同 AGXMetal 后端）；首要用途=对照解码器。详见 GPU-NATIVE-RESEARCH §J。

@@ -309,6 +309,12 @@
 - [x] 追加 JIT probe：匿名 RWX `mmap` 返回 `errno=13/EACCES`，`pthread_jit_write_protect_np` 切换不崩但不提供执行内存；进一步证明不能只伪造 getter。
 - [x] `MAP_JIT` 专用 probe（未签名样本）成功分配、写入 arm64 code、write-protect 后执行返回42；新增默认关闭 diagnostic interpose，显式 env 回归通过，未打包。
 
+## 2026-10-03 — 91 候选：MATLAB/CEF JIT capability compat
+
+- [x] `OpenGLPVGCompat.m` 将 JIT compat 收窄为 MATLAB/CEF 进程默认启用；普通进程保持 native getter；`VIRTUAL_MAC_JIT_CAPABILITY_COMPAT=0` 关闭、`=1` diagnostic 强制启用。
+- [x] 独立构建回归：`matlabwindowhelper` 默认 `supported=1` 且 JIT code result=42；同进程 env0 返回0；普通 helper 默认/env0均返回0且 result=42。构建库 SHA256=`7566985177a456c9965a51c24a944d4411728faa80ea1013a2dc794ed2cf632`。
+- [ ] 91 完整包待构建；未补丁 MATLAB CEF A/B 尚未执行，不能提前宣称应用补丁已可删除。
+
 ## 2026-10-03 — Qoder CN outstanding issue 取证
 
 - [x] 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”，列入 outstanding issue。

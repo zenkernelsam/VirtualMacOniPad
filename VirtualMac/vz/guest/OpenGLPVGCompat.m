@@ -36,17 +36,28 @@ static BOOL DebugEnabled(void) {
     return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
 }
 
-// Diagnostic only: the guest's pthread getter reports false even though a
+// Guest compatibility: the guest's pthread getter reports false even though a
 // MAP_JIT allocation, write-protect toggle, and generated-code execution are
-// all runtime-confirmed to work. Keep the correction opt-in until an unpatched
-// MATLAB CEF A/B proves that this removes its stale CHECK without changing
-// other applications' JIT policy.
+// runtime-confirmed to work. Apply the correction only to MATLAB/CEF processes
+// by default; unrelated applications retain the native answer. An explicit
+// env=0 disables it, while env=1 enables it for a diagnostic helper.
+static BOOL PVGIsMATLABProcess(void) {
+    NSString *name = NSProcessInfo.processInfo.processName.lowercaseString;
+    if ([name containsString:@"matlab"] || [name containsString:@"cef"])
+        return YES;
+    NSString *executable = NSProcessInfo.processInfo.arguments.firstObject
+        .lowercaseString;
+    return [executable containsString:@"/matlab"] ||
+        [executable containsString:@"chromium embedded framework"];
+}
+
 static int PVGJITCapability(void) {
-    // The interpose table supplies the original symbol for this direct call;
-    // using dlsym(RTLD_NEXT) here recurses on the rebuilt dyld image.
+    // The interpose table supplies the original symbol for this direct call.
     int supported = pthread_jit_write_protect_supported_np();
     const char *compat = getenv("VIRTUAL_MAC_JIT_CAPABILITY_COMPAT");
-    if (supported || compat == NULL || strcmp(compat, "1") != 0)
+    BOOL enabled = compat != NULL ? strcmp(compat, "0") != 0
+                                  : PVGIsMATLABProcess();
+    if (supported || !enabled)
         return supported;
     if (DebugEnabled())
         fprintf(stderr, "OpenGLPVGCompat: diagnostic JIT capability compat "

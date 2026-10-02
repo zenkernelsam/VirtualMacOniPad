@@ -65,6 +65,8 @@ VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD prof
 
 在临时 HOME/`MATLAB_PREFDIR` 下启动当前 MATLAB R2024a，未修改安装或用户配置。25 秒采样时主 MATLAB 进程仍在，CEF 相关命令行出现 `--use-gl=disabled`；这确认现有应用侧 workaround 正在强制软件 GL。该结果不证明 VirtualMac 的硬件 CEF 路径失败，因为当前实验没有还原未补丁 CEF，也没有 GUI 像素 A/B。
 
+只读审计 `/Users/ciscohe/MATLAB_VM_Fix`：其中三个 Python patcher 与 `Desktop/Patch/MATLAB/MATLAB_VM_Fix` hash 相同；实际已加载的 `~/Library/LaunchAgents/com.user.matlab-vm-fix.plist` 仍指向 Desktop/Patch 脚本，不是迁移目录。LaunchAgent 当前 `state=not running`、last exit code 0，继承环境包含 `JAVA_TOOL_OPTIONS` 和 guest GL shim；没有修改或重载它。
+
 ## MATLAB JIT 能力边界（2026-10-03）
 
 在当前 VirtualMac 客机内直接编译并运行只读 probe，得到：

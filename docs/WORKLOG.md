@@ -254,3 +254,11 @@
 - 显式加载安装库的只读MRC寿命查询50轮跨pool/default/copy/observer通过，Mac2=0/legacyMac2=0/targetless=0/argbuf0(tier1)。原生清空DYLD_INSERT_LIBRARIES查询Apple1–5/Mac1–2/Common1–3、RW texture2、PullInterpolationYES，动态库/函数指针/光追/barycentric仍NO。未提交GPU绘制/压力工作，未修改开关/全局env/host，未重启。
 - 新host dpkg/App/VMM profile/字段/augmentation、安装后Godot实际GPU场景及长期稳定性尚未核验。首要任务交给新Agent；此前包后“未安装”结论仅属于构建/抽测时点。原book-buster只读status依旧两个原dirty文件，无写入/提交/推送。
 - 用户额度将尽，明确请求超级handover与Codex CLI启动prompt。重写 `docs/AGENT-SUPER-HANDOVER.md` 为vendor-neutral自足手册，保留旧构建/黄金基线/安全知识，覆盖版本指纹、两条Godot因果链、Tier2协议207vs43、开启/关闭字段、源码和本地证据、构建/回归命令、新boot/卡死取证、P0/P1/P2任务与prompt。文件不含凭据；`.diag`不会随Git克隆自动带走。handover文档提交不会改变88的源码来源与已交付包。
+## 2026-10-02 — MATLAB/Devin 目标扩展与 GuestTools readiness 循环取证
+
+- [x] 只读审计 `Desktop/Patch/MATLAB/MATLAB_VM_Fix`：MATLAB 的 CEF JIT `brk #0`、CEF GPU 合成 workaround、Java2D software fallback、figure `Painters+docked` 及 OpenGL 试验结论均有现成证据；确认 figure 离屏 PNG 正常但复杂 VBO+shader+MSAA 屏幕管线失败。
+- [x] 只读核对 Devin：`~/.devin/argv.json` 当前开启 `disable-hardware-acceleration`；应用侧判据是 GPU helper 消失，不能用主进程命令行或存活判定 GPU 成功。未修改该文件。
+- [x] 新 88 宿主证据 `.diag/build88-post-reboot-20261002-230724/` 显示 `guest menu extra not acknowledged; repair attempt` 已增长至109；客机 `/tmp/VirtualMacGuestTools.ready` 不存在。同期 Jetsam 将 `com.apple.Virtualization.VirtualMachine` 列为最大进程，wakeups 报告为258/s。该时间相关证据不能单独归因 GPU/88/macPad。
+- [x] 根因收窄到握手条件：`VirtualMacGuestToolsApp.m` 的 readiness marker 被 `statusItem.button/menu` 条件挡住，而 host configuration/OpenGL policy 已先执行。最小修复是 marker 只依赖 ReadyToken，避免宿主每10秒重复 payload repair；不改变 GPU 声明/协议/应用开关。
+- [x] 独立构建 `.diag/guest-tools-ready-fix-build/` 通过，arm64/x86_64 guest tools、tar payload、codesign strict 均通过；未安装、未重启、未改运行中 VMM。
+- [ ] 下一次含此改动的包首启验收 readiness acknowledgement、repair计数、wakeups，再进行 MATLAB/Devin GPU compositor 与屏幕像素 A/B。

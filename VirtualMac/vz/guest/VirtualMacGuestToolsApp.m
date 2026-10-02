@@ -64,7 +64,13 @@ static NSString *VML(NSString *key)
 
 - (void)publishReady
 {
-    if (!self.readyToken.length || !self.statusItem.button || !self.statusItem.menu)
+    // The marker acknowledges that the guest tools process has applied the
+    // host configuration.  It must not depend on AppKit having produced a
+    // visible status-item button: on some Aqua boots the menu extra is alive
+    // and has already applied DYLD/OpenGL policy while that button is still
+    // nil.  Refusing to publish in that state makes the host retry payload
+    // installation forever, creating needless virtio traffic and wakeups.
+    if (!self.readyToken.length)
         return;
     NSString *temporary = [VMReadyPath stringByAppendingFormat:@".%d", getpid()];
     NSData *data = [self.readyToken dataUsingEncoding:NSUTF8StringEncoding];

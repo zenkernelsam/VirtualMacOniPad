@@ -57,6 +57,8 @@ VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD prof
 
 随后通过 Chromium CDP `SystemInfo.getInfo` 和 attached workbench renderer 的 `Runtime.evaluate` 完成像素闸门：`displayType=ANGLE_METAL`、`glRenderer=ANGLE (Apple, ANGLE Metal Renderer: Apple Paravirtual device, Version 15.6.1 (Build 24G90))`、`gpu_compositing=enabled`、`webgl=enabled`、`webgpu=enabled`、`processCrashCount=0`；renderer 内 WebGL2 `clear + gl.finish + gl.readPixels` 返回 `[26,51,77,255]`、`error=0`。这证明 Devin 的 ANGLE WebGL 基础 GPU 路径在当前 88 客机可用。仍未证明所有 WebView、视频、复杂 WebGPU 页面长期稳定，因此不直接修改用户 argv 配置。
 
+同一 CDP renderer 的 `navigator.gpu.requestAdapter()` 也成功返回 adapter，`maxBufferSize=4294967292`、`maxTextureDimension2D=16384`，并报告 BC/ASTC/ETC2、shader-f16、subgroups、texture-formats tier1/tier2 等 features。该结果证明 Devin 的基础 WebGPU adapter 路径也可用；它不等于所有 WebGPU workloads 或视频/WebView 组合已经验收。
+
 ## MATLAB JIT 能力边界（2026-10-03）
 
 在当前 VirtualMac 客机内直接编译并运行只读 probe，得到：

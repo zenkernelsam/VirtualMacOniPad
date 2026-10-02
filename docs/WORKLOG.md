@@ -353,6 +353,7 @@
 - [x] 临时 HOME/`MATLAB_PREFDIR` 启动当前 R2024a desktop 只读观察：主 MATLAB 进程启动，采样命令行出现 `--use-gl=disabled`；证据 `.diag/matlab-desktop-probe-20261003/`。
 - [x] 该参数确认现有 Patch workaround 在位；没有还原未补丁 CEF、没有 GUI 像素 A/B，因此不能把它当作 VirtualMac 硬件 CEF 失败证据，也不自动移除 patch。
 - [x] 只读审计 `/Users/ciscohe/MATLAB_VM_Fix`：三个 Python patcher 与 Desktop/Patch 版本 hash 相同；实际 LaunchAgent 仍指向 Desktop/Patch 脚本，状态 not running、last exit 0；未修改/重载 LaunchAgent。
+- [x] 隔离 MATLAB 未补丁 CEF redirect A/B：native/JIT-compat 两组约18秒均保持主进程存活后由测试终止，但没有 GUI ready/CEF 子进程/像素证据，结果 inconclusive，不宣称 MATLAB patch 可删除。
 
 ## 2026-10-03 — 90 GPUReady 候选包完成
 

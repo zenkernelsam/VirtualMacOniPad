@@ -33,7 +33,15 @@ static void dumpProperties(id dev) {
             } else if (ret[0] == 'Q' || ret[0] == 'I' || ret[0] == 'q' || ret[0] == 'i' || ret[0] == 'L' || ret[0] == 'l' || ret[0] == 'S' || ret[0] == 's') {
                 unsigned long long (*fn)(id, SEL) = (unsigned long long (*)(id, SEL))objc_msgSend;
                 unsigned long long v = fn(o, sel);
-                [rows addObject:[NSString stringWithFormat:@"%-58s %llu", name.UTF8String, v]];
+                if ([name isEqualToString:@"argumentBuffersSupport"]) {
+                    NSString *tier = v == MTLArgumentBuffersTier1 ? @"tier1" :
+                        v == MTLArgumentBuffersTier2 ? @"tier2" : @"unknown";
+                    [rows addObject:[NSString stringWithFormat:
+                        @"%-58s %llu (%@)", name.UTF8String, v, tier]];
+                } else {
+                    [rows addObject:[NSString stringWithFormat:
+                        @"%-58s %llu", name.UTF8String, v]];
+                }
             } else if (ret[0] == '@') {
                 id (*fn)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
                 id v = fn(o, sel);

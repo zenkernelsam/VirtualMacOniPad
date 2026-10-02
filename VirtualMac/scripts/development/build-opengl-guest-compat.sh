@@ -16,10 +16,10 @@ mkdir -p "$OUT"
 for architecture in x86_64 arm64 arm64e; do
     xcrun --sdk macosx clang \
         -arch "$architecture" \
-        -dynamiclib -fobjc-arc -fblocks \
+        -dynamiclib -fobjc-arc -fblocks -DGL_SILENCE_DEPRECATION \
         -mmacosx-version-min=12.0 \
         -framework CoreFoundation -framework Foundation \
-        -framework IOKit -framework Metal \
+        -framework IOKit -framework Metal -framework OpenGL \
         "$SOURCE" \
         -o "$OUT/OpenGLPVGCompat.$architecture.dylib"
 done

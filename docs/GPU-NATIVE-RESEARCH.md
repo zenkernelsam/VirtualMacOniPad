@@ -321,9 +321,9 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 
 **客机实测**（`probes/mtl-caps-dump`，客机侧跑）：
 
-| 属性 | 客机 PV device | 真 M1 macOS15 |
+| 属性 | 客机 PV device | 原先参考值（非实体 Mac 同场景对照） |
 |---|---|---|
-| `argumentBuffersSupport` | **0** | 2 |
+| `argumentBuffersSupport` | **0 (tier1)** | 旧记录 2 为枚举误填，撤回；宿主实测见 K.1 |
 | `readWriteTextureSupport` | 1 | 2 |
 | `supportsDynamicLibraries`/`FunctionPointers*`/`RenderDynamicLibraries` | no | YES |
 | `supportsPullModelInterpolation`/`ShaderBarycentricCoordinates` | no | YES |
@@ -335,39 +335,66 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 - 宿主 `writeDeviceInfo` @ `0x100002a04`（PG.framework）：按 `{u32 field_id, u32 value}` 对写，**字段词表止于 16**——1=MSAASamples,2=D24S8,3-5=MaxThreads xyz,6=MaxThreadgroupMem,7=FramebufferRead,8=RGB10A2Gamma,9=HWFP16,**10=DeserializerVersion=0（硬编码）**,11=PrimitiveTypes,12=dualPlane→Multiplane,13=LinearAlign,14-16=Heap 系。
 - 客机端字段词表（`AppleParavirtGPUMetalIOGPUFamily` 结构编码，约 40 字段）：17=BufferFromIOSurface,18=MaxMetalShaderVersion,19=SupportsSharedTextures,…,**33=SupportFlags2024**{SupportsArgumentBuffers,CommandBufferJump,SharedMemoryHeap,SIMDReduction,ComputeCompressedTextureWrite…},**37=HostGPUFamily,38=ArgumentBuffersTier,39=ArgumentBuffersMaxSamplerCount**…全部 ≥17 → **宿主永远不会写 → 客机 Defined=0 → 全读 0**。
 - `writeDeviceInfo` 的版本门 `a2>=N`：`a2` 来自客机 FIFO 命令载荷自己报的目标版本——客机报得再高，宿主也只写它认识的字段（旧 binary 不会有新代码）。
-- 客机 `setupDeviceInfo` @ plugin `0x188a4`：IOConnectCallMethod 取 kext 回复 → 按顶层组 {0x3ee,0x3ef,0x3f0,0x3f1} 解析子字段组。`argumentBuffersSupport` getter @ `0x1b870`→`supportsArgumentBuffers` @ `0x1b838`：ivar+0x31==1 且 ivar+0x80 bit5 才真——两字节都由 deviceInfo 驱动。**注意：客机此 getter 上限=BOOL(1)=tier1**，即便打开也只报 tier1（结构如此）。
-- 宿主 binary 里存在 `registerArgumentBufferLayoutForReference:`/`registerArgumentEncoderForReference:` —— Ventura 反序列化器**实现过 argbuf 编码**，缺的只是 deviceInfo 宣告。
+- 客机 `setupDeviceInfo` @ plugin `0x188a4`：IOConnectCallMethod 取 kext 回复 → 按顶层组 {0x3ee,0x3ef,0x3f0,0x3f1} 解析子字段组。`argumentBuffersSupport` getter @ `0x1b870`→`supportsArgumentBuffers` @ `0x1b838`：ivar+0x31==1 且 ivar+0x80 bit5 才真——两字节都由 deviceInfo 驱动。**枚举纠正：BOOL(1) 对应 Metal tier2，0 对应 tier1**，不能将这个 getter 的 0 当成完全不支持。
+- 宿主 binary 里存在 `registerArgumentBufferLayoutForReference:`/`registerArgumentEncoderForReference:` ——证明存在相关入口，但不能单靠符号存在证明完整 argument-buffer 执行路径，仍需端到端测试。
 
 **修复方向（新战线，独立于楔死）**：宿主侧 swizzle `getDeviceInfo:length:dst:`/`writeDeviceInfo`（落 vzxpchook/pvg_trace 现有 hook 架构），在回复尾部追加 15.6 认识的字段——`ArgumentBuffersTier`、`SupportFlags2024`（按 iPadOS16.3 AGX 真实能力逐项置位）、`HostGPUFamily`、`MaxMetalShaderVersion`、`SupportsSharedTextures` 等。**前置条件：先 dump iPadOS16.3 MTLDevice 真实能力表**（拔 iPad `/System/Library/PrivateFrameworks/Metal.framework`+AGXMetal13_3 静态取证或经用户批准跑 iPad 探针），**按真实能力上报，不多报**——报多了客机发出宿主执行不了的内容 = 正好落进楔死路径。
-- MATLAB 证据（`~/Desktop/Patch/MATLAB`）：CEF 合成残缺被迫 `--disable-gpu`；figure OpenGL 曲线不显示+MSAA 后管线全毁（OpenGLPVGCompat 未覆盖 VBO+shader+MSAA）；Java2D Metal/OpenGL 全关。argbuf=0 + CEF wedge 修复后，Chromium 系（含嘉立创EDA/Devin）预期可去 `--disable-gpu`。
+- MATLAB 证据（`~/Desktop/Patch/MATLAB`）：CEF 合成残缺被迫 `--disable-gpu`；figure OpenGL 曲线不显示+MSAA 后管线全毁（OpenGLPVGCompat 未覆盖 VBO+shader+MSAA）；Java2D Metal/OpenGL 全关。argbuf 原值 0 是 tier1；此前据此推导 Chromium 系（含嘉立创EDA/Devin）可以去掉 `--disable-gpu` 的结论未验证，撤回。
 - 遗留核实：客机 15.6 deviceInfo 顶层组 0x3ee-0x3f1 的子字段 id 全表（继续解 `setupDeviceInfo`）；`readWriteTextureSupport`/`supportsFamily:Metal3` 的字段来源。
 
 #### K.1 iPadOS16.3 宿主真实能力表（mtl-caps-dump 实测，`.diag/host-ipados16.3/mtl-caps.txt`）
 
 | 属性 | iPadOS16.3 M1 实测 | 客机 PV 实报 | 差距 |
 |---|---|---|---|
-| argumentBuffersSupport | **1 (tier1)** | 0 | 宿主有，客机不知 |
-| readWriteTextureSupport | **2 (tier2)** | 1 | 被砍半 |
-| supportsDynamicLibraries / FunctionPointers(FromRender) / RenderDynamicLibraries | **YES** | no | 全关 |
-| **supportsRaytracing(+FromRender)** | **YES** | no | M1 宿主驱动开光追（bundle 有 raytracing_rt.metallib 佐证） |
+| argumentBuffersSupport | **1 (tier2)** | **0 (tier1)** | 是等级差异，0 不代表不支持 |
+| readWriteTextureSupport | **2 (tier2)** | 1 | 等级差异 |
+| supportsDynamicLibraries / FunctionPointers(FromRender) / RenderDynamicLibraries | **YES** | no | 客机报告缺失 |
+| **supportsRaytracing(+FromRender)** | **YES** | no | API 支持不等于硬件 RT 或完整 PVG 光追路径 |
 | supportsPullModelInterpolation / ShaderBarycentricCoordinates | **YES** | no | — |
-| supportsFamily | Apple1-7 + Common1-3 + **Metal3** | Mac1/Mac2/Common1-3 | 客机连 Apple family/Metal3 都不报 |
+| supportsFamily | Apple1-7 + Common1-3 + **Metal3** | Mac1/Mac2/Common1-3 | 客机不报 Apple family/Metal3 |
 | counterSets | GPU timestamp set | (null) | — |
 | maxBufferLength | 3.83GB | 5GB（客机合成值） | 客机值反而更大 |
 | recommendedMaxWorkingSetSize | 10.2GB | 6.67GB | — |
 | maxArgumentBufferSamplerCount | 1024 | 2048（客机合成值） | — |
 | sparseTileSizeInBytes | 16384 | 16384 | 一致 |
 
+**枚举纠正（2026-10-02 下午）**：SDK `MTLDevice.h` 定义 `MTLArgumentBuffersTier1=0`、`MTLArgumentBuffersTier2=1`。早先把 0 解读为完全不支持、1 解读为 tier1 的结论撤回。探针已打印枚举名称；当前客机重新测得 `0 (tier1)`。不能据此声称已经定位 Chromium/Electron 禁 GPU 的根因。
+
 **iPad 侧探针操作要点（已验证）**：二进制须放 `/var/jb` 前缀下执行（AMFI/trustcache 范围）；`MTLCreateSystemDefaultDevice` 无 entitlement 返回 nil；需 ldid 签 entitlements：`com.apple.security.iokit-user-client-class`(IOGPUUserClient/AGXDeviceUserClient/AGXSharedUserClient…)+`platform-application`+`get-task-allow`。探针源=`probes/mtl-caps-dump.m`（iOS/macOS 同源，dlsym 弱解 MTLCopyAllDevices）。
 
-**结论**：宿主 AGX = 接近满血 Metal3 M1（含光追）；客机看到的 = 被 Ventura deviceInfo 词表（≤16 字段）阉割后的残血设备。swizzle writeDeviceInfo 追加字段的**每个值都有宿主实测依据**（tier=1 不是 2、RT=YES、dynlibs=YES——按此表上报即诚实）。
+**结论边界**：真实能力存在协商差异，但宿主支持某个 Metal API，不证明 Ventura PG/MetalSerializer 和客机能端到端执行它。不能将一组现代宿主参考值直接视为本设备的安全能力表。
 
 #### K.2 deviceInfo 扩展实现（`pvg_trace.m` `TraceGetDeviceInfo` + `vmmhook.m` 映射表）
 
-**注入点**：swizzle `-[_PGDevice getDeviceInfo:length:dst:]`（IDA 确认其 IMP=`sub_100011DF0`，仅存根通道 `0x3a` 命令（`sub_1000203D8`）调用；参数序 = `[key_table_len][count][reply_pfn]`）。流程：调原 IMP → `reply_pfn<<14` 经 vmmhook `hv_vm_map` 记录表换算宿主 VA → `+*(device+0x1F0)` 复现 dst → 走哨兵 → 追加/覆写扩展 key（`<keyLimit` 门控，语义与 Ventura `keyLimit>K` 逐位一致）→ 重写 `{0,0}` 哨兵（`count>capacity` 时末位保留哨兵——Reims `info_reply::encode` 同款语义）。客机在完成 stamp 前阻塞 → 天然无竞态。
+**注入点**：swizzle `-[_PGDevice getDeviceInfo:length:dst:]`（IDA 确认其 IMP=`sub_100011DF0`，仅存根通道 `0x3a` 命令（`sub_1000203D8`）调用；参数序 = `[key_table_len][count][reply_pfn]`）。流程：调原 IMP → `reply_pfn<<14` 经 vmmhook `hv_vm_map` 记录表换算宿主 VA → `+*(device+0x1F0)` 复现 dst → 走哨兵 → 追加/覆写扩展 key（`<keyLimit` 门控，语义与 Ventura `keyLimit>K` 逐位一致）→ 重写 `{0,0}` 哨兵（`count>capacity` 时末位保留哨兵——Reims `info_reply::encode` 同款语义）。客机在完成 stamp 前阻塞是先前的时序判断，仍需首启验证映射与回复有效性。
 
-**默认表 = Apple 真实宿主抓包值**（Reims `DEVICE_INFO_CAPS`，经 iPadOS16.3 实测表 K.1 复核）：keys 17–41（洞位 20/22/38/39 不发、死位 43 跳过；42/44 仅 macOS26 解析端可达）；**key10 DeserializerVersion 默认仍 0**（Ventura 原值——bump 会解锁客机序列化器 rung≥3/5/6/7/8 的新词表（OpenGL 段 0x8a-0x98 在 ≥6 才发出），能否被 Ventura 反序列化器消化需单独实验）。配置面：`PVG_DEVICEINFO_CAPS=0` 全关；`PVG_DEVICEINFO_EXTRA="k=v;…"` 追加/覆写（如 `10=8`）；App 侧 `defaults write <bundle> PVGDeviceInfoCaps -bool NO` / `PVGDeviceInfoExtra` 免重编。
+**默认表尚未完整验证**：keys 17–41 参照 Reims `DEVICE_INFO_CAPS`，洞位 20/22/38/39 不发、42/44 不服务 macOS15。审计发现 key37=1009/Apple9 **不在本机 M1 实测支持集合**；key33=4095 将全部 12 位开启，其中包含 `CommandBufferJump`、`SharedMemoryHeap`、`SharedTexturePlacement` 等协议/资源能力，不能由公开 MTLDevice 查询全部证明。本轮没有部署该表，也没有证明它会触发新 opcode；这些属于必须收窄或逐位验证的风险项。此前“每项均有宿主实测背书”的说法撤回，旧 deb 不视为已验证满血版本。
 
-**Reims 协议层已确认**：macOS15 客机声明 keyLimit=42（解析 key 1..41）；key33 SupportFlags2024 bit5=ArgumentBuffers 是插件 tier 的真正来源（key38/39 无消费者）；key18 是 packed AIR 版本（客机端 ≥0x20008→clamp 0x20007）。
+**key10 DeserializerVersion 默认仍 0**。提升它可能解锁新的序列化词表，必须独立验证，不作为 Godot shader 崩溃修复。回退面：`PVG_DEVICEINFO_CAPS=0`；App `PVGDeviceInfoCaps=NO`。`PVG_DEVICEINFO_EXTRA` 是实验覆写，不代表覆盖值安全。
 
-**遗留核实**：首启须在 vmm.stderr 看到 `deviceinfo caps augmented` + pvg-trace `DEVICEINFO` 行确认命中；若 `no-host-map`（pfn 不在 hv_vm_map 域）需走 allocator 复制方案。
+**Reims 协议层记录**：macOS15 keyLimit=42；key33 bit5 与 argument-buffer tier 的客机解码相关，key38/39 未发现消费者；key18 是 packed AIR 版本。上述字段解释不等于对应执行能力已验证。
+
+**待验收**：安全能力表审计后再重建 deb；首启核实 `deviceinfo caps augmented`、`DEVICEINFO`、完整 guest caps 和实际工作负载。`no-host-map` 时保持原回复，不进行不安全写入。
+
+### L. Godot 4.1.1 场景崩溃闭环与客机 GL 修复（2026-10-02 下午）
+
+**原报告**：`Godot-2026-10-02-143146.ips`、`Godot-2026-10-02-143201.ips`：`EXC_BAD_ACCESS/SIGABRT`、地址 `0x10`，栈为 `glLinkProgramARB_Exec → gleLinkProgram → ShLink → glpLinkProgram → glpLLVMCGSwitchStatement +176`。报告加载 `/Library/VirtualMac/OpenGLPVGCompat.dylib` 和 `AppleMetalOpenGLRenderer`；不能将未注入 shim 的 CLI 软件 GL 运行视为同一通路。
+
+**受控复现**：最近项目记录指向 `Desktop/book-buster`。只在 `.diag/godot-vulkan/book-buster-test` 隔离 clone 中运行，原项目两个未提交改动保留；测试副本同步了 splash 场景的三个 UID 改动，但 UID cache 在副本中重新导入。目标 `Scenes/tittleScreen/pre-titleScreen.tscn`：20 节点、1 个 GPUParticles2D（amount=1000）。它复现原报告的同一 compiler 栈；尚未由用户确认这就是全部问题场景。
+
+| 条件 | 实测 |
+|---|---|
+| 已安装 PVG OpenGL shim，GPU 粒子开启 | 同栈崩溃，exit 134 |
+| 同路径，仅诊断实例关闭粒子 emitting/visibility | 60 帧、GPU 截图成功，exit 0；不作为修复 |
+| Vulkan/MoltenVK 1.2.0 默认能力判断 | 启动阶段 `No valid pixelFormats set` |
+| 仅 Godot 进程收窄 Mac2，使用 MoltenVK 原生 fallback | 最小 RGB/3D/GPU 粒子读回成功，标题场景 60 帧截图成功；不是正式默认设置 |
+| 最终客机 shim，GPU 粒子开启，限定 switch 等价转译 | **3 次独立运行均 exit 0，各 60 帧，1152×648 GPU 截图** |
+| 最终新 shim 的转译开关关闭 | 同栈 crash/exit 134，负对照成立 |
+
+**具体失败 shader 已抓获**：link #13 的 vertex source（6420 字节）是粒子变换/朝向 shader；`switch (align_mode)` 有四个独立带 break 的 case，第一个为空。并非已经证明的 fallthrough bug。link #12 已返回，#13 在 link 内崩溃。捕获 GLSL、日志、图像全部在 ignored `.diag/godot-vulkan/`，不入库。
+
+**正式实现**：`OpenGLPVGCompat.m` 对 `glShaderSource` 加 interpose，仅在既有 PVG GL 路径已启用时应用。识别固定 uniform/输出布局、四个不同枚举常量、case 顺序、各 case 独立 brace block 与终止 break；识别失败则原样传给原 API。仅将已识别 switch 换成 if/else，数学、资源绑定、GPU 粒子和 rasterization 都保留。`VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER=0` 关闭；`VIRTUAL_MAC_OPENGL_DEBUG=1` 记录命中。不改变既有其他 OpenGL 兼容逻辑。
+
+**验证**：新增 `scripts/tests/opengl-particle-shader-test.m`，纯文本结构回归（2D/3D define、常量/顺序/缺失 break/错误 scope/普通 shader/过大输入），`-Wall -Wextra -Werror` 通过；build 脚本生成并签名 x86_64/arm64/arm64e 三架构。普通 indexed VBO + uniform 三角形回归确认硬件加速 PVG、FBO complete、像素 `(255,0,255,255)`、GL error0，未命中转译。实际渲染只验证 arm64 Godot 4.1.1 与该基础 GL probe，未验证全部 3D 粒子朝向、所有游戏场景、MATLAB 或 Chromium。
+
+**范围与遗留**：无需 deviceInfo 新表即可修复这个 GL compiler 触发点。现代宿主 OpenGL 编译器的公开同栈 Godot 问题支持上游 bug 假设，但没有实体 Mac 的同场景对照，因此不宣称完全排除 VirtualMac 的参与。标题场景仍有空 shader-global 资源、UID 和退出资源警告；退出码与截图不是全游戏兼容证明。新 dylib 仅被新启动的测试 Godot 加载，未替换系统安装件、未改变宿主/VMM，也未重新打包 deb。

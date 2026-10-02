@@ -5,7 +5,7 @@
 ### 完成
 - [x] 读三份交接文档（SUPER-HANDOVER / VM-crash-fix-and-build-notes / VMGPU-REFERENCE）
 - [x] 复述十条准则、区分战线已知/未知（见会话首轮回复）
-- [x] **SSH 通道打通**：`sshpass -p cisco ssh -p 2222 root@192.168.64.1`（NAT 网关=宿主 iPad；22/2222 双通；密码问用户，勿入库）
+- [x] **SSH 通道打通**：`ssh -p 2222 root@192.168.64.1`（NAT 网关=宿主 iPad；22/2222 双通；密码问用户，勿入库）
 - [x] 定位 iPad 侧关键路径：payload `/var/root/VirtualMac/payload/`；VM 数据 `/var/mobile/Media/VirtualMac/`；App 在 `/var/jb/Applications/VirtualMac.app`（→ preboot procursus）
 - [x] 拉取诊断证据到 `.diag/20260920-121651/`（最新诊断包的小文件：manifest/Settings/logs/plist/2 份 VirtualMac.ips）
 - [x] 黄金基线普查：`Virtualization.framework`（13.2.1 提取）**含 USB 类**（见审计文档 §4）
@@ -40,7 +40,7 @@
 
 ### iPad 重启后的续会话行动清单（按序）
 1. 用户在 iPad 上重跑 Dopamine 越狱（semi-untethered，必须重打）→ respring 后 SSH 才会回来。
-2. 验证 SSH：`sshpass -p cisco ssh -p 2222 root@192.168.64.1 'echo ok'`（22 也试）。
+2. 验证 SSH：`ssh -p 2222 root@192.168.64.1 'echo ok'`（22 也试）。
 3. **立刻拉** `/tmp/vmm.stderr.log`、`/tmp/pvg-trace.log`、`/var/mobile/Media/VirtualMac/Sequoia.bundle/VirtualMac.log` → 与客机 gpuRestart 时间戳对齐，定位 `submitEvent:INCOMPLETE` 的宿主侧原因（反序列化失败楔死/未知 opcode/宿主 Metal 挂起/内存双计 四选一）。
 4. 若日志信息量不足 → 下一步是"诊断级"增强 pvg_trace（把命令 opcode 序列打到文件，重启后对账），标 diagnostic。
 5. 顺便按 §"清理"条款处理 iPad 上 3×~1.1GB 旧诊断 zip（先 NAS 备份 manifest，再废纸篓/隔离）。
@@ -139,4 +139,18 @@
 - **宿主侧回复管线全解**（IDA Instance4）：`getDeviceInfo:length:dst:` IMP=`sub_100011DF0`（无 xref=仅方法表调）；内部 MTLRangeAllocator map `pfn<<14`+0x4000 → `writeDeviceInfo(dev,keyLimit,count,dst=va+*(dev+0x1F0))` → unmap。writeDeviceInfo 字段门控 `keyLimit>K` 与 Reims 逐位吻合。
 - **实现**（`pvg_trace.m`+`vmmhook.m`+`VirtualMacApp.m`）：swizzle getDeviceInfo→orig→hv_vm_map 表换算客机页 VA→追加 key17-41 扩展集（Apple 真实宿主值）→重写哨兵。env 可配：`PVG_DEVICEINFO_CAPS`（总开关）/`PVG_DEVICEINFO_EXTRA`（逐 key 覆写，含 key10）。
 - **deb 已构建验证**：安装用 `VirtualMac_1.2.3_c137b1306a.deb`（=commit c137b13，provenance 对齐；同目录 `a983c775b6` 包是同内容预提交版，勿装）。
-- 待 VM 重启验证：vmm.stderr 应有 `deviceinfo caps augmented`；客机 mtl-caps-dump 应对照翻表（argbuf→1、readWrite→2、dynLibs/funcPtrs→YES 等）；watcher 盯楔死。
+- 待 VM 重启验证：vmm.stderr 应有 `deviceinfo caps augmented`；客机 mtl-caps-dump 应对照翻表；watcher 盯楔死。**2026-10-02 下午审计更新：先暂停将这个包当作已验证满血版本，见下节。**
+
+## 2026-10-02 下午 — Godot 粒子场景崩溃复现与等价 GL shader 修复
+
+- **必须纠正早先能力结论**：SDK 明确定义 `MTLArgumentBuffersTier1=0`、`Tier2=1`。guest 0 是 tier1，iPad 原探针 1 是 tier2；此前“完全没有 argument buffers”“它就是 Chromium 禁 GPU 的根因”均未成立，撤回。探针已添加枚举名，macOS 运行确认 `0 (tier1)`，iOS arm64e 语法检查通过。
+- **deviceInfo 风险审计**：key37=1009/Apple9 不在本机实测支持集合（最高 Apple7）；key33=4095 全开 12 位含协议/资源功能，公开 Metal 属性不能全部证明。尚未收窄默认源码表，未部署；不声称它已经导致新 opcode fault。先完成逐位协议/执行验证，再重建和首启验收，旧 c137b13 包不是已验证满血交付。
+- 找到原报告 `Godot-2026-10-02-143146.ips`、`143201.ips`，含 OpenGLPVGCompat、AppleMetalOpenGLRenderer，失败于 `glpLLVMCGSwitchStatement +176`/glLinkProgram。不得拿未注入 shim 的 CLI 软件 GL 当对应加速测试。
+- 根据 Godot 最近项目记录，隔离 clone `Desktop/book-buster` 到 ignored `.diag/godot-vulkan/book-buster-test`；原项目两个 dirty 文件保留，仅向副本同步 splash 场景 UID。副本改 renderer、重新导入资源，不修改原项目或原 save 目录；用户尚未确认全部报错场景。
+- **实景复现**：pre-titleScreen（20 节点、1 GPUParticles2D，amount1000）+ 原安装 GL shim → 同栈 crash/exit134；诊断关闭粒子 → 60 帧 GPU 截图/exit0。
+- **定位 shader**：glLinkProgram 只读取证 hook 捕到 link13 的粒子 copy/transform vertex shader（6420B），`switch(align_mode)` 四个独立 case、首 case 空；不是已经证明的 fallthrough。GLSL/图像/日志全部留 ignored `.diag`，不提交第三方 shader。
+- **修复**：客机 `OpenGLPVGCompat.m` 限定源结构、常量和独立 case block/终止 break 后等价转 if/else；不关闭 GPU/粒子，不改数学/资源/校验。未识别输入原样走原 API；开关 `VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER=0`。原有其他 shim 行为不变。
+- **回归**：`scripts/tests/opengl-particle-shader-test.m` 通过 `-Wall -Wextra -Werror`；x86_64/arm64/arm64e 三架构构建与签名通过。最终结构闸门版本 **3 次独立实景运行，各 60 帧、1152×648 GPU PNG、exit0**；最终新 shim 关闭转译开关恢复原 crash/exit134，负对照成立；普通 indexed VBO+uniform 三角形读回 `(255,0,255,255)`、FBO complete、GL error0，未命中转译。
+- Vulkan 另有独立缺陷：MoltenVK1.2.0 由 Mac2 推断 attachmentless 支持，但 guest Metal 拒绝 all-invalid pipeline。诊断只收窄 Mac2 后 MoltenVK 原生 dummy attachment 路径有效（保留 rasterization，writeMask0）；最小 RGB/3D/GPU 粒子读回通过，标题场景也捕获成功。该诊断不写入正式默认。
+- **交付边界**：新 guest dylib 位于 `.diag/godot-vulkan/guest-opengl-fixed/OpenGLPVGCompat.dylib`，只在新测试 Godot 中加载，未替换 `/Library/VirtualMac`、未重启/注入宿主 VMM、未重建 deb。UID/空 shader-global/退出资源警告仍在，未测试全游戏、全部 3D 粒子朝向、MATLAB、Chromium；不能称全 GPU 完美修复。
+- 下一闸门：用户确认目标场景并扩大实景测试；审计并收窄 deviceInfo 默认表，再整合新 guest shim 到可回滚 deb，受控首启验收。

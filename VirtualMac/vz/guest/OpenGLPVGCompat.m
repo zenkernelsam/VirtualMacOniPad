@@ -2,6 +2,7 @@
 #import <Foundation/Foundation.h>
 #import <IOKit/IOKitLib.h>
 #import <Metal/Metal.h>
+#import <OpenGL/gl3.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
 
@@ -29,6 +30,157 @@ static void InstallRenderEncoderCompatibility(id encoder);
 static BOOL DebugEnabled(void) {
     const char *value = getenv("VIRTUAL_MAC_OPENGL_DEBUG");
     return value != NULL && value[0] != '\0' && strcmp(value, "0") != 0;
+}
+
+static NSUInteger ShaderTokenCount(NSString *source, NSString *token) {
+    return [source componentsSeparatedByString:token].count - 1;
+}
+
+static NSUInteger NextShaderToken(NSString *source, NSUInteger cursor) {
+    NSCharacterSet *whitespace = NSCharacterSet.whitespaceAndNewlineCharacterSet;
+    while (cursor < source.length) {
+        if ([whitespace characterIsMember:[source characterAtIndex:cursor]]) {
+            ++cursor;
+            continue;
+        }
+        if (cursor + 1 >= source.length ||
+            [source characterAtIndex:cursor] != '/')
+            break;
+        unichar next = [source characterAtIndex:cursor + 1];
+        if (next == '/') {
+            NSRange end = [source rangeOfString:@"\n" options:0
+                range:NSMakeRange(cursor + 2, source.length - cursor - 2)];
+            cursor = end.location == NSNotFound ? source.length : end.location + 1;
+        } else if (next == '*') {
+            NSRange end = [source rangeOfString:@"*/" options:0
+                range:NSMakeRange(cursor + 2, source.length - cursor - 2)];
+            cursor = end.location == NSNotFound ? source.length : NSMaxRange(end);
+        } else {
+            break;
+        }
+    }
+    return cursor;
+}
+
+static NSUInteger ShaderBlockEnd(NSString *source, NSUInteger opening) {
+    NSUInteger depth = 1;
+    NSUInteger cursor = opening + 1;
+    while ((cursor = NextShaderToken(source, cursor)) < source.length) {
+        unichar token = [source characterAtIndex:cursor];
+        if (token == '"' || token == '\'')
+            return NSNotFound;
+        if (token == '{')
+            ++depth;
+        else if (token == '}' && --depth == 0)
+            return cursor;
+        ++cursor;
+    }
+    return NSNotFound;
+}
+
+static NSString *CompatibleParticleShaderSource(NSString *source) {
+    if (source == nil || source.length > 2 * 1024 * 1024 ||
+        ![source containsString:@"uniform highp uint align_mode;"] ||
+        ![source containsString:
+            @"flat out highp uvec4 instance_color_custom_data;"] ||
+        ShaderTokenCount(source, @"switch (") != 1 ||
+        ShaderTokenCount(source, @"switch (align_mode) {") != 1 ||
+        ShaderTokenCount(source, @"case ") != 4 ||
+        ShaderTokenCount(source, @"default:") != 0 ||
+        ShaderTokenCount(source, @"break;") != 4 ||
+        ShaderTokenCount(source, @"} break;") != 4)
+        return source;
+
+    NSArray<NSString *> *names = @[
+        @"TRANSFORM_ALIGN_DISABLED", @"TRANSFORM_ALIGN_Z_BILLBOARD",
+        @"TRANSFORM_ALIGN_Y_TO_VELOCITY",
+        @"TRANSFORM_ALIGN_Z_BILLBOARD_Y_TO_VELOCITY"
+    ];
+    NSMutableArray<NSString *> *labels = [NSMutableArray array];
+    NSUInteger cursor = NSMaxRange([source rangeOfString:
+        @"switch (align_mode) {"]);
+    for (NSUInteger index = 0; index < names.count; ++index) {
+        NSString *definition = [NSString stringWithFormat:
+            @"#define %@ uint(%lu)", names[index], (unsigned long)index];
+        NSString *label = [NSString stringWithFormat:
+            @"case %@: {", names[index]];
+        NSRange range = [source rangeOfString:label];
+        if (ShaderTokenCount(source, definition) != 1 ||
+            ShaderTokenCount(source, label) != 1 ||
+            range.location != NextShaderToken(source, cursor))
+            return source;
+        NSUInteger closing = ShaderBlockEnd(source, NSMaxRange(range) - 1);
+        if (closing == NSNotFound)
+            return source;
+        cursor = NextShaderToken(source, closing + 1);
+        if (cursor + @"break;".length > source.length ||
+            ![[source substringWithRange:NSMakeRange(cursor, @"break;".length)]
+                isEqualToString:@"break;"])
+            return source;
+        cursor += @"break;".length;
+        [labels addObject:label];
+    }
+    cursor = NextShaderToken(source, cursor);
+    if (cursor >= source.length || [source characterAtIndex:cursor] != '}')
+        return source;
+
+    NSMutableString *lowered = [source mutableCopy];
+    [lowered replaceOccurrencesOfString:@"switch (align_mode) {"
+        withString:@"{" options:0 range:NSMakeRange(0, lowered.length)];
+    for (NSUInteger index = 0; index < names.count; ++index) {
+        NSString *condition = [NSString stringWithFormat:
+            @"%@if (align_mode == %@) {", index == 0 ? @"" : @"else ",
+            names[index]];
+        [lowered replaceOccurrencesOfString:labels[index]
+            withString:condition options:0
+            range:NSMakeRange(0, lowered.length)];
+    }
+    [lowered replaceOccurrencesOfString:@"} break;" withString:@"}"
+        options:0 range:NSMakeRange(0, lowered.length)];
+    return lowered;
+}
+
+static void PVGShaderSource(GLuint shader, GLsizei count,
+                            const GLchar *const *strings,
+                            const GLint *lengths) {
+    const char *flag = getenv("VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER");
+    if (gSupportsFamily == NULL ||
+        (flag != NULL && strcmp(flag, "0") == 0) ||
+        count < 1 || count > 128 || strings == NULL) {
+        glShaderSource(shader, count, strings, lengths);
+        return;
+    }
+    @autoreleasepool {
+        NSMutableData *data = [NSMutableData data];
+        for (GLsizei index = 0; index < count; ++index) {
+            if (strings[index] == NULL) {
+                glShaderSource(shader, count, strings, lengths);
+                return;
+            }
+            size_t length = lengths != NULL && lengths[index] >= 0
+                ? (size_t)lengths[index] : strlen(strings[index]);
+            if (length > 2 * 1024 * 1024 ||
+                data.length + length > 2 * 1024 * 1024) {
+                glShaderSource(shader, count, strings, lengths);
+                return;
+            }
+            [data appendBytes:strings[index] length:length];
+        }
+        NSString *source = [[NSString alloc] initWithData:data
+            encoding:NSUTF8StringEncoding];
+        NSString *lowered = CompatibleParticleShaderSource(source);
+        if (source == nil || lowered == source) {
+            glShaderSource(shader, count, strings, lengths);
+            return;
+        }
+        const GLchar *replacement = lowered.UTF8String;
+        GLint length = (GLint)[lowered
+            lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+        if (DebugEnabled())
+            fprintf(stderr, "OpenGLPVGCompat: lowered particle alignment "
+                            "switch shader=%u\n", shader);
+        glShaderSource(shader, 1, &replacement, &length);
+    }
 }
 
 static BOOL ProcessUsesUnsupportedOpenGLPath(void) {
@@ -385,6 +537,7 @@ static CFTypeRef PVGCreateRegistryProperty(
 
 INTERPOSE(pvg_iogl_property, PVGCreateRegistryProperty,
           IORegistryEntryCreateCFProperty);
+INTERPOSE(pvg_particle_shader_source, PVGShaderSource, glShaderSource);
 #if EXPERIMENTAL_UNREAL_GAMES
 INTERPOSE(pvg_gpu_registry_properties, PVGCreateRegistryProperties,
           IORegistryEntryCreateCFProperties);

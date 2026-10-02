@@ -462,6 +462,16 @@ static uint8_t *guest_policy_host_for_ipa(
     return NULL;
 }
 
+// Cross-TU helper for the PVG device-info augmentation in pvg_trace.m (same
+// dylib). Returns NULL when no recorded hv_vm_map covers [ipa, ipa+size).
+uint8_t *vmmhook_host_address_for_ipa(uint64_t ipa, size_t size) {
+    pthread_mutex_lock(&guest_policy_mapping_lock);
+    uint8_t *result = guest_policy_host_for_ipa(
+        guest_policy_mappings, guest_policy_mapping_count, ipa, size);
+    pthread_mutex_unlock(&guest_policy_mapping_lock);
+    return result;
+}
+
 typedef struct {
     unsigned pageBits;
     unsigned indexBits;
@@ -3158,7 +3168,9 @@ _ip_hv_vm_create __attribute__((section("__DATA,__interpose"))) =
 extern int hv_vm_map(void *addr, uint64_t ipa, size_t size, uint64_t flags);
 static int vmm_hv_vm_map(void *addr, uint64_t ipa, size_t size, uint64_t flags) {
     int rc = hv_vm_map(addr, ipa, size, flags);
-    if (rc == 0 && guest_runtime_policy_enabled) {
+    // Recording is unconditional: hv_vm_map only runs during VM bring-up and
+    // the inventory now also feeds the PVG device-info reply augmentation.
+    if (rc == 0) {
         pthread_mutex_lock(&guest_policy_mapping_lock);
         if (guest_policy_mapping_count <
             sizeof(guest_policy_mappings) / sizeof(guest_policy_mappings[0])) {

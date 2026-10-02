@@ -361,3 +361,13 @@ PGFIFO 方法表（相对方法表格式，class_ro_t @ `0x100050dc8`，mlist @ 
 **iPad 侧探针操作要点（已验证）**：二进制须放 `/var/jb` 前缀下执行（AMFI/trustcache 范围）；`MTLCreateSystemDefaultDevice` 无 entitlement 返回 nil；需 ldid 签 entitlements：`com.apple.security.iokit-user-client-class`(IOGPUUserClient/AGXDeviceUserClient/AGXSharedUserClient…)+`platform-application`+`get-task-allow`。探针源=`probes/mtl-caps-dump.m`（iOS/macOS 同源，dlsym 弱解 MTLCopyAllDevices）。
 
 **结论**：宿主 AGX = 接近满血 Metal3 M1（含光追）；客机看到的 = 被 Ventura deviceInfo 词表（≤16 字段）阉割后的残血设备。swizzle writeDeviceInfo 追加字段的**每个值都有宿主实测依据**（tier=1 不是 2、RT=YES、dynlibs=YES——按此表上报即诚实）。
+
+#### K.2 deviceInfo 扩展实现（`pvg_trace.m` `TraceGetDeviceInfo` + `vmmhook.m` 映射表）
+
+**注入点**：swizzle `-[_PGDevice getDeviceInfo:length:dst:]`（IDA 确认其 IMP=`sub_100011DF0`，仅存根通道 `0x3a` 命令（`sub_1000203D8`）调用；参数序 = `[key_table_len][count][reply_pfn]`）。流程：调原 IMP → `reply_pfn<<14` 经 vmmhook `hv_vm_map` 记录表换算宿主 VA → `+*(device+0x1F0)` 复现 dst → 走哨兵 → 追加/覆写扩展 key（`<keyLimit` 门控，语义与 Ventura `keyLimit>K` 逐位一致）→ 重写 `{0,0}` 哨兵（`count>capacity` 时末位保留哨兵——Reims `info_reply::encode` 同款语义）。客机在完成 stamp 前阻塞 → 天然无竞态。
+
+**默认表 = Apple 真实宿主抓包值**（Reims `DEVICE_INFO_CAPS`，经 iPadOS16.3 实测表 K.1 复核）：keys 17–41（洞位 20/22/38/39 不发、死位 43 跳过；42/44 仅 macOS26 解析端可达）；**key10 DeserializerVersion 默认仍 0**（Ventura 原值——bump 会解锁客机序列化器 rung≥3/5/6/7/8 的新词表（OpenGL 段 0x8a-0x98 在 ≥6 才发出），能否被 Ventura 反序列化器消化需单独实验）。配置面：`PVG_DEVICEINFO_CAPS=0` 全关；`PVG_DEVICEINFO_EXTRA="k=v;…"` 追加/覆写（如 `10=8`）；App 侧 `defaults write <bundle> PVGDeviceInfoCaps -bool NO` / `PVGDeviceInfoExtra` 免重编。
+
+**Reims 协议层已确认**：macOS15 客机声明 keyLimit=42（解析 key 1..41）；key33 SupportFlags2024 bit5=ArgumentBuffers 是插件 tier 的真正来源（key38/39 无消费者）；key18 是 packed AIR 版本（客机端 ≥0x20008→clamp 0x20007）。
+
+**遗留核实**：首启须在 vmm.stderr 看到 `deviceinfo caps augmented` + pvg-trace `DEVICEINFO` 行确认命中；若 `no-host-map`（pfn 不在 hv_vm_map 域）需走 allocator 复制方案。

@@ -59,6 +59,180 @@ static const char * const VZVideoMemoryExhaustedNotification =
 extern id PGNewDeviceWithDescriptor(id descriptor);
 static void InstallMetalLibraryFallback(id<MTLDevice> device);
 
+// Guest-physical -> VMM host-VA lookup, filled by vmmhook's hv_vm_map
+// interposer when PVG_DEVICEINFO_CAPS is set (same dylib).
+extern uint8_t *vmmhook_host_address_for_ipa(uint64_t ipa, size_t size);
+
+// ---------------------------------------------------------------------------
+// DeviceInfo reply augmentation.
+//
+// The Ventura host's writeDeviceInfo only knows reply keys 1..16, so a macOS
+// 15.6 guest (whose parse ceiling is 42) reads zero for every modern field:
+// ArgumentBuffers, SupportFlags2024, HostGPUFamily, and friends all read 0 and
+// the guest Metal plugin reports argumentBuffersSupport=0 and friends. The
+// reply is a run of {u32 key, u32 value} pairs ending in {0,0}, bounded by the
+// request's key table length (exclusive) and pair count. The guest blocks on
+// the completion stamp until after getDeviceInfo returns, so appending pairs
+// inside this method is race-free.
+//
+// Values mirror what Apple's own newer host serves (cross-checked against the
+// Reims vGPU wire model and the measured iPadOS 16.3 M1 device). Every entry
+// is still gated by the guest's own keyLimit, so an older guest parser never
+// sees a key it cannot dispatch.
+// ---------------------------------------------------------------------------
+
+static void Trace(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
+
+typedef struct {
+    uint32_t key;
+    uint32_t value;
+} VMDevInfoPair;
+
+static const VMDevInfoPair gDevInfoDefaults[] = {
+    {17, 1},          // BufferWithIOSurface
+    {18, 0x20007},    // MaxMetalShaderVersion = packed AIR 2.7 (guest ceiling)
+    {19, 1},          // SharedTextures
+    {21, 1},          // ProgrammableSamplePositions
+    {23, 1},          // TileShaders
+    {24, 1},          // Imageblocks
+    {25, 1},          // RasterOrderGroups
+    {26, 1},          // MemoryOrderAtomics
+    {27, 1},          // LargeMRT
+    {28, 7},          // SupportFlags2023: Apple5|DynAttrStride|Tex2DMSAAArray
+    {29, 1024},       // MaxComputeThreads
+    {30, 32768},      // MaxComputeLocalMemory
+    {31, 32768},      // MaxComputeTGMemory
+    {32, 16},         // ComputeTGMemoryAlign
+    {33, 4095},       // SupportFlags2024: all 12 bits incl. ArgumentBuffers
+    {34, 8},          // GPUCoreCount (M1)
+    {35, 2048},       // MaxTextureLayers
+    {36, 16},         // MaxPredicatedNesting
+    {37, 1009},       // GPUFamilyClamped = Apple9 (Apple host value)
+    {40, 256},        // MinLinearTextureAlign
+    {41, 7},          // TextureWriteRounding modes
+};
+
+static VMDevInfoPair gDevInfoExtras[64];
+static size_t gDevInfoExtraCount;
+static BOOL gDevInfoCapsEnabled;
+static void (*gOriginalGetDeviceInfo)(id, SEL, uint32_t, uint32_t, uint32_t);
+
+static void ParseDevInfoExtra(const char *text) {
+    // "key=value;key=value" — decimal or 0x-prefixed; matching keys replace
+    // the built-in value, new keys append (e.g. "10=8" raises the guest's
+    // view of the serializer version, which ships at 0 from Ventura).
+    if (text == NULL)
+        return;
+    char *copy = strdup(text);
+    if (copy == NULL)
+        return;
+    for (char *token = strtok(copy, ",; \t"); token != NULL;
+         token = strtok(NULL, ",; \t")) {
+        char *eq = strchr(token, '=');
+        if (eq == NULL)
+            continue;
+        *eq = '\0';
+        uint32_t key = (uint32_t)strtoul(token, NULL, 0);
+        uint32_t value = (uint32_t)strtoul(eq + 1, NULL, 0);
+        if (key == 0)
+            continue;
+        BOOL replaced = NO;
+        for (size_t i = 0; i < gDevInfoExtraCount; ++i) {
+            if (gDevInfoExtras[i].key == key) {
+                gDevInfoExtras[i].value = value;
+                replaced = YES;
+                break;
+            }
+        }
+        if (!replaced && gDevInfoExtraCount <
+                sizeof(gDevInfoExtras) / sizeof(gDevInfoExtras[0]))
+            gDevInfoExtras[gDevInfoExtraCount++] =
+                (VMDevInfoPair){key, value};
+    }
+    free(copy);
+}
+
+static void TraceGetDeviceInfo(id self, SEL selector, uint32_t keyLimit,
+                               uint32_t count, uint32_t replyFrame) {
+    gOriginalGetDeviceInfo(self, selector, keyLimit, count, replyFrame);
+    if (!gDevInfoCapsEnabled || keyLimit == 0)
+        return;
+    uint8_t *page = vmmhook_host_address_for_ipa(
+        (uint64_t)replyFrame << 14, 0x4000);
+    if (page == NULL) {
+        Trace(@"DEVICEINFO\tno-host-map\tpfn=0x%x", replyFrame);
+        return;
+    }
+    // The reply starts at the same offset inside the guest page that the
+    // original handler used: dst = mappedVA + *(device + 0x1F0).
+    uint64_t replyOffset = *(const uint64_t *)((const char *)self + 0x1F0);
+    if (replyOffset >= 0x4000) {
+        Trace(@"DEVICEINFO\tbad-offset=0x%llx\tpfn=0x%x",
+              (unsigned long long)replyOffset, replyFrame);
+        return;
+    }
+    uint32_t *pairs = (uint32_t *)(page + replyOffset);
+    uint32_t capacity = (uint32_t)((0x4000 - replyOffset) / 8);
+    // The guest's walker stops at `count` pairs or a zero pair. Existing pairs
+    // can never exceed what the page holds, but a count larger than capacity
+    // means the last physical slot must remain a terminator or the walk reads
+    // past the page — reserve it rather than spending it on an answer.
+    uint32_t limit = MIN(count, capacity);
+    uint32_t usable = count > capacity ? capacity - 1 : limit;
+    uint32_t n = 0;
+    while (n < limit && (pairs[2 * n] != 0 || pairs[2 * n + 1] != 0))
+        ++n;
+    uint32_t applied = 0, dropped = 0;
+    for (size_t i = 0; i < gDevInfoExtraCount; ++i) {
+        uint32_t key = gDevInfoExtras[i].key;
+        uint32_t value = gDevInfoExtras[i].value;
+        if (key >= keyLimit) {
+            ++dropped;
+            continue;
+        }
+        BOOL found = NO;
+        for (uint32_t j = 0; j < n; ++j) {
+            if (pairs[2 * j] == key) {
+                pairs[2 * j + 1] = value;
+                found = YES;
+                break;
+            }
+        }
+        if (!found) {
+            if (n >= usable) {
+                ++dropped;
+                continue;
+            }
+            pairs[2 * n] = key;
+            pairs[2 * n + 1] = value;
+            ++n;
+        }
+        ++applied;
+    }
+    // The walk stops at a zero pair or the pair count, whichever comes first.
+    // If the page is full yet the guest will read further, the last slot is
+    // spent on the terminator rather than left holding a stale pair.
+    if (n < limit) {
+        pairs[2 * n] = 0;
+        pairs[2 * n + 1] = 0;
+    } else if (count > capacity) {
+        pairs[2 * (capacity - 1)] = 0;
+        pairs[2 * (capacity - 1) + 1] = 0;
+    }
+    Trace(@"DEVICEINFO\tkeyLimit=%u\tcount=%u\tpfn=0x%x\toff=0x%llx"
+          "\tpairs=%u\tapplied=%u\tdropped=%u",
+          keyLimit, count, replyFrame,
+          (unsigned long long)replyOffset, n, applied, dropped);
+    static BOOL loggedOnce;
+    if (!loggedOnce) {
+        loggedOnce = YES;
+        dprintf(STDERR_FILENO,
+                "VirtualMac PVG: deviceinfo caps augmented "
+                "keyLimit=%u count=%u existingApplied=%u dropped=%u\n",
+                keyLimit, count, applied, dropped);
+    }
+}
+
 static NSInteger HostIPadOSMajorVersion(void) {
     static NSInteger majorVersion;
     static dispatch_once_t onceToken;
@@ -83,8 +257,6 @@ static NSString *HostMetalLibraryResourceName(void) {
         return @"default.ipados15";
     return @"default";
 }
-
-static void Trace(NSString *format, ...) NS_FORMAT_FUNCTION(1, 2);
 
 typedef void *(^PVGCreateTaskBlock)(uint64_t length, void **baseAddress);
 typedef void (^PVGDestroyTaskBlock)(void *task);
@@ -1600,6 +1772,36 @@ static void InstallPVGTrace(void) {
         // authenticated Objective-C method hooks are diagnostics only; saved
         // Ventura arm64e IMPs cannot safely round-trip through older runtimes.
         BOOL canInstallAuthenticatedMethods = !HostPredatesIPadOS16();
+
+        // DeviceInfo reply augmentation is functional, not diagnostic: the
+        // guest Metal plugin builds its capability table from this reply once
+        // at boot, so the hook must run on every boot unless disabled.
+        const char *capsFlag = getenv("PVG_DEVICEINFO_CAPS");
+        gDevInfoCapsEnabled = canInstallAuthenticatedMethods &&
+            (capsFlag == NULL || strcmp(capsFlag, "0") != 0);
+        if (gDevInfoCapsEnabled) {
+            SEL getDeviceInfoSelector =
+                NSSelectorFromString(@"getDeviceInfo:length:dst:");
+            memcpy(gDevInfoExtras, gDevInfoDefaults,
+                   sizeof(gDevInfoDefaults));
+            gDevInfoExtraCount =
+                sizeof(gDevInfoDefaults) / sizeof(gDevInfoDefaults[0]);
+            ParseDevInfoExtra(getenv("PVG_DEVICEINFO_EXTRA"));
+            Method getDeviceInfoMethod = class_getInstanceMethod(
+                cls, getDeviceInfoSelector);
+            if (getDeviceInfoMethod != NULL) {
+                gOriginalGetDeviceInfo =
+                    (void (*)(id, SEL, uint32_t, uint32_t, uint32_t))
+                        method_setImplementation(
+                            getDeviceInfoMethod, (IMP)TraceGetDeviceInfo);
+                Trace(@"HOOK\tgetDeviceInfo:length:dst:\tinstalled"
+                      "\tpairs=%u", (unsigned)gDevInfoExtraCount);
+            } else {
+                gDevInfoCapsEnabled = NO;
+                Trace(@"HOOK\tgetDeviceInfo:length:dst:\tmissing");
+            }
+        }
+
         if (gDebugLogging && canInstallAuthenticatedMethods) {
             Method createTaskMethod = class_getInstanceMethod(
                 cls, createTaskSelector);

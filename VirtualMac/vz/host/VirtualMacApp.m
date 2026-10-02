@@ -5215,6 +5215,23 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
         [options[VZMetalBCSupportEnabledKey] boolValue];
     setenv("VZ_METAL_BC_SUPPORT", metalBCSupport ? "1" : "0", 1);
 
+    // PVG device-info capability augmentation (VMM-side swizzle on
+    // -[_PGDevice getDeviceInfo:length:dst:]). On by default; both switches
+    // forward to the VMM process so a bad table can be backed out with
+    //   defaults write <bundle> PVGDeviceInfoCaps -bool NO
+    // and extra pairs can be added/overridden without a rebuild via
+    //   defaults write <bundle> PVGDeviceInfoExtra "10=8;33=4095"
+    NSUserDefaults *deviceInfoDefaults = [NSUserDefaults standardUserDefaults];
+    id capsOverride = [deviceInfoDefaults objectForKey:@"PVGDeviceInfoCaps"];
+    BOOL capsEnabled = capsOverride == nil || [capsOverride boolValue];
+    setenv("PVG_DEVICEINFO_CAPS", capsEnabled ? "1" : "0", 1);
+    NSString *capsExtra =
+        [deviceInfoDefaults stringForKey:@"PVGDeviceInfoExtra"];
+    if (capsExtra.length)
+        setenv("PVG_DEVICEINFO_EXTRA", capsExtra.UTF8String, 1);
+    else
+        unsetenv("PVG_DEVICEINFO_EXTRA");
+
     setStatus(VZL(@"Loading extracted Apple virtualization frameworks…"));
     BOOL guestToolsEnabled =
         [options[VZVirtualMacGuestToolsEnabledKey] boolValue];

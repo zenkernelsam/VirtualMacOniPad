@@ -40,7 +40,13 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 - `AppleEmbeddedUSBArbitrator::registerPhy @ 0xfffffe0008f2d6ec` 会读取 `publish-criteria`，维护 `gAppleARMUSBCableTypeDetached`，注册 USB cable change interrupt，并向 `IOPMrootDomain` 注册 power-state interest。USB 枚举与电源/系统电源通知在同一 arbitration 对象内协调。
 - `getCableType @ 0xfffffe0008f2f8a0` 从 `AppleARMUSBCableType` 资源读取当前 cable type；`handleUSBCableTypeChange @ 0xfffffe0008f2f934` 在 cable type 变化时调用内部策略并更新状态。`enableUSBIsolationCells @ 0xfffffe0008f3049c` 当前只返回错误码，不能被当作可用的隔离开关。
 
-这组证据把 USB 方向进一步收窄为“保留 AppleEmbeddedUSBArbitrator 的 ownership、电源和 cable 状态，另建用户态数据传输桥”。它还没有证明任意实体 USB descriptor/transfer 已可从 iPadOS 用户态安全获取，因此不进入实现或设备写操作。
+这组证据把 USB 方向进一步收窄为“保留 AppleEmbeddedUSBArbitrator 的 ownership、电源和 cable 状态，另建用户态数据传输桥”。
+
+### Instance1 深入反编译结论（2026-10-03）
+
+证据保存在 `.diag/ida-13337-usb-deep-20261003/`。`AppleCS46L21Dock9Pin::_handleUSBHostPortAddedGated @ 0xfffffe0008ef1af0` 只向 `AppleUSBHostPort` 注册 `gIOGeneralInterest` 通知；`setUsbDeviceStack @ 0xfffffe0008ef3698` 根据 `IOAccessoryManager::getUSBConnectType` 与 `kBehaviorUSBCharger` 分别设置 GPIO7（CDP）和 GPIO4（USBDevMode），说明充电/数据角色由 dock/accessory manager 分离。`AppleUSBHostPort::handleOpen @ 0xfffffe000a3b8718` 只接受自身或 `IOUSBHostDevice`，没有用户态 host takeover。源码 `VirtualMac/vz/patches/patch_vmm_optional_devices.py` 明确记录 iPadOS 缺 `AppleUSBUserHCI`/`AppleUSBUserHCIResources`，`IOUSBHostControllerInterface` 创建返回 nil。
+
+因此“原生 VZ host-controller 绑定”当前静态证据倾向不可行；它还没有证明任意实体 USB descriptor/transfer 已可从 iPadOS 用户态安全获取，不进入物理设备写操作。后续只研究现有 fake HCI 后的低延迟批量/共享内存桥，充电、电流、温度和 Type-C role 留在 iPad。
 
 ### 研究顺序
 
@@ -67,7 +73,9 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 ### Instance1 首轮字符串证据（2026-10-03）
 
-13337 kernel 搜索结果保存在 `.diag/ida-13337-nested-evidence-20261003/find-regex.json`：内核包含 `pmap_set_nested_internal`、`pmap_flush_tlb_stage2_internal`、`attempt to activate stage 2 pmap`、`pmap_nest()` 以及 `com.apple.private.hypervisor`/`IKOT_HYPERVISOR` 字符串。这证明 XNU 内部存在 nested pmap/stage-2 处理和受保护的 hypervisor 对象；它没有证明普通 guest 能获得 EL2、stage-2 配置或 Hypervisor.framework 的 nested API。当前结论仍保持为“静态可行性待定，禁止运行嵌套 VM”。
+13337 kernel 搜索结果保存在 `.diag/ida-13337-nested-evidence-20261003/find-regex.json`，深入报告在 `.diag/ida-13337-nested-deep-20261003/REPORT.md`。`VM-create @ 0x80b0450` 检查 `IOTaskHasEntitlement(..., "com.apple.private.hypervisor")`，无授权上限为 0，有授权上限为 3，并把唯一 HV state 绑定到 `current_task`；`vCPU-create @ 0x80b2010` 读取 `ICH_VTR_EL2`、`ACTLR_EL12` 建立 EL2→guest EL1 上下文，但没有 `HCR_EL2/VTTBR_EL2/VNCR_EL2` 的第二层管理。精确搜索 FEAT_NV、HCR_EL2、VTTBR_EL2、VNCR_EL2、nested virtualization 均为 0 命中。`pmap_set_nested_internal`/stage2 字符串只是 pmap 子区域诊断，不能当作 nested hypervisor 证据。
+
+结论收窄为“当前原生硬件 nested 证据倾向不可行”。项目 `hypervisor14_compat.c`/`vmmhook.m` 也只有单层 hv_vm/hv_vcpu 转发；iPadOS14 的 HCR_EL2 TIDCP/TSC 修补是 guest EL1 兼容，不是第二层虚拟化。后续只做 guest 只读 `kern.hv_vmm_present`、Hypervisor API 返回码和 CPU ID 查询；不启动第二 VM、不改 vCPU 寄存器。软件/半虚拟化 container service 可以另行研究，但不能宣称 nested VM。
 
 ### 预期结论形式
 
@@ -100,6 +108,10 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 ### 最小改进方案
 
 先把 HUD 键盘按钮从“无实体键盘才显示”的条件中分离出来：实体键盘存在时，按钮仍可打开一个不依赖系统 input accessory 的 function-row 面板；面板复用现有 `sendSoftwareKey`/`_VZKeyEvent`，不抢普通文本输入焦点。再审计横向滚动可达性、焦点/按住语义和 guest 端 key event 日志；保持现有 HID 映射不变。可选布局是把 ESC、F-row、Delete、Home/End 分成可展开的 function row。组合键（例如 Globe/Command+数字）只能作为可选快捷方式，不能替代可视按钮。
+
+### 已实现的第一版 UI（待设备验收）
+
+当前源码已加入独立 `VZFunctionRowView`：默认隐藏；固定在底部安全区上方 16pt；宽度约安全区 82%、最大 760pt、最小 280pt；深色半透明背景、细边框、横向滚动，包含 ESC 与 F1–F12。硬件键盘存在时 HUD 键盘按钮保持可见，点击只展开/收起该面板，不弹出系统软件键盘；VM/HUD 隐藏或键盘断开时自动收起。arm64 iPad App 语法编译通过（仅有既有 `UIWindow.screen` deprecated warning）。尚未打包、安装或在 iPad 实景验收。
 
 验收需逐键保存 host key log 与 guest 可见结果，覆盖按下/释放、修饰键组合、横向滚动和实体键盘并存；不因 UI 便利性修改 USB 或虚拟键盘协议。
 

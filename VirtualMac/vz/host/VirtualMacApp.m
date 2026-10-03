@@ -44,6 +44,8 @@ typedef struct {
     uint64_t user_data;
 } VZMemorystatusPriorityProperties;
 
+@class VZFunctionRowView;
+
 static BOOL gVMJetsamProtectionActive;
 
 static void setVMJetsamProtection(BOOL active)
@@ -94,6 +96,7 @@ static CALayer *gDisplayLayer;
 static UIImageView *gCursorView;
 static UILabel *gStatusLabel;
 static UIView *gHUDView;
+static VZFunctionRowView *gFunctionRowView;
 static UIPanGestureRecognizer *gTouchScrollRecognizer;
 static UIPinchGestureRecognizer *gPinchRecognizer;
 static UIRotationGestureRecognizer *gRotationRecognizer;
@@ -189,6 +192,7 @@ static void (*gHostVMStarted)(void);
 static SEL S(const char *name);
 static void setObj(id object, const char *selector, id value);
 static void sendKey(UIKeyboardHIDUsage usage, BOOL pressed);
+static void sendSoftwareKey(UIKeyboardHIDUsage usage, BOOL shifted);
 static void sendPointer(CGPoint point, CGRect bounds, NSUInteger pressedButtons);
 static void updateExternalCursorForNormalizedLocation(CGPoint location);
 static void notePointerInputSource(BOOL directTouch);
@@ -1866,8 +1870,6 @@ static bool pencilVsockSend(uint8_t type, float pressure,
 
 @end
 
-static void sendSoftwareKey(UIKeyboardHIDUsage usage, BOOL shifted);
-
 @interface VZInputView : UIView <UIPointerInteractionDelegate, UIKeyInput> {
     UIInputView *_vzAccessoryView;
     UIStackView *_vzAccessoryStack;
@@ -1891,6 +1893,113 @@ static void sendSoftwareKey(UIKeyboardHIDUsage usage, BOOL shifted);
     BOOL _vzPencilHoverActive;
     BOOL _vzSuppressIndirectPointerClick;
 }
+@end
+
+@interface VZFunctionRowView : UIView
+@property(nonatomic, assign, getter=isExpanded) BOOL expanded;
+- (void)setExpanded:(BOOL)expanded animated:(BOOL)animated;
+@end
+
+@implementation VZFunctionRowView
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    if ((self = [super initWithFrame:frame])) {
+        self.translatesAutoresizingMaskIntoConstraints = NO;
+        self.backgroundColor = [UIColor colorWithWhite:0.06 alpha:0.88];
+        self.layer.cornerRadius = 12.0;
+        self.layer.cornerCurve = kCACornerCurveContinuous;
+        self.layer.borderWidth = 0.5;
+        self.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.18].CGColor;
+        self.clipsToBounds = YES;
+        self.accessibilityLabel = VZL(@"Virtual Mac Function Keys");
+
+        UIScrollView *scroll = [[[UIScrollView alloc] initWithFrame:CGRectZero]
+            autorelease];
+        scroll.translatesAutoresizingMaskIntoConstraints = NO;
+        scroll.alwaysBounceHorizontal = YES;
+        scroll.showsHorizontalScrollIndicator = NO;
+        scroll.directionalLockEnabled = YES;
+        scroll.contentInset = UIEdgeInsetsMake(5, 7, 5, 7);
+        UIStackView *stack = [[[UIStackView alloc] initWithFrame:CGRectZero]
+            autorelease];
+        stack.translatesAutoresizingMaskIntoConstraints = NO;
+        stack.axis = UILayoutConstraintAxisHorizontal;
+        stack.spacing = 5;
+
+        NSArray *keys = @[
+            @[@"esc", @0x29], @[@"F1", @0x3a], @[@"F2", @0x3b],
+            @[@"F3", @0x3c], @[@"F4", @0x3d], @[@"F5", @0x3e],
+            @[@"F6", @0x3f], @[@"F7", @0x40], @[@"F8", @0x41],
+            @[@"F9", @0x42], @[@"F10", @0x43], @[@"F11", @0x44],
+            @[@"F12", @0x45],
+        ];
+        for (NSArray *key in keys) {
+            UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+            [button setTitle:key[0] forState:UIControlStateNormal];
+            [button setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+            button.titleLabel.font = [UIFont systemFontOfSize:15
+                weight:UIFontWeightSemibold];
+            button.tag = [key[1] integerValue];
+            button.accessibilityLabel = key[0];
+            button.accessibilityTraits = UIAccessibilityTraitButton;
+            button.layer.cornerRadius = 8.0;
+            button.layer.cornerCurve = kCACornerCurveContinuous;
+            button.layer.borderWidth = 0.5;
+            button.layer.borderColor = [UIColor colorWithWhite:1.0
+                alpha:0.22].CGColor;
+            button.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.13];
+            [button addTarget:self action:@selector(functionKeyPressed:)
+                forControlEvents:UIControlEventTouchUpInside];
+            CGFloat width = [key[0] length] > 2 ? 54.0 : 48.0;
+            [button.widthAnchor constraintEqualToConstant:width].active = YES;
+            [button.heightAnchor constraintEqualToConstant:42.0].active = YES;
+            [stack addArrangedSubview:button];
+        }
+        [scroll addSubview:stack];
+        [self addSubview:scroll];
+        [NSLayoutConstraint activateConstraints:@[
+            [scroll.leadingAnchor constraintEqualToAnchor:self.leadingAnchor],
+            [scroll.trailingAnchor constraintEqualToAnchor:self.trailingAnchor],
+            [scroll.topAnchor constraintEqualToAnchor:self.topAnchor],
+            [scroll.bottomAnchor constraintEqualToAnchor:self.bottomAnchor],
+            [stack.leadingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.leadingAnchor],
+            [stack.trailingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.trailingAnchor],
+            [stack.topAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.topAnchor],
+            [stack.bottomAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor],
+            [stack.heightAnchor constraintEqualToConstant:42.0],
+        ]];
+        self.expanded = NO;
+        self.hidden = YES;
+    }
+    return self;
+}
+
+- (void)functionKeyPressed:(UIButton *)sender
+{
+    sendSoftwareKey((UIKeyboardHIDUsage)sender.tag, NO);
+}
+
+- (void)setExpanded:(BOOL)expanded animated:(BOOL)animated
+{
+    _expanded = expanded;
+    void (^changes)(void) = ^{
+        self.alpha = expanded ? 1.0 : 0.0;
+    };
+    if (expanded)
+        self.hidden = NO;
+    if (animated) {
+        [UIView animateWithDuration:0.16 animations:changes completion:^(BOOL finished) {
+            if (finished && !expanded)
+                self.hidden = YES;
+        }];
+    } else {
+        changes();
+        if (!expanded)
+            self.hidden = YES;
+    }
+}
+
 @end
 
 @implementation VZInputView
@@ -3044,11 +3153,11 @@ static bool pencilVsockSend(uint8_t type, float pressure,
 - (void)refreshMenu
 {
     UIButton *keyboard = (UIButton *)[self viewWithTag:1703];
-    keyboard.hidden = GCKeyboard.coalescedKeyboard != nil;
-    // With the keyboard action removed, the remaining 46-point More button
-    // and four-point insets make a 54-point square. Match its radius so the
-    // compact hardware-keyboard control is circular rather than pill-shaped.
-    self.layer.cornerRadius = keyboard.hidden ? 27.0 : 18.0;
+    // Keep this affordance visible with Apple's hardware keyboard: it opens
+    // the compact ESC/F-row overlay because the system input accessory is
+    // intentionally unavailable while GCKeyboard owns the key stream.
+    keyboard.hidden = NO;
+    self.layer.cornerRadius = 18.0;
     UIButton *button = (UIButton *)[self viewWithTag:1702];
     if (!button || !self.menuTarget)
         return;
@@ -3185,6 +3294,8 @@ static bool pencilVsockSend(uint8_t type, float pressure,
     } else if (!gSoftwareKeyboardRequested) {
         [gInputView resignFirstResponder];
     }
+    if (!GCKeyboard.coalescedKeyboard && gFunctionRowView.isExpanded)
+        [gFunctionRowView setExpanded:NO animated:YES];
     [self updateHUDVisibility];
     [(VZHUDView *)gHUDView refreshMenu];
 }
@@ -3272,11 +3383,20 @@ static bool pencilVsockSend(uint8_t type, float pressure,
         stringForKey:VZHUDOpacityKey] doubleValue];
     [(VZHUDView *)gHUDView setContentOpacity:opacity];
     gHUDView.hidden = hidden;
+    if (hidden && gFunctionRowView.isExpanded)
+        [gFunctionRowView setExpanded:NO animated:NO];
 }
 
 - (void)hudKeyboard:(UIButton *)sender
 {
     (void)sender;
+    if (GCKeyboard.coalescedKeyboard) {
+        // Keep the hardware keyboard first responder and expose only the
+        // missing control row. This avoids bringing up the large iPad
+        // software keyboard over the guest display.
+        [gFunctionRowView setExpanded:!gFunctionRowView.isExpanded animated:YES];
+        return;
+    }
     if (gSoftwareKeyboardRequested && gInputView.isFirstResponder) {
         gSoftwareKeyboardRequested = NO;
         [gInputView resignFirstResponder];
@@ -5770,9 +5890,25 @@ static void disconnectExternalDisplay(void) {
     gHUDView = hud;
     hud.hidden = YES;
     [controller.view addSubview:hud];
+    VZFunctionRowView *functionRow =
+        [[[VZFunctionRowView alloc] initWithFrame:CGRectZero] autorelease];
+    gFunctionRowView = functionRow;
+    UILayoutGuide *safeArea = controller.view.safeAreaLayoutGuide;
+    [controller.view addSubview:functionRow];
+    [NSLayoutConstraint activateConstraints:@[
+        [functionRow.centerXAnchor constraintEqualToAnchor:safeArea.centerXAnchor],
+        [functionRow.bottomAnchor constraintEqualToAnchor:safeArea.bottomAnchor
+            constant:-16.0],
+        [functionRow.widthAnchor constraintEqualToAnchor:safeArea.widthAnchor
+            multiplier:0.82],
+        [functionRow.widthAnchor constraintLessThanOrEqualToConstant:760.0],
+        [functionRow.widthAnchor constraintGreaterThanOrEqualToConstant:280.0],
+        [functionRow.heightAnchor constraintEqualToConstant:54.0],
+    ]];
     [controller updateHUDPosition];
     if (gStatusLabel)
         [controller.view bringSubviewToFront:gStatusLabel];
+    [controller.view bringSubviewToFront:functionRow];
 
     [self.window makeKeyAndVisible];
     VZContinueAfterRootHideInformation(controller, nil);

@@ -31,6 +31,17 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 - VMM entitlement 含 `com.apple.usb.hostcontrollerinterface`，但 iPadOS 对应 user-client、端口 ownership 和沙箱/AMFI 可达性仍未证实。
 - Instance1（13337）内核字符串已见 `AppleEmbeddedUSBHost`、`AppleSynopsysUSB40XHCI`、`IOUSBHostFamily`、`AppleUSBHostPort`、`AppleTypeCPhy`、Thunderbolt USB 上下行适配器，以及 `ChargingCurrent`、`Requested Charging Capability`、`AppleUSBCableType`、`IsCharging` 等电源面符号。这支持“数据传输与充电控制可分层研究”，不是复用 host controller 的许可。
 
+### Instance1 首轮反编译证据（2026-10-03）
+
+证据原文保存在 `.diag/ida-13337-usb-evidence-20261003/results.json`，IDB health 为 `kc_raw_16.3_T8112.bin`、Hex-Rays ready。关键结果：
+
+- `AppleUSBPhy::start @ 0xfffffe0008f2a240` 初始化多个 client array，读取 `phy-id`，按该值匹配 `AppleEmbeddedUSBArbitrator`，随后调用其注册入口；找不到 arbitrator 时记录 `unable to locate AppleEmbeddedUSBArbitrator service` 并失败返回。这是明确的 PHY ownership/arbitration 层。
+- `AppleUSBPhy::enableHostMode(bool) @ 0xfffffe0008f2c354` 反编译为 4 字节空函数。当前 kernel 没有可直接调用的 host-mode 实现可供用户态桥复用；不能据此假设 guest 能接管 XHCI。
+- `AppleEmbeddedUSBArbitrator::registerPhy @ 0xfffffe0008f2d6ec` 会读取 `publish-criteria`，维护 `gAppleARMUSBCableTypeDetached`，注册 USB cable change interrupt，并向 `IOPMrootDomain` 注册 power-state interest。USB 枚举与电源/系统电源通知在同一 arbitration 对象内协调。
+- `getCableType @ 0xfffffe0008f2f8a0` 从 `AppleARMUSBCableType` 资源读取当前 cable type；`handleUSBCableTypeChange @ 0xfffffe0008f2f934` 在 cable type 变化时调用内部策略并更新状态。`enableUSBIsolationCells @ 0xfffffe0008f3049c` 当前只返回错误码，不能被当作可用的隔离开关。
+
+这组证据把 USB 方向进一步收窄为“保留 AppleEmbeddedUSBArbitrator 的 ownership、电源和 cable 状态，另建用户态数据传输桥”。它还没有证明任意实体 USB descriptor/transfer 已可从 iPadOS 用户态安全获取，因此不进入实现或设备写操作。
+
 ### 研究顺序
 
 1. 只读反编译 Instance1 的 `AppleUSBPhy::start/enableHostMode`、`AppleUSBHostPort` ownership 路径、`AppleCS46L21Dock` host-port added 路径和 `AppleARMFunctionChargerMux::setUSBInputCurrentLimit`，记录 host/device mode、power role、current limit 的调用关系。

@@ -385,3 +385,4 @@
 - [x] 文档保留 GPU 闸门：新启动必须独立保存 readiness/repair、wakeups、GPU recovery、Godot 与应用像素证据；卡死不能归因 macPad、88 或 GPU；MATLAB CEF A/B、Qoder 提示来源和长期性能仍待证。
 - [x] 记录 USB 研究边界：当前运行期无 USB 设备，只有 Restore 桥；Instance1 内核已见 AppleEmbeddedUSBHost/AppleSynopsysUSB40XHCI/Type-C 与 ChargingCurrent 等数据面、电源面符号。下一步只读反编译 ownership/power-role，并坚持 guest 数据面与 iPad 充电面分离。
 - [x] 记录 Nested Virtualization、音频热量 A/B、键盘 function-row 四条路线；本轮未改代码、未安装包、未重启 iPad、未操作运行中 VMM。
+- [x] Instance1（13337）首轮 USB 反编译：`AppleUSBPhy::start @ 0xfffffe0008f2a240` 通过 `phy-id` 匹配并注册 `AppleEmbeddedUSBArbitrator`；`AppleUSBPhy::enableHostMode(bool) @ 0xfffffe0008f2c354` 仅为 4 字节空函数；arbitrator 的 `registerPhy/getCableType/handleUSBCableTypeChange` 明确同时维护 cable type、power-state 和 system power interest。证据 `.diag/ida-13337-usb-evidence-20261003/results.json`；结论是保留 iPad ownership/充电面、另建用户态数据桥，未做任何写操作。

@@ -95,11 +95,11 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 `VirtualMacApp.m` 的 `macVirtualKeyCode` 已映射 HID `0x29` 为 Escape、`0x3a–0x45` 为 F1–F12，事件通过 `_VZKeyEvent initWithType:keyCode:` 发送。触控输入 accessory 也已经列出 `esc`、导航键、`F1`–`F12`，使用横向可滚动 `UIStackView`。
 
-因此当前缺口更可能是可发现性、布局和长按/组合键体验，而不是底层 keycode 缺失。
+但当前实现有一个已定位的可达性缺口：`VZHUDView.refreshMenu` 在 `GCKeyboard.coalescedKeyboard != nil` 时隐藏键盘按钮；`VZInputView.inputAccessoryView` 在同一条件下返回 `nil`。也就是说，官方键盘接入时，恰好最需要的 ESC/F-row accessory 不可见，底层 keycode 映射虽然存在，用户仍无法触达。
 
 ### 最小改进方案
 
-先审计 accessory 的显示入口、横向滚动可达性、焦点/按住语义和 guest 端 key event 日志；保持现有 `_VZKeyEvent` 和 HID 映射不变。可选 UI 改进是把 ESC、F-row、Delete、Home/End 分成可展开的 function row，并为修饰键提供明确的按住/释放状态。组合键（例如 Globe/Command+数字）只能作为可选快捷方式，不能替代可视按钮。
+先把 HUD 键盘按钮从“无实体键盘才显示”的条件中分离出来：实体键盘存在时，按钮仍可打开一个不依赖系统 input accessory 的 function-row 面板；面板复用现有 `sendSoftwareKey`/`_VZKeyEvent`，不抢普通文本输入焦点。再审计横向滚动可达性、焦点/按住语义和 guest 端 key event 日志；保持现有 HID 映射不变。可选布局是把 ESC、F-row、Delete、Home/End 分成可展开的 function row。组合键（例如 Globe/Command+数字）只能作为可选快捷方式，不能替代可视按钮。
 
 验收需逐键保存 host key log 与 guest 可见结果，覆盖按下/释放、修饰键组合、横向滚动和实体键盘并存；不因 UI 便利性修改 USB 或虚拟键盘协议。
 

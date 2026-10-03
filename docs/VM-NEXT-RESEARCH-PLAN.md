@@ -65,6 +65,10 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 2. 在 Instance1 内核中搜索 nested/EL2/virtualization capability 及 vCPU trap policy；只保存反编译和字符串证据。
 3. 从当前 guest 的只读 CPU/Hypervisor 可见性查询判断是否暴露虚拟化特性；不运行嵌套 VM、不改 vCPU 寄存器、不改变 trap 配置。
 
+### Instance1 首轮字符串证据（2026-10-03）
+
+13337 kernel 搜索结果保存在 `.diag/ida-13337-nested-evidence-20261003/find-regex.json`：内核包含 `pmap_set_nested_internal`、`pmap_flush_tlb_stage2_internal`、`attempt to activate stage 2 pmap`、`pmap_nest()` 以及 `com.apple.private.hypervisor`/`IKOT_HYPERVISOR` 字符串。这证明 XNU 内部存在 nested pmap/stage-2 处理和受保护的 hypervisor 对象；它没有证明普通 guest 能获得 EL2、stage-2 配置或 Hypervisor.framework 的 nested API。当前结论仍保持为“静态可行性待定，禁止运行嵌套 VM”。
+
 ### 预期结论形式
 
 若只有单层 host Hypervisor API，结论应写成“可研究容器/用户态模拟器，未证明硬件 nested virtualization”；只有找到明确二级 stage-2/EL2 支持和安全 guest exposure，才进入 Linux KVM/Hypervisor 实测设计。

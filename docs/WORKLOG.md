@@ -403,3 +403,10 @@
 - [x] 92 包：`VirtualMac/build/release/VirtualMac_1.2.3_e64137d9d7.deb`；Debian version=`2:1.2.3+92.e64137d.full`；20,871,280 bytes；SHA256=`f4072fea77921c8791b47f46ad631af9996870e6ecc3fe966107cbf3ed435d04`。飞牛副本同名、同大小、同 SHA256：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_e64137d9d7.deb`。
 - [x] 解包核验：App 包含 `VZFunctionRowView`/`setExpanded:animated:` 和 GuestTools `guest menu extra acknowledged token` 字符串；`ldid -h` 可读、App arm64；默认包清理仍只保留最新 3 个。未安装、未重启、未操作运行中 VMM，GPU/键盘实机首启待验收。
 - [x] Qoder CN 当前运行实例补充取证（不关闭、不重启）：用户正式状态为 `gpu_compositing/rasterization=disabled_software`、`opengl/webgl/webgpu=disabled_off`；当前 GPU helper 参数含 `--use-gl=disabled`，renderer 含 `--disable-gpu-compositing`。`~/.qoder-cn/argv.json` 的永久禁用项仍注释；Qoder 内置资源同时存在 startup/runtime 与 repeated-render-failure 两种文案。证据 `.diag/qoder-gpu-disabled-runtime-20261003/`；列为 Qoder outstanding，待用户任务完成后再做重启恢复 A/B，当前不改 Qoder。
+
+## 2026-10-03 — 92 安装后首启只读验收
+
+- [x] 用户已安装 `VirtualMac_1.2.3_e64137d9d7.deb`；iPad `dpkg-query` 逐字返回 `com.mac.virtual 2:1.2.3+92.e64137d.full install ok installed`。App Info.plist 为 `CFBundleShortVersionString=1.2.3`、`CFBundleVersion=128`。
+- [x] 新启动日志独立核对：`/tmp/VirtualMac.log` 出现一次 `guest menu extra not acknowledged; installing attempt 1`，随后出现 `guest menu extra acknowledged token ...`；本次没有旧 88/86 证据混入。GuestTools readiness 基础握手通过，未见 repair 风暴。
+- [x] 新宿主 stderr 核对：`VirtualMac PVG: deviceinfo profile=host-clamped-v1 pairs=12 serializer=unchanged`；`caps augmented keyLimit=42 count=2048 existingApplied=12 dropped=0`；`metalshim enabled native BC texture formats ... after runtime ABI validation`。本轮没有 recovery/fault 字段，不能把“未见日志”写成 recoveryCount=0。
+- [ ] 92 仍待 Godot 实景、HUD 实体键盘点击、GPU recoveryCount 前后读回及长时稳定性验收；本轮未关闭 VM、未重启 iPad、未注入运行中 VMM。

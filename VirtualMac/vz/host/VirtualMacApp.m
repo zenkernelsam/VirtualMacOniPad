@@ -1912,7 +1912,7 @@ static bool pencilVsockSend(uint8_t type, float pressure,
         self.layer.borderWidth = 0.5;
         self.layer.borderColor = [UIColor colorWithWhite:1.0 alpha:0.18].CGColor;
         self.clipsToBounds = YES;
-        self.accessibilityLabel = VZL(@"Virtual Mac Function Keys");
+        self.accessibilityLabel = VZL(@"Virtual Mac Controls");
 
         UIScrollView *scroll = [[[UIScrollView alloc] initWithFrame:CGRectZero]
             autorelease];

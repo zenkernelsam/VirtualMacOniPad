@@ -61,6 +61,18 @@ VirtualMac 的 `OpenGLPVGCompat.dylib` 只对 `AppleParavirtDevice` 的 GLD prof
 
 随后执行真实 WebGPU workload：创建 `bgra8unorm` texture，执行 clear render pass，提交 command buffer，copy 到 MAP_READ buffer 并读回像素；结果 `ok=true format=bgra8unorm pixel=[77,51,26,255]`。这证明基础 WebGPU resource/render/submit/readback 链路在当前 88 可执行。
 
+### Qoder CN 当前实例软件渲染取证（2026-10-03）
+
+用户提供的正式 Qoder CN IDE 状态为：`2d_canvas=disabled_software`、`gpu_compositing=disabled_software`、`rasterization=disabled_software`，`opengl/webgl/webgpu=disabled_off`，并显示“当前使用软件渲染”。这次证据与此前隔离 CDP profile 的硬件启用结果不同；不能用隔离 profile 代替用户当前实例。
+
+在不关闭 Qoder、不改配置的前提下读取当前进程参数，得到更强的运行时证据（`.diag/qoder-gpu-disabled-runtime-20261003/process-args.txt`）：
+
+- GPU helper（PID 93147）实际带 `--use-gl=disabled`；
+- renderer（PID 93148）实际带 `--disable-gpu-compositing`；
+- 主 Qoder 进程没有显式 `--disable-gpu`，`~/.qoder-cn/argv.json` 的 `disable-hardware-acceleration` 仍是注释。
+
+Qoder 内置英文资源同时包含三种分支文案：“Hardware acceleration was disabled through startup arguments or runtime settings”、“Repeated graphics rendering failures were detected...”以及软件渲染提示。当前进程参数已经证明软件模式确实生效，但仅凭参数还不能区分是 runtime setting 还是 crash guard 触发；需要在用户方便且任务完成后重启 Qoder，才能做恢复 A/B。当前不关闭、不重启、不修改 Qoder 配置，也不把这个实例的状态归因给 VirtualMac GPU；VirtualMac 的作用边界是提供可用的 Metal/ANGLE 后端，是否选择该后端由 Qoder 自身决定。
+
 ### MATLAB 当前启动状态
 
 在临时 HOME/`MATLAB_PREFDIR` 下启动当前 MATLAB R2024a，未修改安装或用户配置。25 秒采样时主 MATLAB 进程仍在，CEF 相关命令行出现 `--use-gl=disabled`；这确认现有应用侧 workaround 正在强制软件 GL。该结果不证明 VirtualMac 的硬件 CEF 路径失败，因为当前实验没有还原未补丁 CEF，也没有 GUI 像素 A/B。

@@ -410,3 +410,4 @@
 - [x] 新启动日志独立核对：`/tmp/VirtualMac.log` 出现一次 `guest menu extra not acknowledged; installing attempt 1`，随后出现 `guest menu extra acknowledged token ...`；本次没有旧 88/86 证据混入。GuestTools readiness 基础握手通过，未见 repair 风暴。
 - [x] 新宿主 stderr 核对：`VirtualMac PVG: deviceinfo profile=host-clamped-v1 pairs=12 serializer=unchanged`；`caps augmented keyLimit=42 count=2048 existingApplied=12 dropped=0`；`metalshim enabled native BC texture formats ... after runtime ABI validation`。本轮没有 recovery/fault 字段，不能把“未见日志”写成 recoveryCount=0。
 - [ ] 92 仍待 Godot 实景、HUD 实体键盘点击、GPU recoveryCount 前后读回及长时稳定性验收；本轮未关闭 VM、未重启 iPad、未注入运行中 VMM。
+- [x] 新增 `VirtualMac/scripts/research/record-ipad-key-events.py` 只读 SSH 捕获工具，并做 3 秒 smoke test；当前 92 会话已超过 `sendKey` 前 12 次日志上限，本轮只得到 pointer 坐标、没有新的 HID/keyCode 行，不能据此判定 F1–F12 失败。完整逐键记录需后续 Debug Logging 版本/启动。

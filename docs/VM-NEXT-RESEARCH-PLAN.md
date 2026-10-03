@@ -124,6 +124,8 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 验收需逐键保存 host key log 与 guest 可见结果，覆盖按下/释放、修饰键组合、横向滚动和实体键盘并存；不因 UI 便利性修改 USB 或虚拟键盘协议。
 
+新增只读捕获工具：`VirtualMac/scripts/research/record-ipad-key-events.py` 通过 SSH 跟踪 `/tmp/VirtualMac.log`，保存 `HID usage → macOS keyCode → pressed/released` 以及 pointer 坐标。它不会写 iPad；但 92 的 `sendKey` 只打印前 12 个 key event，所以超过计数后的“无 key 行”只能判为证据不足。若需完整逐键证据，应在后续包把 key logging 放到 Debug Logging 开关下，再启动 VM 后捕获。
+
 ## 排队顺序
 
 1. GPU：用户允许升级后完成独立首启、卡死取证和 Qoder 文案来源核对；在此之前保持 88。

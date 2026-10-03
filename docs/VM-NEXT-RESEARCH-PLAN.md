@@ -50,12 +50,17 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 补充 IDA 证据（`.diag/ida-13337-usb-deep-20261003/README.md`）：`newUserClient` 只找到 `IOUSBHostInterface`、`IOUSBHostDevice`、`IOUSBMassStorageResource`，没有 `AppleUSBHostController`、`AppleUSBXHCI` 或 `AppleUSBCController` 的通用 user-client。当前没有可安全复用的用户态 XHCI ownership/doorbell API；“原生直通”不能通过再找一个未公开 user-client 解决。
 
+最新补充：`AppleEmbeddedUSBArbitrator::start @ 0xfffffe0008f2ca58` 会解析 `force-usbdevice`、`force-usbhost`、`force-usb3host` 启动参数，但只改变内部 cable-type resource，不建立 XHCI user-client、doorbell 或 transfer ring。这些是诊断/硬件角色参数，不能写入 nvram 或启动配置来“打开直通”；写错还可能改变充电/数据 role。
+
+性能方向：`installation_usb_shim` 的 `usb_bridge_request` 当前每次 control/bulk 都建立、连接并关闭 AF_UNIX socket；VMM fake ring 本身是持久的。未来可在不碰 kernel ownership 的前提下，把 control 保持长连接、bulk 改成每 endpoint 的长生命周期 stream 或共享内存 SPSC ring，并保留有界队列、超时、reset 和拔插回收语义。这是低延迟桥优化，不是原生 controller 直通。
+
 ### 研究顺序
 
 1. 只读反编译 Instance1 的 `AppleUSBPhy::start/enableHostMode`、`AppleUSBHostPort` ownership 路径、`AppleCS46L21Dock` host-port added 路径和 `AppleARMFunctionChargerMux::setUSBInputCurrentLimit`，记录 host/device mode、power role、current limit 的调用关系。
 2. 只读枚举 iPad IORegistry/IOKit Type-C、USB host、充电节点，保存插拔前后 descriptor/registry 差异；不写 power role/current limit，不重启系统服务。
 3. 复核 Instance4（13340）时只把当前 PG IDB 当作 GPU 参考；Virtualization USB 私有类的宿主实现需从 payload/符号证据单独建立，不能把 PG 反编译当 USB 证据。
 4. 若 host 侧可达，优先设计用户态 descriptor/transfer bridge：客机只获得设备数据端点，iPad 保留充电、电流、温度和 Type-C role 管理。先做单一低风险设备类别（例如 HID 或 mass-storage descriptor），再考虑 hub/Thunderbolt。
+5. 在 bridge 原型前先量测每次 AF_UNIX 建连开销和 bulk 吞吐；若确认 IPC 是瓶颈，再做长连接/SPSC ring 的可回滚实验，不改端口 role。
 
 ### 决策闸门
 
@@ -126,3 +131,21 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 5. Keyboard：在不改底层映射的前提下施工可展开 function row，并做逐键回归。
 
 本文件只记录研究方向和闸门；任何新增包必须对应真实新增功能和独立验收证据，不能只换版本号重打包。
+
+## Kernel/rootfs 补丁可行性边界（2026-10-03）
+
+### USB：加载 AppleUSBUserHCI 不等于物理 USB 直通
+
+`AppleUSBUserHCI`/`AppleUSBUserHCIResources` 的作用是为 macOS Virtualization 的 AVP USB 控制器提供 kernel-backed user-HCI、command queue 和 doorbell；它不是 iPad Type-C 物理 XHCI 驱动。即使把它补进 iPadOS，最多先解决 VMM 创建虚拟 USB controller 时的 `IOUSBHostControllerInterface` 缺失，仍要另做实体端口的 descriptor/transfer 转发和 ownership 协调。
+
+当前不能把 macOS kext 直接复制进 macOS 15.6 rootfs 或 iPadOS rootfs 后期待加载：kext 由 kernelcache/KC linker、KPI/IOKit ABI、依赖 kext、personalities、代码签名/trustcache 和 entitlement 共同决定。macOS 15.6 的 AppleUSBUserHCI 与 iPadOS 16.3 的 XNU/IOUSBHostFamily 不是同一 KMI；rootfs 文件存在不代表 kernel 会注册 class。当前仓库甚至没有可直接安装的 AppleUSBUserHCI 二进制，分析脚本引用的是待准备的 macOS KDK 输入（`scripts/research/analyze-usb-restore-transport.sh`）。
+
+理论上可以反向移植 UserHCI 的接口，再给 iPadOS kernel 增加资源 service/user-client；但这已经是 kernel 级实现，需要补齐队列、doorbell、power/termination、KMI 和签名信任，不能由普通 rootless App 安全完成，也不能证明物理 XHCI ownership。它属于独立 kernel port 项目，当前不施工、不写 iPad kernel/rootfs。
+
+### Nested：加载 Hypervisor 库不会创造第二层 EL2
+
+Nested virtualization 需要硬件/firmware 的 nested virtualization 支持、内核 trap/VM state、二级 stage-2 映射和 guest entitlement。IDA 13337 证据显示 iPadOS 16.3 的 Hypervisor trap 表只有单层接口；`hv_vm_create` 受 `com.apple.private.hypervisor` 和 current-task 单 VM 状态限制；vCPU 只建立宿主 EL2→guest EL1 上下文，没有 `HCR_EL2/VTTBR_EL2/VNCR_EL2` 第二层路径，FEAT_NV 精确搜索为 0。
+
+因此把 macOS 15.6 的 Hypervisor.framework、kext 或私有库放入 guest/rootfs，只能改变用户态 API 的存在，不能增加硬件 EL2 或 host kernel 的 trap/second-stage 实现。伪造 capability 或 entitlement 也只会让 guest 进入未实现路径，不能形成可运行的 Linux KVM/Hypervisor；强行改 vCPU 寄存器、内核 trap 或启动参数属于高 panic 风险操作，当前禁止。
+
+可行替代是 guest 内的软件模拟器，或由 host/GuestTools 提供受限的半虚拟化 container service；这可以支持 Linux 用户态工作负载，但必须明确标记为 software/paravirtualized，不能称为 nested virtualization。

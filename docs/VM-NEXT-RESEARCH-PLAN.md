@@ -50,6 +50,8 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 补充 IDA 证据（`.diag/ida-13337-usb-deep-20261003/README.md`）：`newUserClient` 只找到 `IOUSBHostInterface`、`IOUSBHostDevice`、`IOUSBMassStorageResource`，没有 `AppleUSBHostController`、`AppleUSBXHCI` 或 `AppleUSBCController` 的通用 user-client。当前没有可安全复用的用户态 XHCI ownership/doorbell API；“原生直通”不能通过再找一个未公开 user-client 解决。
 
+细化设备级入口：`IOUSBHostDevice::newUserClient @ 0xfffffe000a3e772c` 只为**已被内核枚举**的 `IOUSBHostDevice` 建立 `AppleUSBHostFrameworkDeviceClient`（type 0）或 `AppleUSBHostDeviceUserClient`（type 1–2）。`AppleUSBHostDeviceUserClient::start @ 0xfffffe000a3852b4` 会把 provider safe-cast 为 `IOUSBHostDevice`；其接口用于 configuration/interface iterator/reset/suspend/power 等设备级操作，不含 controller ownership、XHCI ring 或 DMA doorbell。故现存 IOUSB user-client 可作为“内核已枚举设备的代理控制”研究入口，但不能代替物理控制器直通，也不能抢在内核枚举前接管端口。
+
 最新补充：`AppleEmbeddedUSBArbitrator::start @ 0xfffffe0008f2ca58` 会解析 `force-usbdevice`、`force-usbhost`、`force-usb3host` 启动参数，但只改变内部 cable-type resource，不建立 XHCI user-client、doorbell 或 transfer ring。这些是诊断/硬件角色参数，不能写入 nvram 或启动配置来“打开直通”；写错还可能改变充电/数据 role。
 
 性能方向：`installation_usb_shim` 的 `usb_bridge_request` 当前每次 control/bulk 都建立、连接并关闭 AF_UNIX socket；VMM fake ring 本身是持久的。未来可在不碰 kernel ownership 的前提下，把 control 保持长连接、bulk 改成每 endpoint 的长生命周期 stream 或共享内存 SPSC ring，并保留有界队列、超时、reset 和拔插回收语义。这是低延迟桥优化，不是原生 controller 直通。

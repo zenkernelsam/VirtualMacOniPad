@@ -327,6 +327,13 @@
 - [x] iPad 只读复核：实际安装仍为 `2:1.2.3+88.bb005a7dfe.gpuvulkan`；GuestTools readiness repair 已继续增长到至少 `attempt 1399`。91 未安装，因此 repair suppression 和 MATLAB JIT compat 都没有运行时证据。
 - [x] 后续只读复核：88 仍安装，repair 已增长到至少 `attempt 1417`；91 仍未首启验证。
 
+## 2026-10-03 — 包清理策略加入打包脚本
+
+- [x] `scripts/cleanup-package-cache.py` 新增可回滚清理：按 `dpkg-deb` Debian Version 排序，默认保留最新3个，旧 `.deb` 移入目录 `.archive/`，不直接删除。
+- [x] `build-ipad-deb.sh` 默认开关：`VZ_PACKAGE_CLEANUP=1`、`VZ_PACKAGE_KEEP_COUNT=3`、`VZ_PACKAGE_MIRROR=1`；默认镜像路径为本机飞牛 `VirtualMacOniPad_iOS`，可用 `VZ_PACKAGE_MIRROR_DIR` 覆盖。
+- [x] 已对现有 release 和飞牛目录执行一次清理：当前各保留 91、90、88 三个包；旧包共10个移动到两处 `.archive/`，84回滚件仍可恢复。
+- [x] 推荐用户安装 `VirtualMac_1.2.3_4ee2789_GPUJIT91.deb`；正常关 VM 后安装，先验证 readiness repair suppression，再做 MATLAB JIT A/B。
+
 ## 2026-10-03 — Qoder CN outstanding issue 取证
 
 - [x] 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”，列入 outstanding issue。

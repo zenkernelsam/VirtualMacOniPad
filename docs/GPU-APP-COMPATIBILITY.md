@@ -87,6 +87,8 @@ pthread_jit_write_protect_supported_np=0
 
 91 GPUJIT 候选包已构建并复制飞牛，仍未安装；它包含 90 的 GuestTools repair 上限和本节 MATLAB/CEF scoped JIT compat。其正式验收闸门仍是：用户保存数据后正常关 VM、安装并观察 readiness/recovery，再在隔离 MATLAB CEF 副本上做未补丁 A/B。
 
+当前建议安装：`VirtualMac_1.2.3_4ee2789_GPUJIT91.deb`。安装前正常关 VM；84/88 回退包在 `.archive/` 中保留。打包脚本现在默认 `VZ_PACKAGE_CLEANUP=1`、`VZ_PACKAGE_KEEP_COUNT=3`、`VZ_PACKAGE_MIRROR=1`，release 和飞牛镜像目录各保留 Debian 版本最高的 3 个包，旧包移动到同目录 `.archive/`，可用 `VZ_PACKAGE_CLEANUP=0` 临时关闭。
+
 ## Qoder CN outstanding issue（2026-10-03）
 
 用户报告 Qoder CN CLI/IDE 显示“当前使用软件渲染”。只读证据存在矛盾：用户配置 `~/.qoder-cn/argv.json` 中硬件禁用项是注释；隔离 Qoder CDP 的 `SystemInfo.getInfo` 报 `ANGLE_METAL`、`Apple Paravirtual device`、`gpu_compositing=enabled`、`opengl=enabled_on`、`webgl=enabled`、`webgpu=enabled`、`processCrashCount=0`，启动参数只有 `--disable-skia-graphite`。待取得正式 Qoder UI/CLI 的原文提示、当前用户 profile 的 featureStatus 和 WebGL/WebGPU 像素读回，才能判断是 Qoder 的 Graphite 状态误报、GPU crash guard、还是实际渲染回退。不要擅改 Qoder 配置或 app bundle。

@@ -395,3 +395,10 @@
 - [x] 纠正 USB 审计歧义：`AppleUSBUserHCIResources=1` 是客机 ioreg 观察值，不能当作 iPad 宿主服务；宿主缺失仍由 `patch_vmm_optional_devices.py` 与 IDA host-kernel `newUserClient` 证据确认。
 - [x] USB 设备级 user-client 细化：`IOUSBHostDevice::newUserClient @ 0xfffffe000a3e772c` 仅为已枚举 `IOUSBHostDevice` 建设备/interface client；`AppleUSBHostDeviceUserClient::start @ 0xfffffe000a3852b4` provider 必须是该设备，方法面是 configuration/interface/reset/suspend/power，不含 XHCI ownership/ring/DMA doorbell。更新 `.diag/ida-13337-usb-deep-20261003/README.md` 与 `docs/VM-NEXT-RESEARCH-PLAN.md`。
 - [x] Nested 深入静态取证 `.diag/ida-13337-nested-deep-20261003/REPORT.md`：VM-create 要求 `com.apple.private.hypervisor` 并限制当前 task 单 VM；vCPU 仅建立 EL2→guest EL1，没有 HCR_EL2/VTTBR_EL2/VNCR_EL2 二级管理；FEAT_NV/nested 精确搜索为 0。原生 nested 目前证据倾向不可行，替代方向是软件/半虚拟化 container service，未启动第二 VM。
+
+## 2026-10-03 — 92 完整合并包（GPU + readiness + 键盘 HUD）
+
+- [x] HUD 无障碍标签复用已有 `Virtual Mac Controls` 翻译键；37 个语言变体、319 个 UI key 的 localization audit 通过。
+- [x] 完整构建使用 5-job 限流/background 约束，包含 GPUJIT 兼容、GuestTools readiness repair 限流、既有 GPU 修复和 `VZFunctionRowView` 半透明 ESC/F1–F12 HUD。App 构建/签名、93 个 iPadOS 14.5 Mach-O deployment stamp、package stage audit 通过；保留既有无关 warning。
+- [x] 92 包：`VirtualMac/build/release/VirtualMac_1.2.3_e64137d9d7.deb`；Debian version=`2:1.2.3+92.e64137d.full`；20,871,280 bytes；SHA256=`f4072fea77921c8791b47f46ad631af9996870e6ecc3fe966107cbf3ed435d04`。飞牛副本同名、同大小、同 SHA256：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_e64137d9d7.deb`。
+- [x] 解包核验：App 包含 `VZFunctionRowView`/`setExpanded:animated:` 和 GuestTools `guest menu extra acknowledged token` 字符串；`ldid -h` 可读、App arm64；默认包清理仍只保留最新 3 个。未安装、未重启、未操作运行中 VMM，GPU/键盘实机首启待验收。

@@ -378,3 +378,10 @@
 - [x] 限流5 jobs/background完整构建、stage audit通过。包：`VirtualMac/build/release/VirtualMac_1.2.3_17dfa3e47a.deb`；Debian version=`2:1.2.3+90.17dfa3e.gpuready`；SHA256=`869328336372ab5dcee4b59e2ac9c62cfd87169a58339c3a356e704604f50262`；20,858,104 bytes。
 - [x] 解包验证：App二进制含 suppression 字符串；包内 GuestTools 与修复构建 SHA256=`b2a3cd74fe3b04d03c2718de25b1257c6401a728cace4a5c677ef8e024fa1c95`；App ldid CodeDirectory/CDHash 可读；包未含 VM 数据。
 - [x] 已复制为 `VirtualMac_1.2.3_17dfa3e47a_GPUReady90.deb` 到本地飞牛目录，两处 hash 一致；未安装、未重启、未注入运行中 VMM。90 仍需首启验证后才能声称减少 wakeups 或解决卡死风险。
+
+## 2026-10-03 — GPU 收尾事项与四条新研究线排队
+
+- [x] 用户要求暂缓升级 VM，先记录 GPU 尚未收尾事项；新增 `docs/VM-NEXT-RESEARCH-PLAN.md`。当前 88 仍是设备基线；90/91 的构建成功不等于设备首启、MATLAB CEF、Qoder 文案或卡死根因已验收。
+- [x] 文档保留 GPU 闸门：新启动必须独立保存 readiness/repair、wakeups、GPU recovery、Godot 与应用像素证据；卡死不能归因 macPad、88 或 GPU；MATLAB CEF A/B、Qoder 提示来源和长期性能仍待证。
+- [x] 记录 USB 研究边界：当前运行期无 USB 设备，只有 Restore 桥；Instance1 内核已见 AppleEmbeddedUSBHost/AppleSynopsysUSB40XHCI/Type-C 与 ChargingCurrent 等数据面、电源面符号。下一步只读反编译 ownership/power-role，并坚持 guest 数据面与 iPad 充电面分离。
+- [x] 记录 Nested Virtualization、音频热量 A/B、键盘 function-row 四条路线；本轮未改代码、未安装包、未重启 iPad、未操作运行中 VMM。

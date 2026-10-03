@@ -48,6 +48,8 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 因此“原生 VZ host-controller 绑定”当前静态证据倾向不可行；它还没有证明任意实体 USB descriptor/transfer 已可从 iPadOS 用户态安全获取，不进入物理设备写操作。后续只研究现有 fake HCI 后的低延迟批量/共享内存桥，充电、电流、温度和 Type-C role 留在 iPad。
 
+补充 IDA 证据（`.diag/ida-13337-usb-deep-20261003/README.md`）：`newUserClient` 只找到 `IOUSBHostInterface`、`IOUSBHostDevice`、`IOUSBMassStorageResource`，没有 `AppleUSBHostController`、`AppleUSBXHCI` 或 `AppleUSBCController` 的通用 user-client。当前没有可安全复用的用户态 XHCI ownership/doorbell API；“原生直通”不能通过再找一个未公开 user-client 解决。
+
 ### 研究顺序
 
 1. 只读反编译 Instance1 的 `AppleUSBPhy::start/enableHostMode`、`AppleUSBHostPort` ownership 路径、`AppleCS46L21Dock` host-port added 路径和 `AppleARMFunctionChargerMux::setUSBInputCurrentLimit`，记录 host/device mode、power role、current limit 的调用关系。

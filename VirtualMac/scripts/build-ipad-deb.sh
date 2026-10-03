@@ -36,6 +36,8 @@ RELEASE_VERSION="${VZ_RELEASE_VERSION:-1.2.3}"
 VZ_PACKAGE_KEEP_COUNT="${VZ_PACKAGE_KEEP_COUNT:-3}"
 VZ_PACKAGE_CLEANUP="${VZ_PACKAGE_CLEANUP:-1}"
 VZ_PACKAGE_MIRROR="${VZ_PACKAGE_MIRROR:-1}"
+VZ_USER_HOME="${VZ_USER_HOME:-$(/usr/bin/printenv HOME 2>/dev/null || true)}"
+VZ_PACKAGE_LOCAL_TRASH_DIR="${VZ_PACKAGE_LOCAL_TRASH_DIR:-${VZ_USER_HOME:-/tmp}/.Trash/VirtualMac-release-packages}"
 VZ_PACKAGE_MIRROR_DIR="${VZ_PACKAGE_MIRROR_DIR:-/Users/$(id -un)/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS}"
 [[ "$VZ_PACKAGE_KEEP_COUNT" =~ ^[1-9][0-9]*$ ]] || die "VZ_PACKAGE_KEEP_COUNT must be positive"
 if [[ -n "${VZ_PACKAGE_VERSION:-}" ]]; then
@@ -250,7 +252,8 @@ dpkg-deb --root-owner-group --build "$STAGE" "$RELEASE/$PACKAGE_NAME"
 dpkg-deb --info "$RELEASE/$PACKAGE_NAME"
 if [[ "$VZ_PACKAGE_CLEANUP" == 1 ]]; then
     CLEANUP_SCRIPT="$SCRIPT_DIR/cleanup-package-cache.py"
-    python3 "$CLEANUP_SCRIPT" "$RELEASE" --keep "$VZ_PACKAGE_KEEP_COUNT" --label release
+    python3 "$CLEANUP_SCRIPT" "$RELEASE" --keep "$VZ_PACKAGE_KEEP_COUNT" \
+        --archive-dir "$VZ_PACKAGE_LOCAL_TRASH_DIR" --label release
     if [[ "$VZ_PACKAGE_MIRROR" == 1 ]]; then
         if [[ -d "$VZ_PACKAGE_MIRROR_DIR" ]]; then
             cp -p "$RELEASE/$PACKAGE_NAME" "$VZ_PACKAGE_MIRROR_DIR/$PACKAGE_NAME"

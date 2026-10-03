@@ -87,7 +87,7 @@ pthread_jit_write_protect_supported_np=0
 
 91 GPUJIT 候选包已构建并复制飞牛，仍未安装；它包含 90 的 GuestTools repair 上限和本节 MATLAB/CEF scoped JIT compat。其正式验收闸门仍是：用户保存数据后正常关 VM、安装并观察 readiness/recovery，再在隔离 MATLAB CEF 副本上做未补丁 A/B。
 
-当前建议安装：`VirtualMac_1.2.3_4ee2789_GPUJIT91.deb`。安装前正常关 VM；84/88 回退包在 `.archive/` 中保留。打包脚本现在默认 `VZ_PACKAGE_CLEANUP=1`、`VZ_PACKAGE_KEEP_COUNT=3`、`VZ_PACKAGE_MIRROR=1`，release 和飞牛镜像目录各保留 Debian 版本最高的 3 个包，旧包移动到同目录 `.archive/`，可用 `VZ_PACKAGE_CLEANUP=0` 临时关闭。
+当前建议安装：`VirtualMac_1.2.3_4ee2789_GPUJIT91.deb`。安装前正常关 VM；飞牛 `.archive/` 保留旧版回退件。本机 release 旧包移入 macOS 废纸篓。打包脚本现在默认 `VZ_PACKAGE_CLEANUP=1`、`VZ_PACKAGE_KEEP_COUNT=3`、`VZ_PACKAGE_MIRROR=1`，release 和飞牛镜像目录各保留 Debian 版本最高的 3 个包；本机旧包移入废纸篓，飞牛旧包移入 `.archive/`，可用 `VZ_PACKAGE_CLEANUP=0` 临时关闭。
 
 ## Qoder CN outstanding issue（2026-10-03）
 

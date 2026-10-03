@@ -40,7 +40,9 @@ def compare(left: tuple[str, Path], right: tuple[str, Path]) -> int:
     return -1 if lk > rk else (1 if lk < rk else 0)
 
 
-def archive_old(directory: Path, keep: int) -> list[Path]:
+def archive_old(
+    directory: Path, keep: int, archive_directory: Path | None = None
+) -> list[Path]:
     candidates: list[tuple[str, Path]] = []
     for path in directory.glob("*.deb"):
         if path.is_file():
@@ -48,7 +50,7 @@ def archive_old(directory: Path, keep: int) -> list[Path]:
             if package_version is not None:
                 candidates.append((package_version, path))
     candidates.sort(key=functools.cmp_to_key(compare))
-    archive = directory / ".archive"
+    archive = archive_directory or directory / ".archive"
     moved: list[Path] = []
     for _, path in candidates[keep:]:
         archive.mkdir(mode=0o755, exist_ok=True)
@@ -65,6 +67,11 @@ def main() -> int:
     parser.add_argument("directory", type=Path)
     parser.add_argument("--keep", type=int, default=3)
     parser.add_argument("--label", default="packages")
+    parser.add_argument(
+        "--archive-dir",
+        type=Path,
+        help="Move old packages here instead of directory/.archive",
+    )
     args = parser.parse_args()
     if args.keep < 1:
         parser.error("--keep must be positive")
@@ -72,8 +79,9 @@ def main() -> int:
     if not directory.is_dir():
         print(f"[{args.label}] directory absent; skipped: {directory}")
         return 0
-    moved = archive_old(directory, args.keep)
-    print(f"[{args.label}] kept newest {args.keep}; archived {len(moved)} old package(s) in {directory / '.archive'}")
+    moved = archive_old(directory, args.keep, args.archive_dir)
+    destination = args.archive_dir or directory / ".archive"
+    print(f"[{args.label}] kept newest {args.keep}; archived {len(moved)} old package(s) in {destination}")
     return 0
 
 

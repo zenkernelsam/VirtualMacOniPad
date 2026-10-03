@@ -331,8 +331,13 @@
 
 - [x] `scripts/cleanup-package-cache.py` 新增可回滚清理：按 `dpkg-deb` Debian Version 排序，默认保留最新3个，旧 `.deb` 移入目录 `.archive/`，不直接删除。
 - [x] `build-ipad-deb.sh` 默认开关：`VZ_PACKAGE_CLEANUP=1`、`VZ_PACKAGE_KEEP_COUNT=3`、`VZ_PACKAGE_MIRROR=1`；默认镜像路径为本机飞牛 `VirtualMacOniPad_iOS`，可用 `VZ_PACKAGE_MIRROR_DIR` 覆盖。
-- [x] 已对现有 release 和飞牛目录执行一次清理：当前各保留 91、90、88 三个包；旧包共10个移动到两处 `.archive/`，84回滚件仍可恢复。
+- [x] 已对现有 release 和飞牛目录执行一次清理：当前各保留 91、90、88 三个包；飞牛旧包保留在 `.archive/`，本机 release 旧包已移入 macOS 废纸篓，84回滚件仍可恢复。
 - [x] 推荐用户安装 `VirtualMac_1.2.3_4ee2789_GPUJIT91.deb`；正常关 VM 后安装，先验证 readiness repair suppression，再做 MATLAB JIT A/B。
+
+## 2026-10-03 — 本机旧包改移废纸篓
+
+- [x] 用户确认飞牛 `.archive/` 是唯一长期旧版存档；本机 `VirtualMac/build/release/.archive/` 已整体移入 `~/.Trash/VirtualMac-release-packages/archive-20261003-103630`，未直接删除。
+- [x] `build-ipad-deb.sh` 后续默认 release 旧包移入 `VZ_PACKAGE_LOCAL_TRASH_DIR`（默认 `~/.Trash/VirtualMac-release-packages`），飞牛旧包继续进镜像目录 `.archive/`；`VZ_PACKAGE_CLEANUP=0` 可关闭。
 
 ## 2026-10-03 — Qoder CN outstanding issue 取证
 

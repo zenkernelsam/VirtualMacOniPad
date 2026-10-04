@@ -410,4 +410,11 @@
 - [x] 新启动日志独立核对：`/tmp/VirtualMac.log` 出现一次 `guest menu extra not acknowledged; installing attempt 1`，随后出现 `guest menu extra acknowledged token ...`；本次没有旧 88/86 证据混入。GuestTools readiness 基础握手通过，未见 repair 风暴。
 - [x] 新宿主 stderr 核对：`VirtualMac PVG: deviceinfo profile=host-clamped-v1 pairs=12 serializer=unchanged`；`caps augmented keyLimit=42 count=2048 existingApplied=12 dropped=0`；`metalshim enabled native BC texture formats ... after runtime ABI validation`。本轮没有 recovery/fault 字段，不能把“未见日志”写成 recoveryCount=0。
 - [ ] 92 仍待 Godot 实景、HUD 实体键盘点击、GPU recoveryCount 前后读回及长时稳定性验收；本轮未关闭 VM、未重启 iPad、未注入运行中 VMM。
+
+## 2026-10-04 — 虚拟磁盘 I/O 优化静态审计
+
+- [x] 新增 `docs/VM-DISK-IO-RESEARCH.md`。当前代码使用旧 `initWithURL:readOnly:error:`，没有显式选择 disk cache/synchronization；实际 payload 已含五参数 initializer、`Automatic/Uncached/Cached`、`Full/Fsync/None` 和 `AsynchronousRawDiskImage`。
+- [x] iPad 只读元数据：`Disk.img` 逻辑 512 GiB，`ls -ls` 实际约 419 GiB，宿主 `/private/var` 可用约 1.1 TiB；空间不足不是当前慢 I/O 的充分解释。未改 92、未切换策略、未压测。
+- [x] 决策候选：首选单独 A/B `Automatic + Fsync`，其次评估 `Cached + Fsync`；`Cached + None` 有断电/强杀损坏风险，禁止作为默认优化。`virtioQueueCount` 作为独立实验，不能与 cache/sync 同时改。
+- [x] 外部磁盘格式审计：实际 VZ payload 只见 `RawDiskImage`/`AsynchronousRawDiskImage`/`Di2DiskImage`/`.asif`，未见 VDI/VMDK/QCOW2 backend；VirtualBox/VMware/QEMU 文件不能直接接入当前 VZ。可移植的是异步队列、cache/sync、discard 和离线 compact 思路，不是格式本身。`docs/VM-DISK-IO-RESEARCH.md` 已补入 VMware 免费/部分开源与完整磁盘栈不可直接等同的边界。
 - [x] 新增 `VirtualMac/scripts/research/record-ipad-key-events.py` 只读 SSH 捕获工具，并做 3 秒 smoke test；当前 92 会话已超过 `sendKey` 前 12 次日志上限，本轮只得到 pointer 坐标、没有新的 HID/keyCode 行，不能据此判定 F1–F12 失败。完整逐键记录需后续 Debug Logging 版本/启动。

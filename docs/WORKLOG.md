@@ -417,4 +417,12 @@
 - [x] iPad 只读元数据：`Disk.img` 逻辑 512 GiB，`ls -ls` 实际约 419 GiB，宿主 `/private/var` 可用约 1.1 TiB；空间不足不是当前慢 I/O 的充分解释。未改 92、未切换策略、未压测。
 - [x] 决策候选：首选单独 A/B `Automatic + Fsync`，其次评估 `Cached + Fsync`；`Cached + None` 有断电/强杀损坏风险，禁止作为默认优化。`virtioQueueCount` 作为独立实验，不能与 cache/sync 同时改。
 - [x] 外部磁盘格式审计：实际 VZ payload 只见 `RawDiskImage`/`AsynchronousRawDiskImage`/`Di2DiskImage`/`.asif`，未见 VDI/VMDK/QCOW2 backend；VirtualBox/VMware/QEMU 文件不能直接接入当前 VZ。可移植的是异步队列、cache/sync、discard 和离线 compact 思路，不是格式本身。`docs/VM-DISK-IO-RESEARCH.md` 已补入 VMware 免费/部分开源与完整磁盘栈不可直接等同的边界。
+
+## 2026-10-04 — 93 Cached+Fsync 磁盘 MVP
+
+- [x] `VirtualMacApp.m` 的磁盘 attachment 改为优先调用 `initWithURL:readOnly:cachingMode:synchronizationMode:error:`，显式选择 `Cached=2 + Fsync=2`；高级 selector 不存在或初始化失败时回退旧构造器并打印 fallback 日志。未改 Disk.img 格式、未增加 `SynchronizationModeNone`、未改 virtio queue。
+- [x] localization audit、arm64 syntax compile、5-job 限流完整构建、93 Mach-O deployment stamp、签名和 package stage audit 通过；保留既有 deprecated/dynamic lookup/a2s warning。
+- [x] 93 包：`VirtualMac/build/release/VirtualMac_1.2.3_078e03b64c.deb`；Debian version=`2:1.2.3+93.078e03b.diskcached`；20,867,912 bytes；SHA256=`4f5b3883c71abe75eaaf2206e8a4c211ad7f4b269f7cf24a8186c39101a1d700`。飞牛副本同大小同 SHA256：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_078e03b64c.deb`。
+- [x] 解包核验：App 含 `cache=cached(2) synchronization=fsync(2)` 与 fallback 字符串，同时保留 HUD/readiness/GPU 代码；`ldid -h` 可读。93 未安装、未重启，92 保留为回滚；需要用户正常关 VM 后安装，观察 attachment 日志、I/O 体感、wakeups、内存压力和 guest 文件系统一致性。
+- [x] 记录两个后续需求：挂起恢复后的 guest 时间同步；iCloud/Apple 服务身份链与合法 Mac identity 研究。两者不混入 93 磁盘 MVP。
 - [x] 新增 `VirtualMac/scripts/research/record-ipad-key-events.py` 只读 SSH 捕获工具，并做 3 秒 smoke test；当前 92 会话已超过 `sendKey` 前 12 次日志上限，本轮只得到 pointer 坐标、没有新的 HID/keyCode 行，不能据此判定 F1–F12 失败。完整逐键记录需后续 Debug Logging 版本/启动。

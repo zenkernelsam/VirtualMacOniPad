@@ -116,3 +116,7 @@ VirtualBox/VMware/QEMU 值得借鉴的是：异步 I/O、批量/多队列、host
 5. 最后才探测 `.asif`/DiskImages2 是否能在本 payload/iPadOS 上安全创建并挂载。
 
 禁止把 QCOW2/VDI/VMDK 的 COW 层塞进 VMM hook，也不在运行中的 `Disk.img` 上做 trim、打洞或 compact。
+
+## 后续排队：挂起恢复后的 guest 时间
+
+用户报告低电量、息屏或合盖后 iPadOS 会冻结 VM 进程；恢复进入 macOS guest 后，系统时间停在冻结时刻，需要手动校时。该现象符合 guest 虚拟时钟在 host suspend/resume 期间没有收到时间校正，不能归因于磁盘 I/O。后续应分别取 host resume 时间、VMM/GuestTools agent reconnect 时间和 guest `date`/time-sync 日志，再设计 resume-only 校时；不在本次磁盘包中混入时间逻辑。

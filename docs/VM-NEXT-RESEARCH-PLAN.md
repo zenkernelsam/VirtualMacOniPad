@@ -136,6 +136,18 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 本文件只记录研究方向和闸门；任何新增包必须对应真实新增功能和独立验收证据，不能只换版本号重打包。
 
+## 新增长期需求：iCloud/Apple 服务身份链
+
+用户希望 VirtualMac guest 使用个人 Apple 账号、iCloud 备份和生产力服务，怀疑需要黑苹果时代的“三码”（serial/MLB/ROM 等 SMBIOS identity）。该需求列入后续研究，不随 93 磁盘包施工。
+
+先审计 `VZMacPlatformConfiguration`、HardwareModel、MachineIdentifier、AuxiliaryStorage/NVRAM、guest SMBIOS/IOPlatformExpert 数据和 Apple 服务失败日志，区分：
+
+1. guest 缺少合法且一致的 Mac identity；
+2. Virtualization guest policy/activation/网络服务限制；
+3. Apple 服务本身拒绝虚拟机或检测到不匹配身份。
+
+不能直接生成或复用他人的真实序列号、绕过 Activation Lock/Apple 风控、伪造签名或注入运行中的 VMM。若存在 Apple 官方支持的虚拟 Mac identity 配置，应优先研究该路径；否则只能报告限制和风险，不能承诺通过“fakesmc”让 iCloud 正常工作。
+
 ## Kernel/rootfs 补丁可行性边界（2026-10-03）
 
 ### USB：加载 AppleUSBUserHCI 不等于物理 USB 直通

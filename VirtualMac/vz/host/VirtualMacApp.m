@@ -4941,6 +4941,46 @@ static void configureDirectorySharing(id configuration,
            directories.allKeys.description.UTF8String);
 }
 
+// VZDiskImageStorageDeviceAttachment's extended initializer is present in
+// the extracted Ventura payload and exposes Apple's native cache/sync policy.
+// Cached + Fsync keeps the host page cache while retaining an fsync durability
+// boundary. If a future payload rejects the combination, fall back to the
+// original initializer instead of preventing the VM from starting.
+static id makeDiskImageAttachment(NSString *bundlePath, NSError **error)
+{
+    NSString *path = [bundlePath stringByAppendingPathComponent:@"Disk.img"];
+    id attachmentClass = CLS("VZDiskImageStorageDeviceAttachment");
+    SEL extendedSelector =
+        S("initWithURL:readOnly:cachingMode:synchronizationMode:error:");
+    id attachment = nil;
+    NSError *extendedError = nil;
+    if ([attachmentClass instancesRespondToSelector:extendedSelector]) {
+        id object = [attachmentClass alloc];
+        attachment = ((id(*)(id, SEL, id, BOOL, NSInteger, NSInteger,
+                              NSError **))objc_msgSend)(
+            object, extendedSelector, fileURL(path), NO,
+            2 /* VZDiskImageCachingModeCached */,
+            2 /* VZDiskImageSynchronizationModeFsync */,
+            &extendedError);
+        if (attachment) {
+            printf("[VirtualMac] disk attachment cache=cached(2) "
+                   "synchronization=fsync(2)\n");
+            return attachment;
+        }
+        [object release];
+        printf("[VirtualMac] cached+fsync disk attachment failed: %s; "
+               "falling back to automatic disk attachment\n",
+               extendedError.localizedDescription.UTF8String ?: "unknown error");
+    } else {
+        printf("[VirtualMac] extended disk attachment selector unavailable; "
+               "falling back to automatic disk attachment\n");
+    }
+
+    return ((id(*)(id, SEL, id, BOOL, NSError **))objc_msgSend)(
+        [attachmentClass alloc], S("initWithURL:readOnly:error:"),
+        fileURL(path), NO, error);
+}
+
 static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
                             NSError **error) {
     BOOL guestToolsEnabled =
@@ -5067,11 +5107,7 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
     setObj(graphics, "setDisplays:", @[display]);
     setObj(configuration, "setGraphicsDevices:", @[graphics]);
 
-    id attachment = ((id(*)(id, SEL, id, BOOL, NSError **))objc_msgSend)(
-        m0(CLS("VZDiskImageStorageDeviceAttachment"), "alloc"),
-        S("initWithURL:readOnly:error:"),
-        fileURL([bundlePath stringByAppendingPathComponent:@"Disk.img"]),
-        NO, error);
+    id attachment = makeDiskImageAttachment(bundlePath, error);
     if (!attachment)
         return nil;
     id blockDevice = ((id(*)(id, SEL, id))objc_msgSend)(

@@ -117,6 +117,7 @@
 "Full Screen" = "Skrin Penuh";
 "Full Screen Mirroring" = "Pencerminan Skrin Penuh";
 "General" = "Umum";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Dapatkan Bantuan";
 "Height" = "Ketinggian";
 "Incomplete Installation" = "Pemasangan Belum Selesai";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS Dipasang";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Memori";
 "Metal BC Support" = "Sokongan Metal BC";
 "Microphone Input" = "Input Mikrofon";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Kelajuan Tatal";
 "Search" = "Cari";
 "Search Virtual Mac" = "Cari Mac Maya";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "tetapan";
 "Shared Folder" = "Folder Dikongsi";
 "Shared Folders" = "Folder Dikongsi";
@@ -287,6 +290,7 @@
 "USB Mouse" = "Tetikus USB";
 "Use an IPSW on your iPad" = "Gunakan IPSW pada iPad";
 "Use an IPSW on your iPhone" = "Gunakan IPSW pada iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Gunakan Papan Kekunci USB untuk macOS Monterey. Versi macOS yang lebih baru menyokong peranti papan kekunci Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Gunakan Tetikus USB untuk macOS Monterey. Versi macOS yang lebih baru menyokong peranti trackpad Mac.";
 "Validation failed: %@" = "Pengesahan gagal: %@";

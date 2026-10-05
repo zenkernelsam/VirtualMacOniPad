@@ -117,6 +117,7 @@
 "Full Screen" = "전체 화면";
 "Full Screen Mirroring" = "전체 화면 미러링";
 "General" = "일반";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "도움말 보기";
 "Height" = "높이";
 "Incomplete Installation" = "완료되지 않은 설치";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac 트랙패드";
 "macOS Installed" = "macOS 설치 완료";
+"Manage Identities" = "Manage Identities";
 "Memory" = "메모리";
 "Metal BC Support" = "Metal BC 지원";
 "Microphone Input" = "마이크 입력";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "스크롤 속도";
 "Search" = "검색";
 "Search Virtual Mac" = "가상 Mac 검색";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "설정";
 "Shared Folder" = "공유 폴더";
 "Shared Folders" = "공유 폴더";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB 마우스";
 "Use an IPSW on your iPad" = "iPad에 있는 IPSW 사용";
 "Use an IPSW on your iPhone" = "iPhone에 있는 IPSW 사용";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "macOS Monterey에서는 USB 키보드를 사용하십시오. 최신 게스트는 Mac 키보드 기기를 지원합니다.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "macOS Monterey에서는 USB 마우스를 사용하십시오. 최신 게스트는 Mac 트랙패드 기기를 지원합니다.";
 "Validation failed: %@" = "검증 실패: %@";

@@ -13,6 +13,19 @@ FOUNDATION_EXPORT NSString * const VZAppleSerialNumberKey;
 FOUNDATION_EXPORT NSString * const VZAppleBoardSerialNumberKey;
 FOUNDATION_EXPORT NSString * const VZAppleROMKey;
 
+// Generates a brand-new VZMacMachineIdentifier and writes it as the bundle's
+// canonical `MachineIdentifier`. On success, when the private serial getter is
+// available, *outSerial receives the derived serial number (otherwise nil).
+// Returns NO and fills *error on failure; the existing file is left intact.
+BOOL VZWriteFreshAppleIdentity(NSString *bundlePath,
+                               NSString *_Nullable *_Nullable outSerial,
+                               NSError *_Nullable *_Nullable error);
+
+// Best-effort display label for a MachineIdentifier data blob: the derived
+// serial number when the private getter is available, otherwise the ECID
+// carried by the representation. Returns nil when neither can be read.
+NSString *_Nullable VZAppleIdentityLabelForData(NSData *_Nullable data);
+
 NSDictionary *VZVMDefaultOptions(void);
 NSDictionary *VZVMOptionsForBundle(NSString *bundlePath);
 BOOL VZRestoreImageUsesMontereyProfile(NSString *path);

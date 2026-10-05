@@ -117,6 +117,7 @@
 "Full Screen" = "पूर्ण स्क्रीन";
 "Full Screen Mirroring" = "पूर्ण स्क्रीन मिररिंग";
 "General" = "सामान्य";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "सहायता पाएँ";
 "Height" = "ऊँचाई";
 "Incomplete Installation" = "अधूरा इंस्टॉलेशन";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac ट्रैकपैड";
 "macOS Installed" = "macOS इंस्टॉल हो गया";
+"Manage Identities" = "Manage Identities";
 "Memory" = "मेमोरी";
 "Metal BC Support" = "Metal BC समर्थन";
 "Microphone Input" = "माइक्रोफ़ोन इनपुट";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "स्क्रॉल गति";
 "Search" = "खोजें";
 "Search Virtual Mac" = "वर्चुअल Mac खोजें";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "सेटिंग्स";
 "Shared Folder" = "शेयर किया गया फ़ोल्डर";
 "Shared Folders" = "शेयर किए गए फ़ोल्डर";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB माउस";
 "Use an IPSW on your iPad" = "iPad पर मौजूद IPSW का उपयोग करें";
 "Use an IPSW on your iPhone" = "iPhone पर मौजूद IPSW का उपयोग करें";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "macOS Monterey के लिए USB कीबोर्ड का उपयोग करें। macOS के नए संस्करण Mac कीबोर्ड डिवाइस का समर्थन करते हैं।";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "macOS Monterey के लिए USB माउस का उपयोग करें। macOS के नए संस्करण Mac ट्रैकपैड डिवाइस का समर्थन करते हैं।";
 "Validation failed: %@" = "वैलिडेशन विफल: %@";

@@ -117,6 +117,7 @@
 "Full Screen" = "Helskärm";
 "Full Screen Mirroring" = "Helskärmsspegling";
 "General" = "Allmänt";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Få hjälp";
 "Height" = "Höjd";
 "Incomplete Installation" = "Ofullständig installation";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-styrplatta";
 "macOS Installed" = "macOS installerat";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Minne";
 "Metal BC Support" = "Stöd för Metal BC";
 "Microphone Input" = "Mikrofoningång";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Rullningshastighet";
 "Search" = "Sök";
 "Search Virtual Mac" = "Sök efter virtuell Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Inställningar";
 "Shared Folder" = "Delad mapp";
 "Shared Folders" = "Delade mappar";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB-mus";
 "Use an IPSW on your iPad" = "Använd en IPSW på din iPad";
 "Use an IPSW on your iPhone" = "Använd en IPSW på din iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Använd ett USB-tangentbord i macOS Monterey. Nyare macOS-versioner stöder Mac-tangentbordet.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Använd en USB-mus i macOS Monterey. Nyare macOS-versioner stöder Mac-styrplattan.";
 "Validation failed: %@" = "Valideringen misslyckades: %@";

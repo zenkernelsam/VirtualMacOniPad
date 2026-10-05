@@ -117,6 +117,7 @@
 "Full Screen" = "Tela cheia";
 "Full Screen Mirroring" = "Espelhamento em Tela Cheia";
 "General" = "Geral";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Obter ajuda";
 "Height" = "Altura";
 "Incomplete Installation" = "Instalação incompleta";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS instalado";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Memória";
 "Metal BC Support" = "Compatibilidade com Metal BC";
 "Microphone Input" = "Entrada do microfone";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Velocidade de rolagem";
 "Search" = "Buscar";
 "Search Virtual Mac" = "Buscar Mac Virtual";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Configurações";
 "Shared Folder" = "Pasta compartilhada";
 "Shared Folders" = "Pastas Compartilhadas";
@@ -287,6 +290,7 @@
 "USB Mouse" = "Mouse USB";
 "Use an IPSW on your iPad" = "Usar um IPSW no seu iPad";
 "Use an IPSW on your iPhone" = "Usar um IPSW no seu iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "No macOS Monterey, use um teclado USB. Versões mais recentes do macOS são compatíveis com o teclado Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "No macOS Monterey, use um mouse USB. Versões mais recentes do macOS são compatíveis com o trackpad Mac.";
 "Validation failed: %@" = "Falha na validação: %@";

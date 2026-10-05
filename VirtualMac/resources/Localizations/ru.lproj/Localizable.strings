@@ -117,6 +117,7 @@
 "Full Screen" = "Во весь экран";
 "Full Screen Mirroring" = "Полноэкранное Дублирование";
 "General" = "Основные";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Справка";
 "Height" = "Высота";
 "Incomplete Installation" = "Незавершённая установка";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Трекпад Mac";
 "macOS Installed" = "macOS установлена";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Память";
 "Metal BC Support" = "Поддержка Metal BC";
 "Microphone Input" = "Вход микрофона";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Скорость прокрутки";
 "Search" = "Поиск";
 "Search Virtual Mac" = "Найти Виртуальный Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Настройки";
 "Shared Folder" = "Общая папка";
 "Shared Folders" = "Общие папки";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB-мышь";
 "Use an IPSW on your iPad" = "Использовать IPSW на iPad";
 "Use an IPSW on your iPhone" = "Использовать IPSW на iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Для macOS Monterey используйте USB-клавиатуру. Более новые версии macOS поддерживают клавиатуру Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Для macOS Monterey используйте USB-мышь. Более новые версии macOS поддерживают трекпад Mac.";
 "Validation failed: %@" = "Ошибка проверки: %@";

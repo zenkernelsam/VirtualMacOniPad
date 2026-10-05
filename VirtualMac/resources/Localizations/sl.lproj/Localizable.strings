@@ -117,6 +117,7 @@
 "Full Screen" = "Celozaslonsko";
 "Full Screen Mirroring" = "Zrcaljenje Celotnega Zaslona";
 "General" = "Splošno";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Pomoč";
 "Height" = "Višina";
 "Incomplete Installation" = "Nedokončana namestitev";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Sledilna ploščica Mac";
 "macOS Installed" = "macOS je nameščen";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Pomnilnik";
 "Metal BC Support" = "Podpora za Metal BC";
 "Microphone Input" = "Vhod mikrofona";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Hitrost drsenja";
 "Search" = "Iskanje";
 "Search Virtual Mac" = "Poišči navidezni Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Nastavitve";
 "Shared Folder" = "Mapa v skupni rabi";
 "Shared Folders" = "Mape v skupni rabi";
@@ -287,6 +290,7 @@
 "USB Mouse" = "Miška USB";
 "Use an IPSW on your iPad" = "Uporabi IPSW v iPadu";
 "Use an IPSW on your iPhone" = "Uporabi IPSW v iPhonu";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Za macOS Monterey uporabite tipkovnico USB. Novejši gostujoči sistemi podpirajo napravo tipkovnice Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Za macOS Monterey uporabite miško USB. Novejši gostujoči sistemi podpirajo napravo sledilne ploščice Mac.";
 "Validation failed: %@" = "Preverjanje ni uspelo: %@";

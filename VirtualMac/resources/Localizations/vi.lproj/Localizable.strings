@@ -117,6 +117,7 @@
 "Full Screen" = "Toàn màn hình";
 "Full Screen Mirroring" = "Phản Chiếu Toàn Màn Hình";
 "General" = "Cài đặt chung";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Nhận trợ giúp";
 "Height" = "Chiều cao";
 "Incomplete Installation" = "Bản cài đặt chưa hoàn tất";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Bàn di chuột Mac";
 "macOS Installed" = "Đã cài đặt macOS";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Bộ nhớ";
 "Metal BC Support" = "Hỗ trợ Metal BC";
 "Microphone Input" = "Đầu vào micrô";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Tốc độ cuộn";
 "Search" = "Tìm kiếm";
 "Search Virtual Mac" = "Tìm Máy Mac ảo";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Cài đặt";
 "Shared Folder" = "Thư mục được chia sẻ";
 "Shared Folders" = "Thư mục được chia sẻ";
@@ -287,6 +290,7 @@
 "USB Mouse" = "Chuột USB";
 "Use an IPSW on your iPad" = "Sử dụng IPSW trên iPad của bạn";
 "Use an IPSW on your iPhone" = "Sử dụng IPSW trên iPhone của bạn";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Với macOS Monterey, hãy sử dụng bàn phím USB. Các phiên bản macOS mới hơn hỗ trợ bàn phím Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Với macOS Monterey, hãy sử dụng chuột USB. Các phiên bản macOS mới hơn hỗ trợ bàn di chuột Mac.";
 "Validation failed: %@" = "Xác thực không thành công: %@";

@@ -117,6 +117,7 @@
 "Full Screen" = "Volledig scherm";
 "Full Screen Mirroring" = "Volledige Schermspiegeling";
 "General" = "Algemeen";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Hulp";
 "Height" = "Hoogte";
 "Incomplete Installation" = "Onvoltooide installatie";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-trackpad";
 "macOS Installed" = "macOS geïnstalleerd";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Geheugen";
 "Metal BC Support" = "Ondersteuning voor Metal BC";
 "Microphone Input" = "Microfooninvoer";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Scrollsnelheid";
 "Search" = "Zoeken";
 "Search Virtual Mac" = "Zoek virtuele Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Instellingen";
 "Shared Folder" = "Gedeelde map";
 "Shared Folders" = "Gedeelde mappen";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB-muis";
 "Use an IPSW on your iPad" = "Gebruik een IPSW op uw iPad";
 "Use an IPSW on your iPhone" = "Gebruik een IPSW op uw iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Gebruik in macOS Monterey een USB-toetsenbord. Nieuwere macOS-versies ondersteunen het Mac-toetsenbord.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Gebruik in macOS Monterey een USB-muis. Nieuwere macOS-versies ondersteunen het Mac-trackpad.";
 "Validation failed: %@" = "Validatie mislukt: %@";

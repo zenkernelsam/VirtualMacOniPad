@@ -117,6 +117,7 @@
 "Full Screen" = "Koko näyttö";
 "Full Screen Mirroring" = "Koko Näytön Peilaus";
 "General" = "Yleiset";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Ohje";
 "Height" = "Korkeus";
 "Incomplete Installation" = "Keskeneräinen asennus";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-ohjauslevy";
 "macOS Installed" = "macOS asennettu";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Muisti";
 "Metal BC Support" = "Metal BC -tuki";
 "Microphone Input" = "Mikrofonitulo";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Vieritysnopeus";
 "Search" = "Haku";
 "Search Virtual Mac" = "Etsi virtuaalista Macia";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Asetukset";
 "Shared Folder" = "Jaettu kansio";
 "Shared Folders" = "Jaetut kansiot";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB-hiiri";
 "Use an IPSW on your iPad" = "Käytä iPadilla olevaa IPSW:tä";
 "Use an IPSW on your iPhone" = "Käytä iPhonella olevaa IPSW:tä";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Käytä macOS Montereyssä USB-näppäimistöä. Uudemmat macOS-versiot tukevat Mac-näppäimistöä.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Käytä macOS Montereyssä USB-hiirtä. Uudemmat macOS-versiot tukevat Mac-ohjauslevyä.";
 "Validation failed: %@" = "Vahvistus epäonnistui: %@";

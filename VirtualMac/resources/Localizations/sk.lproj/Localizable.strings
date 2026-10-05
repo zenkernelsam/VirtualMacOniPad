@@ -117,6 +117,7 @@
 "Full Screen" = "Celá obrazovka";
 "Full Screen Mirroring" = "Celozrkadlenie Obrazovky";
 "General" = "Všeobecné";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Pomoc";
 "Height" = "Výška";
 "Incomplete Installation" = "Nedokončená instalace";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS je nainstalován";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Pamäť";
 "Metal BC Support" = "Podpora Metal BC";
 "Microphone Input" = "Vstup mikrofonu";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Rýchlosť posúvania";
 "Search" = "Hľadať";
 "Search Virtual Mac" = "Vyhľadať Virtuálny Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Nastavenia";
 "Shared Folder" = "Zdieľaný priečinok";
 "Shared Folders" = "Zdieľané priečinky";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB myš";
 "Use an IPSW on your iPad" = "Použiť IPSW v iPade";
 "Use an IPSW on your iPhone" = "Použiť IPSW v iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "V macOS Monterey použite USB klávesnicu. Novšie verzie macOS podporujú klávesnicu Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "V macOS Monterey použite USB myš. Novšie verzie macOS podporujú trackpad Mac.";
 "Validation failed: %@" = "Overenie zlyhalo: %@";

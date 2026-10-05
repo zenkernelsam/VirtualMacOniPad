@@ -117,6 +117,7 @@
 "Full Screen" = "Ecran complet";
 "Full Screen Mirroring" = "Oglindire pe Tot Ecranul";
 "General" = "Generali";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Obțineți ajutor";
 "Height" = "Înălțime";
 "Incomplete Installation" = "Instalare incompleta";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS installato";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Memorie";
 "Metal BC Support" = "Compatibilitate Metal BC";
 "Microphone Input" = "Intrare microfon";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Viteza derulării";
 "Search" = "Căutare";
 "Search Virtual Mac" = "Căutați Mac virtual";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Setări";
 "Shared Folder" = "Dosar partajat";
 "Shared Folders" = "Dosare partajate";
@@ -287,6 +290,7 @@
 "USB Mouse" = "Mouse USB";
 "Use an IPSW on your iPad" = "Folosiți un IPSW de pe iPad";
 "Use an IPSW on your iPhone" = "Folosiți un IPSW de pe iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Pentru macOS Monterey, folosiți tastatura USB. Sistemele mai noi acceptă dispozitivul tastatură Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Pentru macOS Monterey, folosiți mouse-ul USB. Sistemele mai noi acceptă dispozitivul trackpad Mac.";
 "Validation failed: %@" = "Validarea a eșuat: %@";

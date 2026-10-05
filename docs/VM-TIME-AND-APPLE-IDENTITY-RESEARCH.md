@@ -63,4 +63,10 @@
 
 ### 当前 UI 入口候选（已实现，待设备验收）
 
-VM 配置页的“音频与加速”之后新增“Apple Services Identity”入口，停机时可填写 Mac Serial Number、Board Serial Number (MLB) 和 ROM；值保存在当前 VM 的 `VirtualMac.plist`，不写入 Git、日志或打包元数据。开机配置阶段只对已知的 Mac Serial 尝试调用 VZ 私有 `_VZMacSerialNumber` + `_machineIdentifierWithSerialNumber:` 派生 `VZMacMachineIdentifier`；MLB/ROM 暂时保存为未来映射字段并明确打印，不伪称已接入。当前仍未拿用户三码做实测，也未承诺 iCloud 一定恢复。
+VM 配置页的”音频与加速”之后新增”Apple Services Identity”入口，停机时可填写 Mac Serial Number、Board Serial Number (MLB) 和 ROM；值保存在当前 VM 的 `VirtualMac.plist`，不写入 Git、日志或打包元数据。开机配置阶段只对已知的 Mac Serial 尝试调用 VZ 私有 `_VZMacSerialNumber` + `_machineIdentifierWithSerialNumber:` 派生 `VZMacMachineIdentifier`；MLB/ROM 暂时保存为未来映射字段并明确打印，不伪称已接入。当前仍未拿用户三码做实测，也未承诺 iCloud 一定恢复。
+
+### 后续：一键生成与多重身份（2026-10-05）
+
+“Apple Services Identity” 入口已扩展为**一键 `Generate New Identity`**：生成全新 `VZMacMachineIdentifier` 写成 bundle 的 `MachineIdentifier`，归档到 bundle 内 `Identities/`（支持多重身份切换、恢复 `original.mid`），生成前按需 dlopen 抽取的 VZ 框架（`ensureExtractedFrameworksLoaded`）。身份表示实测为二进制 plist `{ECID: <int>}`，序列号由 ECID 派生、不存储，显示回退用 ECID。
+
+Apple 服务的硬性要求（宿主+客户机 macOS 15、全新安装、**宿主 Secure Enclave 派生身份**、new-style UDID；Parallels KB 另列 App Store/Xcode 为框架限制）与 iPad 阻断点、复刻清单见 [`docs/ARM-APPLE-IDENTITY.md`](ARM-APPLE-IDENTITY.md)。结论：iPad 宿主下无法通过注入/生成身份获得 Apple 服务，一键生成仅用于本地身份管理。

@@ -117,6 +117,7 @@
 "Full Screen" = "Teljes képernyő";
 "Full Screen Mirroring" = "Teljes Képernyős Tükrözés";
 "General" = "Általános";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Súgó";
 "Height" = "Magasság";
 "Incomplete Installation" = "Hiányos telepítés";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-trackpad";
 "macOS Installed" = "macOS telepítve";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Memória";
 "Metal BC Support" = "Metal BC-támogatás";
 "Microphone Input" = "Mikrofonbemenet";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Görgetési sebesség";
 "Search" = "Keresés";
 "Search Virtual Mac" = "Virtuális Mac keresése";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Beállítások";
 "Shared Folder" = "Megosztott mappa";
 "Shared Folders" = "Megosztott mappák";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB-egér";
 "Use an IPSW on your iPad" = "Az iPaden lévő IPSW használata";
 "Use an IPSW on your iPhone" = "Az iPhone-on lévő IPSW használata";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "macOS Monterey esetén használjon USB-billentyűzetet. Az újabb macOS-verziók támogatják a Mac-billentyűzetet.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "macOS Monterey esetén használjon USB-egeret. Az újabb macOS-verziók támogatják a Mac-trackpadet.";
 "Validation failed: %@" = "Sikertelen ellenőrzés: %@";

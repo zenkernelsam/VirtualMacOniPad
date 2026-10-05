@@ -50,6 +50,10 @@ TECHNICAL_IDENTICAL_VALUES = {
     "ROM",
     "Configured",
     "Not Configured",
+    "Generate New Identity",
+    "Manage Identities",
+    "Serial / MLB / ROM",
+    "Use Original Identity",
 }
 
 

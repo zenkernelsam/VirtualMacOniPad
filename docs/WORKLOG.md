@@ -448,3 +448,13 @@
 - [x] GuestTools 多次启动均最终出现 `guest menu extra acknowledged token`；某次曾到 `repair attempt 7` 后确认 token，不能据此宣称长期无 repair，但当前握手完成。
 - [x] GPU stderr 仍为 `profile=host-clamped-v1 pairs=12 serializer=unchanged`、`existingApplied=12 dropped=0`，并出现 native BC ABI validation；本次只读核对未见新的 fault/recovery 行。93 已安装，尚未做磁盘 I/O 对照、Godot 长时或性能结论。
 - [x] 新增 `VirtualMac/scripts/research/record-ipad-key-events.py` 只读 SSH 捕获工具，并做 3 秒 smoke test；当前 92 会话已超过 `sendKey` 前 12 次日志上限，本轮只得到 pointer 坐标、没有新的 HID/keyCode 行，不能据此判定 F1–F12 失败。完整逐键记录需后续 Debug Logging 版本/启动。
+
+## 2026-10-05 — 一键生成 Apple 身份与多重身份池
+
+- [x] app 内一键 `Generate New Identity`（`vz/host/VZVMLibraryViewController.m` section 6 action sheet）：生成全新 `VZMacMachineIdentifier` → 写 bundle `MachineIdentifier`；首次备份 `Identities/original.mid`；新身份归档 `Identities/<ms>.mid`；另提供 `Manage Identities`（切换）、`Use Original Identity`（恢复）、`Serial / MLB / ROM`（手填）。复用 `vz/install/install_macos.m:169-174` 写法。
+- [x] 生成前按需加载抽取的 VZ 框架：`vz/host/VirtualMacApp.m` 新增 `ensureExtractedFrameworksLoaded()`（不含 boot 路径的 rebind/framebuffer-trace 副作用），并导出 `VZWriteFreshAppleIdentity` / `VZAppleIdentityLabelForData`（`VZVMLibraryViewController.h` 声明）。实测身份表示为二进制 plist `{ECID}`，序列号不存储、由 ECID 派生，标签回退显示 `ECID n`。
+- [x] 新增 Mac 侧探针 `vz/development/probes/vzidentity.m`（new / dump / write），本机 clang 编译并实测：`new` 输出 60/68B bplist + `ECID`。
+- [x] 本地化：4 个新串加入 37 语言目录，`validate-localizations.py` 白名单补充后审计通过（37 语言 / 329 串）。
+- [x] 隔壁 Agent 的临时验证包：`VZ_SKIP_REBUILD=1 VZ_PACKAGE_VERSION="2:1.2.3+idtest.oneclick" build-ipad-deb.sh` 曾出包 `VirtualMac/build/release/VirtualMac_1.2.3_7d0e79388b.deb`（20,855,288B；当时未提交、文件名沿用旧 HEAD hash）。该临时包未安装，后续已纳入本轮审计修复并重新构建。
+- [x] 结论与复刻文档 `docs/ARM-APPLE-IDENTITY.md`：Apple 服务硬前提为宿主+客户机 macOS 15、全新装、宿主 Secure Enclave 派生身份（new-style UDID），Parallels KB 另列 App Store/Xcode 为框架限制 → iPad 宿主（iPadOS / Ventura 时代 VZ）无法通过注入或生成身份获得 Apple 服务。一键生成能力已实现；iCloud/App Store 实测待用户提供 `VZ_IPAD_UDID`/`VZ_IPAD_PASSWORD` 后按文档实验协议补录。
+- [x] 代码质量复核：发现并修复“Use Original Identity”覆盖现有 `MachineIdentifier` 时使用 `copyItemAtPath:` 导致必然失败的问题，改为原子 NSData 写入；生成身份的 original 备份和新身份归档也改为检查写入失败后停止并显示错误。临时 `GPUCache/` 已移至废纸篓；保留未跟踪 Metal 探针，不纳入提交。

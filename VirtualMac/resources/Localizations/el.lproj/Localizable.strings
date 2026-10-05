@@ -117,6 +117,7 @@
 "Full Screen" = "Πλήρης οθόνη";
 "Full Screen Mirroring" = "Κατοπτρισμός Πλήρους Οθόνης";
 "General" = "Γενικά";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Βοήθεια";
 "Height" = "Ύψος";
 "Incomplete Installation" = "Ημιτελής εγκατάσταση";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Επιφάνεια αφής Mac";
 "macOS Installed" = "Το macOS εγκαταστάθηκε";
+"Manage Identities" = "Manage Identities";
 "Memory" = "Μνήμη";
 "Metal BC Support" = "Υποστήριξη Metal BC";
 "Microphone Input" = "Είσοδος μικροφώνου";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "Ταχύτητα κύλισης";
 "Search" = "Αναζήτηση";
 "Search Virtual Mac" = "Αναζήτηση Εικονικού Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "Ρυθμίσεις";
 "Shared Folder" = "Κοινόχρηστος φάκελος";
 "Shared Folders" = "Κοινόχρηστοι φάκελοι";
@@ -287,6 +290,7 @@
 "USB Mouse" = "Ποντίκι USB";
 "Use an IPSW on your iPad" = "Χρήση IPSW στο iPad";
 "Use an IPSW on your iPhone" = "Χρήση IPSW στο iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "Για το macOS Monterey χρησιμοποιήστε πληκτρολόγιο USB. Οι νεότερες εκδόσεις macOS υποστηρίζουν τη συσκευή πληκτρολογίου Mac.";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "Για το macOS Monterey χρησιμοποιήστε ποντίκι USB. Οι νεότερες εκδόσεις macOS υποστηρίζουν τη συσκευή επιφάνειας αφής Mac.";
 "Validation failed: %@" = "Η επικύρωση απέτυχε: %@";

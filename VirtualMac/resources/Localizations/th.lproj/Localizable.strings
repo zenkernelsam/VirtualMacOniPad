@@ -117,6 +117,7 @@
 "Full Screen" = "เต็มหน้าจอ";
 "Full Screen Mirroring" = "การสะท้อนภาพเต็มจอ";
 "General" = "ทั่วไป";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "ขอความช่วยเหลือ";
 "Height" = "ความสูง";
 "Incomplete Installation" = "การติดตั้งไม่เสร็จ";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "แทร็คแพด Mac";
 "macOS Installed" = "ติดตั้ง macOS แล้ว";
+"Manage Identities" = "Manage Identities";
 "Memory" = "หน่วยความจำ";
 "Metal BC Support" = "รองรับ Metal BC";
 "Microphone Input" = "สัญญาณไมโครโฟนเข้า";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "ความเร็วการเลื่อน";
 "Search" = "ค้นหา";
 "Search Virtual Mac" = "ค้นหา Mac เสมือน";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "การตั้งค่า";
 "Shared Folder" = "โฟลเดอร์ที่แชร์";
 "Shared Folders" = "โฟลเดอร์ที่แชร์";
@@ -287,6 +290,7 @@
 "USB Mouse" = "เมาส์ USB";
 "Use an IPSW on your iPad" = "ใช้ IPSW บน iPad";
 "Use an IPSW on your iPhone" = "ใช้ IPSW บน iPhone";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "ใช้แป้นพิมพ์ USB สำหรับ macOS Monterey ระบบแขกรุ่นใหม่รองรับอุปกรณ์แป้นพิมพ์ Mac";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "ใช้เมาส์ USB สำหรับ macOS Monterey ระบบแขกรุ่นใหม่รองรับอุปกรณ์แทร็คแพด Mac";
 "Validation failed: %@" = "การตรวจสอบไม่สำเร็จ: %@";

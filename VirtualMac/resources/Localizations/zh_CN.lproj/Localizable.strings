@@ -117,6 +117,7 @@
 "Full Screen" = "全屏";
 "Full Screen Mirroring" = "全屏幕镜像";
 "General" = "通用";
+"Generate New Identity" = "Generate New Identity";
 "Get Help" = "获取帮助";
 "Height" = "高度";
 "Incomplete Installation" = "未完成的安装";
@@ -152,6 +153,7 @@
 "Mac Serial Number" = "Mac 序列号";
 "Mac Trackpad" = "Mac触控板";
 "macOS Installed" = "macOS已安装";
+"Manage Identities" = "Manage Identities";
 "Memory" = "内存";
 "Metal BC Support" = "Metal BC支持";
 "Microphone Input" = "麦克风输入";
@@ -218,6 +220,7 @@
 "Scrolling Speed" = "滚动速度";
 "Search" = "搜索";
 "Search Virtual Mac" = "搜索虚拟Mac";
+"Serial / MLB / ROM" = "Serial / MLB / ROM";
 "Settings" = "设置";
 "Shared Folder" = "共享文件夹";
 "Shared Folders" = "共享文件夹";
@@ -287,6 +290,7 @@
 "USB Mouse" = "USB鼠标";
 "Use an IPSW on your iPad" = "使用iPad上的IPSW";
 "Use an IPSW on your iPhone" = "使用iPhone上的IPSW";
+"Use Original Identity" = "Use Original Identity";
 "Use USB Keyboard for macOS Monterey. Newer guests support the Mac keyboard device." = "在macOS Monterey中，请使用USB键盘。较新版本的macOS支持Mac键盘设备。";
 "Use USB Mouse for macOS Monterey. Newer guests support the Mac trackpad device." = "在macOS Monterey中，请使用USB鼠标。较新版本的macOS支持Mac触控板设备。";
 "Validation failed: %@" = "验证失败：%@";

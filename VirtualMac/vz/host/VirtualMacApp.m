@@ -4982,6 +4982,145 @@ static id makeDiskImageAttachment(NSString *bundlePath, NSError **error)
         fileURL(path), NO, error);
 }
 
+// The extracted Virtualization frameworks are only dlopen'd in the boot path
+// (loadExtractedFrameworks). Identity generation can run from the
+// configuration screen before any boot, so bring the payload up here without
+// the boot path's rebind / framebuffer-trace side effects. dlopen is
+// idempotent, so this is a no-op once a VM has booted.
+static BOOL ensureExtractedFrameworksLoaded(void) {
+    if (objc_getClass("VZMacMachineIdentifier"))
+        return YES;
+    NSString *hookPath = [NSBundle.mainBundle pathForResource:@"VZHostCompat"
+                                                      ofType:@"dylib"];
+    if (hookPath)
+        dlopen([hookPath fileSystemRepresentation], RTLD_NOW | RTLD_GLOBAL);
+    const char *images[] = {
+        "/var/root/VirtualMac/payload/Frameworks/vmnet.framework/vmnet",
+        "/var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Hypervisor",
+        "/var/root/VirtualMac/payload/Frameworks/ParavirtualizedGraphics.framework/ParavirtualizedGraphics",
+        "/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Virtualization",
+    };
+    for (NSUInteger i = 0; i < sizeof(images) / sizeof(images[0]); i++) {
+        if (!dlopen(images[i], RTLD_NOW | RTLD_GLOBAL)) {
+            printf("[VirtualMac] identity: dlopen %s FAILED: %s\n",
+                   images[i], dlerror());
+            return NO;
+        }
+    }
+    return objc_getClass("VZMacMachineIdentifier") != NULL;
+}
+
+NSString *VZAppleIdentityLabelForData(NSData *data) {
+    if (!data.length)
+        return nil;
+    Class identifierClass = objc_getClass("VZMacMachineIdentifier");
+    NSString *serial = nil;
+    if (identifierClass) {
+        @try {
+            id identifier = ((id(*)(id, SEL, id))objc_msgSend)(
+                ((id(*)(id, SEL))objc_msgSend)((id)identifierClass, S("alloc")),
+                S("initWithDataRepresentation:"), data);
+            if (identifier) {
+                id serialObject = nil;
+                SEL serialSel = S("_serialNumber");
+                if ([identifier respondsToSelector:serialSel])
+                    serialObject = ((id(*)(id, SEL))objc_msgSend)(identifier,
+                                                                  serialSel);
+                if (!serialObject)
+                    serialObject = [identifier valueForKey:@"serialNumber"];
+                if (serialObject) {
+                    id value = [serialObject respondsToSelector:S("string")]
+                        ? ((id(*)(id, SEL))objc_msgSend)(serialObject,
+                                                         S("string"))
+                        : serialObject;
+                    if ([value isKindOfClass:NSString.class])
+                        serial = value;
+                }
+            }
+        } @catch (NSException *exception) {
+            (void)exception;
+            serial = nil;
+        }
+    }
+    if (serial.length)
+        return serial;
+    // The representation is a binary plist carrying the ECID; macOS derives
+    // the serial number from it, so fall back to the ECID as a stable label.
+    id plist = [NSPropertyListSerialization propertyListWithData:data
+        options:NSPropertyListImmutable format:NULL error:NULL];
+    if ([plist isKindOfClass:NSDictionary.class]) {
+        id stored = plist[@"SerialNumber"] ?: plist[@"serialNumber"];
+        if ([stored isKindOfClass:NSString.class] && [stored length])
+            return stored;
+        id ecid = plist[@"ECID"] ?: plist[@"ecid"];
+        if ([ecid isKindOfClass:NSNumber.class])
+            return [NSString stringWithFormat:@"ECID %llu",
+                [ecid unsignedLongLongValue]];
+    }
+    return nil;
+}
+
+BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
+                               NSError **error) {
+    if (!bundlePath.length) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:1 userInfo:@{
+                NSLocalizedDescriptionKey: @"No virtual machine selected"}];
+        return NO;
+    }
+    if (!objc_getClass("VZMacMachineIdentifier") &&
+        !ensureExtractedFrameworksLoaded()) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:2 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"Virtualization frameworks could not be loaded"}];
+        return NO;
+    }
+    Class identifierClass = objc_getClass("VZMacMachineIdentifier");
+    if (!identifierClass) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:3 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"VZMacMachineIdentifier is unavailable"}];
+        return NO;
+    }
+    NSData *representation = nil;
+    @try {
+        id identifier = ((id(*)(id, SEL))objc_msgSend)(
+            ((id(*)(id, SEL))objc_msgSend)((id)identifierClass, S("alloc")),
+            S("init"));
+        representation = identifier
+            ? ((id(*)(id, SEL))objc_msgSend)(identifier, S("dataRepresentation"))
+            : nil;
+    } @catch (NSException *exception) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:4 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    exception.reason ?: @"Identity generation failed"}];
+        return NO;
+    }
+    if (![representation isKindOfClass:NSData.class] ||
+        !representation.length) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:5 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"Identity generation produced no data"}];
+        return NO;
+    }
+    NSString *identifierPath =
+        [bundlePath stringByAppendingPathComponent:@"MachineIdentifier"];
+    if (![representation writeToFile:identifierPath
+                             options:NSDataWritingAtomic error:error])
+        return NO;
+    NSString *label = VZAppleIdentityLabelForData(representation);
+    if (outSerial)
+        *outSerial = label;
+    printf("[VirtualMac] Apple identity regenerated; bytes=%lu identity=%s\n",
+           (unsigned long)representation.length,
+           label.length ? label.UTF8String : "(unavailable)");
+    return YES;
+}
+
 static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
                             NSError **error) {
     BOOL guestToolsEnabled =

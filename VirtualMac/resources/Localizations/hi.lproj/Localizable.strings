@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "कोई अन्य वर्चुअल Mac चल रहा है";
 "Apple Pencil Pressure" = "Apple Pencil का दबाव";
 "Apple Pencil Pressure and Tilt" = "Apple Pencil का दबाव और झुकाव";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "ऑडियो और एक्सेलरेशन";
 "Audio Output" = "ऑडियो आउटपुट";
 "Available macOS Releases" = "उपलब्ध macOS रिलीज़";
 "Available macOS Versions" = "उपलब्ध macOS संस्करण";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "OpenGL एक्सेलेरेशन के लिए Virtual Mac गेस्ट टूल्स आवश्यक हैं, इसलिए गेस्ट टूल्स बंद करने पर OpenGL एक्सेलेरेशन भी बंद हो जाएगा। Final Cut Pro जैसे ऐप मुख्य रूप से Metal का उपयोग करते हैं, लेकिन शुरू होने के लिए OpenGL क्षमताओं की जाँच करते हैं।";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "बूट और नेटवर्क";
 "Bottom Left" = "नीचे बाईं ओर";
 "Bottom Right" = "नीचे दाईं ओर";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "वर्चुअल Mac के बाहर मौजूद पूरे वर्चुअल Mac और रीस्टोर इमेज नहीं हटाए जाएँगे।";
 "Configuration failed: %@" = "कॉन्फ़िगरेशन विफल: %@";
 "Configure %@" = "%@ कॉन्फ़िगर करें";
+"Configured" = "Configured";
 "Continue" = "जारी रखें";
 "Controls Opacity" = "कंट्रोल की अपारदर्शिता";
 "Copy Library Path" = "लाइब्रेरी पथ कॉपी करें";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC पता";
 "Mac Keyboard" = "Mac कीबोर्ड";
 "Mac Keyboard Shortcuts" = "मैक कीबोर्ड शॉर्टकट";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac ट्रैकपैड";
 "macOS Installed" = "macOS इंस्टॉल हो गया";
 "Memory" = "मेमोरी";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "नया वर्चुअल Mac";
 "No Results" = "कोई परिणाम नहीं";
 "No Virtual Macs match your search." = "आपकी खोज से कोई वर्चुअल Mac मेल नहीं खाता।";
+"Not Configured" = "Not Configured";
 "Off" = "बंद";
 "OK" = "ठीक";
 "On" = "चालू";
@@ -204,6 +209,7 @@
 "Resolution" = "रिज़ॉल्यूशन";
 "Resources" = "संसाधन";
 "Resume" = "फिर शुरू करें";
+"ROM" = "ROM";
 "Save" = "सहेजें";
 "Save a ZIP file containing logs and crash reports." = "लॉग और क्रैश रिपोर्ट वाली ZIP फ़ाइल सहेजें।";
 "Save Diagnostics to Files" = "डायग्नोस्टिक्स को Files में सेव करें";

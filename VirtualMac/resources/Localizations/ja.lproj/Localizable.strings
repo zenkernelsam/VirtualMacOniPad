@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "別の仮想Macが実行中です";
 "Apple Pencil Pressure" = "Apple Pencilの筆圧";
 "Apple Pencil Pressure and Tilt" = "Apple Pencilの筆圧と傾き";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "オーディオとアクセラレーション";
 "Audio Output" = "オーディオ出力";
 "Available macOS Releases" = "利用可能なmacOSリリース";
 "Available macOS Versions" = "利用可能なmacOSバージョン";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "OpenGLアクセラレーションにはVirtual Macゲストツールが必要なため、ゲストツールをオフにするとOpenGLアクセラレーションもオフになります。Final Cut Proなどのアプリは主にMetalを使用しますが、起動時にOpenGL機能を確認します。";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "起動とネットワーク";
 "Bottom Left" = "左下";
 "Bottom Right" = "右下";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "完了済みの仮想Macと、仮想Macフォルダ外の復元イメージは削除されません。";
 "Configuration failed: %@" = "構成に失敗しました：%@";
 "Configure %@" = "%@を構成";
+"Configured" = "Configured";
 "Continue" = "続ける";
 "Controls Opacity" = "コントロールの不透明度";
 "Copy Library Path" = "ライブラリのパスをコピー";
@@ -146,6 +149,7 @@
 "MAC Address" = "MACアドレス";
 "Mac Keyboard" = "Macキーボード";
 "Mac Keyboard Shortcuts" = "Macのキーボードショートカット";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Macトラックパッド";
 "macOS Installed" = "macOSのインストール完了";
 "Memory" = "メモリ";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "新しい仮想Mac";
 "No Results" = "検索結果なし";
 "No Virtual Macs match your search." = "検索に一致する仮想Macはありません。";
+"Not Configured" = "Not Configured";
 "Off" = "オフ";
 "OK" = "OK";
 "On" = "オン";
@@ -204,6 +209,7 @@
 "Resolution" = "解像度";
 "Resources" = "リソース";
 "Resume" = "再開";
+"ROM" = "ROM";
 "Save" = "保存";
 "Save a ZIP file containing logs and crash reports." = "ログとクラッシュレポートを含むZIPファイルを保存します。";
 "Save Diagnostics to Files" = "診断情報を「ファイル」に保存";

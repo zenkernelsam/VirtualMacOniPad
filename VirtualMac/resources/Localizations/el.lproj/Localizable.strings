@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Εκτελείται άλλο Εικονικό Mac";
 "Apple Pencil Pressure" = "Πίεση Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "Πίεση και κλίση Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Ήχος και επιτάχυνση";
 "Audio Output" = "Έξοδος ήχου";
 "Available macOS Releases" = "Διαθέσιμες εκδόσεις macOS";
 "Available macOS Versions" = "Διαθέσιμες εκδόσεις macOS";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Επειδή η επιτάχυνση OpenGL απαιτεί τα εργαλεία επισκέπτη Virtual Mac, η απενεργοποίησή τους θα απενεργοποιήσει και την επιτάχυνση OpenGL. Εφαρμογές όπως το Final Cut Pro χρησιμοποιούν κυρίως Metal, αλλά ελέγχουν τις δυνατότητες OpenGL για να ανοίξουν.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Εκκίνηση και δίκτυο";
 "Bottom Left" = "Κάτω αριστερά";
 "Bottom Right" = "Κάτω δεξιά";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Τα ολοκληρωμένα Εικονικά Mac και τα είδωλα επαναφοράς εκτός της εφαρμογής δεν αφαιρούνται.";
 "Configuration failed: %@" = "Η διαμόρφωση απέτυχε: %@";
 "Configure %@" = "Διαμόρφωση %@";
+"Configured" = "Configured";
 "Continue" = "Συνέχεια";
 "Controls Opacity" = "Αδιαφάνεια στοιχείων ελέγχου";
 "Copy Library Path" = "Αντιγραφή διαδρομής βιβλιοθήκης";
@@ -146,6 +149,7 @@
 "MAC Address" = "Διεύθυνση MAC";
 "Mac Keyboard" = "Πληκτρολόγιο Mac";
 "Mac Keyboard Shortcuts" = "Συντομεύσεις πληκτρολογίου Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Επιφάνεια αφής Mac";
 "macOS Installed" = "Το macOS εγκαταστάθηκε";
 "Memory" = "Μνήμη";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Νέο Εικονικό Mac";
 "No Results" = "Δεν βρέθηκαν αποτελέσματα";
 "No Virtual Macs match your search." = "Κανένα Εικονικό Mac δεν αντιστοιχεί στην αναζήτησή σας.";
+"Not Configured" = "Not Configured";
 "Off" = "Ανενεργό";
 "OK" = "ΟΚ";
 "On" = "Ενεργό";
@@ -204,6 +209,7 @@
 "Resolution" = "Ανάλυση";
 "Resources" = "Πόροι";
 "Resume" = "Συνέχιση";
+"ROM" = "ROM";
 "Save" = "Αποθήκευση";
 "Save a ZIP file containing logs and crash reports." = "Αποθηκεύστε ένα αρχείο ZIP που περιέχει αρχεία καταγραφής και αναφορές κατάρρευσης.";
 "Save Diagnostics to Files" = "Αποθήκευση διαγνωστικών στα Αρχεία";

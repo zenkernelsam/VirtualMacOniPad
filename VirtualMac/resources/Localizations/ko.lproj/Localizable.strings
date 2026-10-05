@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "다른 가상 Mac이 실행 중입니다";
 "Apple Pencil Pressure" = "Apple Pencil 압력";
 "Apple Pencil Pressure and Tilt" = "Apple Pencil 압력 및 기울기";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "오디오 및 가속";
 "Audio Output" = "오디오 출력";
 "Available macOS Releases" = "사용 가능한macOS 릴리스";
 "Available macOS Versions" = "사용 가능한 macOS 버전";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "OpenGL 가속에는 Virtual Mac 게스트 도구가 필요하므로 게스트 도구를 끄면 OpenGL 가속도 꺼집니다. Final Cut Pro와 같은 앱은 주로 Metal을 사용하지만 실행할 때 OpenGL 기능을 확인합니다.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "부팅 및 네트워크";
 "Bottom Left" = "왼쪽 하단";
 "Bottom Right" = "오른쪽 하단";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "완료된 가상 Mac과 가상 Mac 폴더 외부의 복원 이미지는 삭제되지 않습니다.";
 "Configuration failed: %@" = "구성 실패: %@";
 "Configure %@" = "%@ 구성";
+"Configured" = "Configured";
 "Continue" = "계속";
 "Controls Opacity" = "컨트롤 불투명도";
 "Copy Library Path" = "보관함 경로 복사";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC 주소";
 "Mac Keyboard" = "Mac 키보드";
 "Mac Keyboard Shortcuts" = "Mac 키보드 단축키";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac 트랙패드";
 "macOS Installed" = "macOS 설치 완료";
 "Memory" = "메모리";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "새로운 가상 Mac";
 "No Results" = "검색 결과 없음";
 "No Virtual Macs match your search." = "검색과 일치하는 가상 Mac이 없습니다.";
+"Not Configured" = "Not Configured";
 "Off" = "끔";
 "OK" = "확인";
 "On" = "켬";
@@ -204,6 +209,7 @@
 "Resolution" = "해상도";
 "Resources" = "리소스";
 "Resume" = "재개";
+"ROM" = "ROM";
 "Save" = "저장";
 "Save a ZIP file containing logs and crash reports." = "로그와 충돌 보고서가 포함된 ZIP 파일을 저장합니다.";
 "Save Diagnostics to Files" = "진단 정보를 파일에 저장";

@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "En annan Virtual Mac körs";
 "Apple Pencil Pressure" = "Apple Pencil-tryck";
 "Apple Pencil Pressure and Tilt" = "Tryck och lutning med Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Ljud och acceleration";
 "Audio Output" = "Ljudutgång";
 "Available macOS Releases" = "Tillgängliga macOS-versioner";
 "Available macOS Versions" = "Tillgängliga macOS-versioner";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Eftersom OpenGL-acceleration kräver Virtual Mac-gästverktyg stängs även OpenGL-accelerationen av när gästverktygen stängs av. Appar som Final Cut Pro använder främst Metal, men kontrollerar OpenGL-funktioner för att kunna starta.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Start och nätverk";
 "Bottom Left" = "Nere till vänster";
 "Bottom Right" = "Nere till höger";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Fullständiga Virtual Mac-datorer och återställningsavbilder utanför Virtual Mac tas inte bort.";
 "Configuration failed: %@" = "Konfigurationen misslyckades: %@";
 "Configure %@" = "Konfigurera %@";
+"Configured" = "Configured";
 "Continue" = "Fortsätt";
 "Controls Opacity" = "Reglagens opacitet";
 "Copy Library Path" = "Kopiera biblioteksväg";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC-adress";
 "Mac Keyboard" = "Mac-tangentbord";
 "Mac Keyboard Shortcuts" = "Mac-tangentbordsgenvägar";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-styrplatta";
 "macOS Installed" = "macOS installerat";
 "Memory" = "Minne";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Ny virtuell Mac";
 "No Results" = "Inga resultat";
 "No Virtual Macs match your search." = "Ingen virtuell Mac matchar din sökning.";
+"Not Configured" = "Not Configured";
 "Off" = "Av";
 "OK" = "OK";
 "On" = "På";
@@ -204,6 +209,7 @@
 "Resolution" = "Upplösning";
 "Resources" = "Resurser";
 "Resume" = "Fortsätt";
+"ROM" = "ROM";
 "Save" = "Spara";
 "Save a ZIP file containing logs and crash reports." = "Spara en ZIP-fil som innehåller loggar och kraschrapporter.";
 "Save Diagnostics to Files" = "Spara diagnostik i Filer";

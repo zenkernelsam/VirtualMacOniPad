@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Pokrenut je drugi Virtualni Mac";
 "Apple Pencil Pressure" = "Pritisak Apple Pencila";
 "Apple Pencil Pressure and Tilt" = "Pritisak i nagib Apple Pencila";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Zvuk i ubrzanje";
 "Audio Output" = "Izlaz zvuka";
 "Available macOS Releases" = "Dostupna izdanja macOS-a";
 "Available macOS Versions" = "Dostupne verzije sustava macOS";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Budući da ubrzanje OpenGL-a zahtijeva gostujuće alate za Virtual Mac, njihovim isključivanjem isključit će se i ubrzanje OpenGL-a. Aplikacije kao što je Final Cut Pro uglavnom koriste Metal, ali pri pokretanju provjeravaju mogućnosti OpenGL-a.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Pokretanje i mreža";
 "Bottom Left" = "Dolje lijevo";
 "Bottom Right" = "Dolje desno";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Dovršeni Virtualni Macovi i slike za obnovu izvan aplikacije neće se ukloniti.";
 "Configuration failed: %@" = "Konfiguracija nije uspjela: %@";
 "Configure %@" = "Konfiguriraj %@";
+"Configured" = "Configured";
 "Continue" = "Nastavi";
 "Controls Opacity" = "Neprozirnost kontrola";
 "Copy Library Path" = "Kopiraj put biblioteke";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC adresa";
 "Mac Keyboard" = "Mac tipkovnica";
 "Mac Keyboard Shortcuts" = "Tipkovnički prečaci za Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac dodirna ploha";
 "macOS Installed" = "macOS je instaliran";
 "Memory" = "Memorija";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Novi Virtualni Mac";
 "No Results" = "Nema rezultata";
 "No Virtual Macs match your search." = "Nijedan Virtualni Mac ne odgovara vašem pretraživanju.";
+"Not Configured" = "Not Configured";
 "Off" = "Isključeno";
 "OK" = "U redu";
 "On" = "Uključeno";
@@ -204,6 +209,7 @@
 "Resolution" = "Razlučivost";
 "Resources" = "Resursi";
 "Resume" = "Nastavi";
+"ROM" = "ROM";
 "Save" = "Spremi";
 "Save a ZIP file containing logs and crash reports." = "Spremite ZIP datoteku koja sadrži zapise i izvješća o rušenju.";
 "Save Diagnostics to Files" = "Spremi dijagnostiku u Datoteke";

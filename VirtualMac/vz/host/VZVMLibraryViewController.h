@@ -8,6 +8,10 @@ FOUNDATION_EXPORT NSString * const VZVirtualMacGuestToolsEnabledKey;
 FOUNDATION_EXPORT NSString * const VZMetalBCSupportEnabledKey;
 FOUNDATION_EXPORT NSString * const VZOpenGLAccelerationEnabledKey;
 FOUNDATION_EXPORT NSString * const VZGuestToolsRemovalPendingKey;
+FOUNDATION_EXPORT NSString * const VZAppleIdentityEnabledKey;
+FOUNDATION_EXPORT NSString * const VZAppleSerialNumberKey;
+FOUNDATION_EXPORT NSString * const VZAppleBoardSerialNumberKey;
+FOUNDATION_EXPORT NSString * const VZAppleROMKey;
 
 NSDictionary *VZVMDefaultOptions(void);
 NSDictionary *VZVMOptionsForBundle(NSString *bundlePath);

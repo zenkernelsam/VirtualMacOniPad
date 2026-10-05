@@ -5025,6 +5025,34 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
     id machineIdentifier = ((id(*)(id, SEL, id))objc_msgSend)(
         m0(CLS("VZMacMachineIdentifier"), "alloc"),
         S("initWithDataRepresentation:"), machineIdentifierData);
+    NSString *configuredSerial = options[VZAppleSerialNumberKey];
+    if ([options[VZAppleIdentityEnabledKey] boolValue] && configuredSerial.length) {
+        @try {
+            id serialObject = ((id(*)(id, SEL, id))objc_msgSend)(
+                m0(CLS("_VZMacSerialNumber"), "alloc"),
+                S("initWithString:"), configuredSerial);
+            SEL derive = S("_machineIdentifierWithSerialNumber:");
+            id derived = serialObject &&
+                [CLS("VZMacMachineIdentifier") respondsToSelector:derive]
+                ? ((id(*)(id, SEL, id))objc_msgSend)(
+                    CLS("VZMacMachineIdentifier"), derive, serialObject)
+                : nil;
+            if (derived) {
+                [machineIdentifier release];
+                machineIdentifier = [derived retain];
+                printf("[VirtualMac] Apple identity serial mapped to "
+                       "VZMacMachineIdentifier; MLB/ROM fields are stored "
+                       "for future mapping only\n");
+            } else {
+                printf("[VirtualMac] Apple identity serial mapping "
+                       "returned no machine identifier; using bundle value\n");
+            }
+            [serialObject release];
+        } @catch (NSException *exception) {
+            printf("[VirtualMac] Apple identity serial mapping failed: %s; "
+                   "using bundle value\n", exception.reason.UTF8String ?: "exception");
+        }
+    }
     setObj(platform, "setMachineIdentifier:", machineIdentifier);
 
     id configuration = NEW("VZVirtualMachineConfiguration");

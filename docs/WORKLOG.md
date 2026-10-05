@@ -433,6 +433,7 @@
 - [x] 包：`VirtualMac/build/release/VirtualMac_1.2.3_284fcf55bd.deb`；Debian version=`2:1.2.3+94.284fcf5.clock`；20,875,104 bytes；SHA256=`f6a1b81bd6bcdcef221c629f6c676a2542b8a4c419af758264f7b897bb75a76f`。飞牛副本同大小同 hash：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_284fcf55bd.deb`。
 - [x] 解包核验：App 含 `application resumed after ... syncing guest clock`、`requesting guest UTC clock sync`、Cached+Fsync、HUD/readiness 字符串；`ldid -h` 可读。94 未安装/未重启，93 保留回滚；需要后续用户正常关闭 VM 后安装并验证 guest 时间恢复。
 - [x] 新增 `docs/VM-TIME-AND-APPLE-IDENTITY-RESEARCH.md`：记录挂起恢复校时证据与合法 Apple identity 研究边界。VZ payload 静态确认 `VZMacMachineIdentifier` 含 ECID/serial/disableECIDChecks/dataRepresentation，以及私有 serial/ECID 派生方法；当前 App 仍只从 bundle 读取 HardwareModel/MachineIdentifier。
+- [x] Apple identity 配置入口已实现于 VM 配置页“音频与加速”之后：停机时填写 Mac Serial/Board Serial (MLB)/ROM，写入当前 VM `VirtualMac.plist`；开机仅对 Serial 尝试 VZ `_machineIdentifierWithSerialNumber:` 派生，MLB/ROM 保留待映射。37 个语言目录新增技术字段并通过 325-key localization audit；尚未用用户三码实测。
 
 ## 2026-10-05 — 93 Cached+Fsync 已安装只读核对
 

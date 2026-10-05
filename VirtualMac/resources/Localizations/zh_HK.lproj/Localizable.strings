@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "另一台虛擬Mac正在運行";
 "Apple Pencil Pressure" = "Apple Pencil壓力";
 "Apple Pencil Pressure and Tilt" = "Apple Pencil壓力與傾斜";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "音頻與加速";
 "Audio Output" = "音頻輸出";
 "Available macOS Releases" = "可用的macOS版本";
 "Available macOS Versions" = "可用的macOS版本";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "OpenGL加速需要虛擬Mac訪客工具，因此關閉訪客工具亦會關閉OpenGL加速。Final Cut Pro等app主要使用Metal，但啟動時仍會檢查OpenGL功能。";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "啓動與網絡";
 "Bottom Left" = "左下角";
 "Bottom Right" = "右下角";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "不會刪除完整的虛擬Mac，也不會刪除虛擬Mac文件夾之外的恢復鏡像。";
 "Configuration failed: %@" = "配置失敗：%@";
 "Configure %@" = "配置%@";
+"Configured" = "Configured";
 "Continue" = "繼續";
 "Controls Opacity" = "控制項不透明度";
 "Copy Library Path" = "複製資料庫路徑";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC地址";
 "Mac Keyboard" = "Mac鍵盤";
 "Mac Keyboard Shortcuts" = "Mac鍵盤快捷鍵";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac觸控板";
 "macOS Installed" = "macOS已安裝";
 "Memory" = "記憶體";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "建立虛擬Mac";
 "No Results" = "找不到結果";
 "No Virtual Macs match your search." = "沒有符合搜尋條件的虛擬Mac。";
+"Not Configured" = "Not Configured";
 "Off" = "關閉";
 "OK" = "好";
 "On" = "開啟";
@@ -204,6 +209,7 @@
 "Resolution" = "分辨率";
 "Resources" = "資源";
 "Resume" = "繼續";
+"ROM" = "ROM";
 "Save" = "儲存";
 "Save a ZIP file containing logs and crash reports." = "儲存包含記錄和當機報告的ZIP檔案。";
 "Save Diagnostics to Files" = "將診斷資料儲存到「檔案」";

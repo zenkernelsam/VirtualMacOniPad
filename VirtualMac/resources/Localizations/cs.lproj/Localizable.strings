@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Je spuštěný jiný virtuální Mac";
 "Apple Pencil Pressure" = "Přítlak Apple Pencilu";
 "Apple Pencil Pressure and Tilt" = "Přítlak a náklon Apple Pencilu";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Zvuk a akcelerace";
 "Audio Output" = "Zvukový výstup";
 "Available macOS Releases" = "Dostupná vydání macOS";
 "Available macOS Versions" = "Dostupné verze macOS";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Protože akcelerace OpenGL vyžaduje nástroje hosta Virtual Mac, jejich vypnutím se vypne také akcelerace OpenGL. Aplikace jako Final Cut Pro používají převážně Metal, ale při spuštění kontrolují podporu OpenGL.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Spouštění a síť";
 "Bottom Left" = "Vlevo dole";
 "Bottom Right" = "Vpravo dole";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Dokončené virtuální Macy a obrazy pro obnovení mimo Virtual Mac nebudou odstraněny.";
 "Configuration failed: %@" = "Konfigurace selhala: %@";
 "Configure %@" = "Konfigurovat %@";
+"Configured" = "Configured";
 "Continue" = "Pokračovat";
 "Controls Opacity" = "Krytí ovládacích prvků";
 "Copy Library Path" = "Kopírovat cestu knihovny";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC adresa";
 "Mac Keyboard" = "Klávesnice Mac";
 "Mac Keyboard Shortcuts" = "Klávesové zkratky Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS je nainstalován";
 "Memory" = "Paměť";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Nový Virtuální Mac";
 "No Results" = "Žádné výsledky";
 "No Virtual Macs match your search." = "Žádný virtuální Mac neodpovídá vašemu hledání.";
+"Not Configured" = "Not Configured";
 "Off" = "Vypnuto";
 "OK" = "OK";
 "On" = "Zapnuto";
@@ -204,6 +209,7 @@
 "Resolution" = "Rozlišení";
 "Resources" = "Prostředky";
 "Resume" = "Pokračovat";
+"ROM" = "ROM";
 "Save" = "Uložit";
 "Save a ZIP file containing logs and crash reports." = "Uložte soubor ZIP obsahující protokoly a zprávy o pádech.";
 "Save Diagnostics to Files" = "Uložit diagnostiku do Souborů";

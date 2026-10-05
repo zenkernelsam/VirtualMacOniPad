@@ -28,6 +28,10 @@ NSString * const VZVirtualMacGuestToolsEnabledKey =
 NSString * const VZMetalBCSupportEnabledKey = @"MetalBCSupportEnabled";
 NSString * const VZOpenGLAccelerationEnabledKey = @"OpenGLAccelerationEnabled";
 NSString * const VZGuestToolsRemovalPendingKey = @"GuestToolsRemovalPending";
+NSString * const VZAppleIdentityEnabledKey = @"AppleIdentityEnabled";
+NSString * const VZAppleSerialNumberKey = @"AppleSerialNumber";
+NSString * const VZAppleBoardSerialNumberKey = @"AppleBoardSerialNumber";
+NSString * const VZAppleROMKey = @"AppleROM";
 
 static NSString * const VZCPUCountKey = @"CPUCount";
 static NSString * const VZMemorySizeKey = @"MemorySize";
@@ -361,6 +365,7 @@ NSDictionary *VZVMDefaultOptions(void)
         VZMetalBCSupportEnabledKey: @YES,
         VZOpenGLAccelerationEnabledKey: @YES,
         VZGuestToolsRemovalPendingKey: @NO,
+        VZAppleIdentityEnabledKey: @NO,
         VZAudioOutputEnabledKey: @YES,
         VZAudioInputEnabledKey: @YES,
         VZVideoToolboxEnabledKey: @YES,
@@ -828,7 +833,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
 {
-    return 7;
+    return 8;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -848,18 +853,21 @@ void VZRemovePaths(NSArray<NSString *> *paths)
             ? 4 : 1;
     if (section == 5)
         return 5;
+    if (section == 6)
+        return 1;
     return self.bundlePath && self.running ? 0 : 1;
 }
 
 - (NSString *)tableView:(UITableView *)tableView
  titleForHeaderInSection:(NSInteger)section
 {
-    if (section == 6)
+    if (section == 7)
         return nil;
     return @[VZL(@"Resources"), VZL(@"Shared Folders"),
              self.bundlePath ? VZL(@"Boot and Network") : VZL(@"Network"),
              VZL(@"Input"), VZL(@"Display"),
-             VZL(@"Audio and Acceleration")][section];
+             VZL(@"Audio and Acceleration"),
+             VZL(@"Apple Services Identity")][section];
 }
 
 - (NSString *)tableView:(UITableView *)tableView
@@ -1028,6 +1036,17 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         cell.accessoryView = toggle;
         cell.accessoryType = UITableViewCellAccessoryNone;
         cell.detailTextLabel.text = nil;
+    } else if (indexPath.section == 6) {
+        cell.textLabel.text = VZL(@"Apple Services Identity");
+        BOOL configured = [self.options[VZAppleIdentityEnabledKey] boolValue] &&
+            [self.options[VZAppleSerialNumberKey] length] > 0;
+        cell.detailTextLabel.text = configured
+            ? VZL(@"Configured") : VZL(@"Not Configured");
+        if (self.running) {
+            cell.textLabel.textColor = UIColor.secondaryLabelColor;
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+            cell.accessoryType = UITableViewCellAccessoryNone;
+        }
     } else if (!self.bundlePath) {
         cell.textLabel.text = VZL(@"Continue");
         cell.textLabel.textAlignment = NSTextAlignmentCenter;
@@ -1417,6 +1436,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
                          title:titles[indexPath.row - 1]
                            min:minimum max:maximum bytes:NO];
     } else if (indexPath.section == 6) {
+        [self editAppleIdentity];
+    } else if (indexPath.section == 7) {
         if (self.bundlePath)
             [self confirmDeleteVirtualMac];
         else
@@ -1550,6 +1571,52 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     }]];
     [alert addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
         style:UIAlertActionStyleCancel handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)editAppleIdentity
+{
+    if (self.running)
+        return;
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:VZL(@"Apple Services Identity")
+                         message:VZL(@"Experimental")
+                  preferredStyle:UIAlertControllerStyleAlert];
+    NSArray *keys = @[VZAppleSerialNumberKey, VZAppleBoardSerialNumberKey,
+                      VZAppleROMKey];
+    NSArray *placeholders = @[VZL(@"Mac Serial Number"),
+                              VZL(@"Board Serial Number (MLB)"),
+                              VZL(@"ROM")];
+    for (NSUInteger i = 0; i < keys.count; i++) {
+        NSString *key = keys[i];
+        NSString *placeholder = placeholders[i];
+        [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+            field.placeholder = placeholder;
+            field.text = self.options[key];
+            field.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
+            field.autocorrectionType = UITextAutocorrectionTypeNo;
+            field.clearButtonMode = UITextFieldViewModeWhileEditing;
+        }];
+    }
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
+        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        (void)action;
+        for (NSUInteger i = 0; i < keys.count; i++) {
+            NSString *value = [alert.textFields[i].text
+                stringByTrimmingCharactersInSet:
+                    NSCharacterSet.whitespaceAndNewlineCharacterSet];
+            if (value.length)
+                self.options[keys[i]] = value;
+            else
+                [self.options removeObjectForKey:keys[i]];
+        }
+        self.options[VZAppleIdentityEnabledKey] = @(
+            [self.options[VZAppleSerialNumberKey] length] > 0);
+        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:6]
+                      withRowAnimation:UITableViewRowAnimationNone];
+    }]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

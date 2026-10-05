@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Outro Virtual Mac está em execução";
 "Apple Pencil Pressure" = "Pressão do Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "Pressão e inclinação do Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Áudio e aceleração";
 "Audio Output" = "Saída de áudio";
 "Available macOS Releases" = "Versões disponíveis do macOS";
 "Available macOS Versions" = "Versões disponíveis do macOS";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Como a aceleração OpenGL requer as ferramentas de convidado do Virtual Mac, desativá-las também desativará a aceleração OpenGL. As apps como o Final Cut Pro usam sobretudo Metal, mas verificam as capacidades do OpenGL para arrancar.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Arranque e rede";
 "Bottom Left" = "Inferior esquerdo";
 "Bottom Right" = "Inferior direito";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Os Virtual Macs concluídos e as imagens de restauro fora da aplicação Virtual Mac não serão removidos.";
 "Configuration failed: %@" = "A configuração falhou: %@";
 "Configure %@" = "Configurar %@";
+"Configured" = "Configured";
 "Continue" = "Continuar";
 "Controls Opacity" = "Opacidade dos controlos";
 "Copy Library Path" = "Copiar caminho da biblioteca";
@@ -146,6 +149,7 @@
 "MAC Address" = "Endereço MAC";
 "Mac Keyboard" = "Teclado Mac";
 "Mac Keyboard Shortcuts" = "Atalhos de teclado do Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS instalado";
 "Memory" = "Memória";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Novo Mac Virtual";
 "No Results" = "Sem resultados";
 "No Virtual Macs match your search." = "Nenhum Mac Virtual corresponde à pesquisa.";
+"Not Configured" = "Not Configured";
 "Off" = "Desativado";
 "OK" = "OK";
 "On" = "Ativado";
@@ -204,6 +209,7 @@
 "Resolution" = "Resolução";
 "Resources" = "Recursos";
 "Resume" = "Retomar";
+"ROM" = "ROM";
 "Save" = "Guardar";
 "Save a ZIP file containing logs and crash reports." = "Guarde um ficheiro ZIP com registos e relatórios de falhas.";
 "Save Diagnostics to Files" = "Guardar diagnósticos em Ficheiros";

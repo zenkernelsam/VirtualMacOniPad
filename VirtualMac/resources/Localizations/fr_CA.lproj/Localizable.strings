@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Un autre Mac virtuel est en cours d’exécution";
 "Apple Pencil Pressure" = "Pression de l’Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "Pression et inclinaison de l’Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Audio et accélération";
 "Audio Output" = "Sortie audio";
 "Available macOS Releases" = "Versions disponibles de macOS";
 "Available macOS Versions" = "Versions de macOS disponibles";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Puisque l’accélération OpenGL nécessite les outils d’invité Virtual Mac, leur désactivation désactivera aussi l’accélération OpenGL. Les apps comme Final Cut Pro utilisent surtout Metal, mais vérifient les capacités OpenGL pour pouvoir démarrer.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Démarrage et réseau";
 "Bottom Left" = "En bas à gauche";
 "Bottom Right" = "En bas à droite";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Les Mac virtuels complets et les images de restauration situés hors de Virtual Mac ne sont pas supprimés.";
 "Configuration failed: %@" = "Échec de la configuration : %@";
 "Configure %@" = "Configurer %@";
+"Configured" = "Configured";
 "Continue" = "Continuer";
 "Controls Opacity" = "Opacité des commandes";
 "Copy Library Path" = "Copier le chemin de la bibliothèque";
@@ -146,6 +149,7 @@
 "MAC Address" = "Adresse MAC";
 "Mac Keyboard" = "Clavier Mac";
 "Mac Keyboard Shortcuts" = "Raccourcis clavier Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS est installé";
 "Memory" = "Mémoire";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Nouveau Mac virtuel";
 "No Results" = "Aucun résultat";
 "No Virtual Macs match your search." = "Aucun Mac virtuel ne correspond à votre recherche.";
+"Not Configured" = "Not Configured";
 "Off" = "Désactivé";
 "OK" = "OK";
 "On" = "Activé";
@@ -204,6 +209,7 @@
 "Resolution" = "Résolution";
 "Resources" = "Ressources";
 "Resume" = "Reprendre";
+"ROM" = "ROM";
 "Save" = "Enregistrer";
 "Save a ZIP file containing logs and crash reports." = "Enregistrez un fichier ZIP contenant les journaux et les rapports de plantage.";
 "Save Diagnostics to Files" = "Enregistrer les diagnostics dans Fichiers";

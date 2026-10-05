@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "มี Virtual Mac เครื่องอื่นกำลังทำงานอยู่";
 "Apple Pencil Pressure" = "แรงกดของ Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "แรงกดและการเอียงของ Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "เสียงและการเร่งความเร็ว";
 "Audio Output" = "สัญญาณเสียงออก";
 "Available macOS Releases" = "รุ่น macOS ที่พร้อมใช้งาน";
 "Available macOS Versions" = "เวอร์ชัน macOS ที่มีให้เลือก";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "เนื่องจากการเร่งความเร็ว OpenGL ต้องใช้เครื่องมือเกสต์ของ Virtual Mac การปิดเครื่องมือเกสต์จะปิดการเร่งความเร็ว OpenGL ด้วย แอปอย่าง Final Cut Pro ใช้ Metal เป็นหลัก แต่จะตรวจสอบความสามารถของ OpenGL ก่อนเปิด";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "การเริ่มระบบและเครือข่าย";
 "Bottom Left" = "ล่างซ้าย";
 "Bottom Right" = "ล่างขวา";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Virtual Mac ที่เสร็จสมบูรณ์และอิมเมจกู้คืนที่อยู่นอก Virtual Mac จะไม่ถูกลบ";
 "Configuration failed: %@" = "กำหนดค่าไม่สำเร็จ: %@";
 "Configure %@" = "กำหนดค่า %@";
+"Configured" = "Configured";
 "Continue" = "ดำเนินการต่อ";
 "Controls Opacity" = "ความทึบของตัวควบคุม";
 "Copy Library Path" = "คัดลอกเส้นทางไลบรารี";
@@ -146,6 +149,7 @@
 "MAC Address" = "ที่อยู่ MAC";
 "Mac Keyboard" = "แป้นพิมพ์ Mac";
 "Mac Keyboard Shortcuts" = "แป้นพิมพ์ลัด Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "แทร็คแพด Mac";
 "macOS Installed" = "ติดตั้ง macOS แล้ว";
 "Memory" = "หน่วยความจำ";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Mac เสมือนเครื่องใหม่";
 "No Results" = "ไม่พบผลลัพธ์";
 "No Virtual Macs match your search." = "ไม่พบ Virtual Mac ที่ตรงกับการค้นหา";
+"Not Configured" = "Not Configured";
 "Off" = "ปิด";
 "OK" = "ตกลง";
 "On" = "เปิด";
@@ -204,6 +209,7 @@
 "Resolution" = "ความละเอียด";
 "Resources" = "ทรัพยากร";
 "Resume" = "ทำงานต่อ";
+"ROM" = "ROM";
 "Save" = "บันทึก";
 "Save a ZIP file containing logs and crash reports." = "บันทึกไฟล์ ZIP ที่มีบันทึกและรายงานข้อขัดข้อง";
 "Save Diagnostics to Files" = "บันทึกข้อมูลวินิจฉัยไปยังไฟล์";

@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Virtual Mac Lain Sedang Berjalan";
 "Apple Pencil Pressure" = "Tekanan Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "Tekanan dan Kemiringan Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Audio dan Akselerasi";
 "Audio Output" = "Keluaran Audio";
 "Available macOS Releases" = "Rilis macOS yang Tersedia";
 "Available macOS Versions" = "Versi macOS yang Tersedia";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Karena akselerasi OpenGL memerlukan alat tamu Virtual Mac, mematikan alat tamu juga akan mematikan akselerasi OpenGL. App seperti Final Cut Pro terutama menggunakan Metal, tetapi memeriksa kemampuan OpenGL agar dapat dibuka.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Boot dan Jaringan";
 "Bottom Left" = "Kiri Bawah";
 "Bottom Right" = "Kanan Bawah";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Perangkat Virtual Mac lengkap dan citra pemulihan di luar Virtual Mac tidak akan dihapus.";
 "Configuration failed: %@" = "Konfigurasi gagal: %@";
 "Configure %@" = "Konfigurasikan %@";
+"Configured" = "Configured";
 "Continue" = "Lanjutkan";
 "Controls Opacity" = "Opasitas Kontrol";
 "Copy Library Path" = "Salin Jalur Perpustakaan";
@@ -146,6 +149,7 @@
 "MAC Address" = "Alamat MAC";
 "Mac Keyboard" = "Papan Ketik Mac";
 "Mac Keyboard Shortcuts" = "Pintasan Keyboard Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Trackpad Mac";
 "macOS Installed" = "macOS Terinstal";
 "Memory" = "Memori";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Mac Virtual Baru";
 "No Results" = "Tidak Ada Hasil";
 "No Virtual Macs match your search." = "Tidak ada Mac Virtual yang cocok dengan pencarian Anda.";
+"Not Configured" = "Not Configured";
 "Off" = "Mati";
 "OK" = "OKE";
 "On" = "Nyala";
@@ -204,6 +209,7 @@
 "Resolution" = "Resolusi";
 "Resources" = "Sumber Daya";
 "Resume" = "Lanjutkan";
+"ROM" = "ROM";
 "Save" = "Simpan";
 "Save a ZIP file containing logs and crash reports." = "Simpan file ZIP yang berisi log dan laporan crash.";
 "Save Diagnostics to Files" = "Simpan Diagnostik ke File";

@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Başka Bir Sanal Mac Çalışıyor";
 "Apple Pencil Pressure" = "Apple Pencil Basıncı";
 "Apple Pencil Pressure and Tilt" = "Apple Pencil Basıncı ve Eğimi";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Ses ve Hızlandırma";
 "Audio Output" = "Ses Çıkışı";
 "Available macOS Releases" = "Kullanılabilir macOS Sürümleri";
 "Available macOS Versions" = "Kullanılabilir macOS Sürümleri";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "OpenGL hızlandırma Virtual Mac konuk araçlarını gerektirdiğinden, konuk araçlarını kapatmak OpenGL hızlandırmayı da kapatır. Final Cut Pro gibi uygulamalar çoğunlukla Metal kullanır ancak açılmak için OpenGL özelliklerini denetler.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Önyükleme ve Ağ";
 "Bottom Left" = "Sol Alt";
 "Bottom Right" = "Sağ Alt";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Virtual Mac dışındaki tamamlanmış Sanal Mac’ler ve geri yükleme imajları kaldırılmaz.";
 "Configuration failed: %@" = "Yapılandırma başarısız: %@";
 "Configure %@" = "%@ Aygıtını Yapılandır";
+"Configured" = "Configured";
 "Continue" = "Sürdür";
 "Controls Opacity" = "Denetim Opaklığı";
 "Copy Library Path" = "Kitaplık Yolunu Kopyala";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC Adresi";
 "Mac Keyboard" = "Mac Klavyesi";
 "Mac Keyboard Shortcuts" = "Mac Klavye Kısayolları";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac İzleme Dörtgeni";
 "macOS Installed" = "macOS Kuruldu";
 "Memory" = "Bellek";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Yeni Sanal Mac";
 "No Results" = "Sonuç Yok";
 "No Virtual Macs match your search." = "Aramanızla eşleşen bir Sanal Mac yok.";
+"Not Configured" = "Not Configured";
 "Off" = "Kapalı";
 "OK" = "Tamam";
 "On" = "Açık";
@@ -204,6 +209,7 @@
 "Resolution" = "Çözünürlük";
 "Resources" = "Kaynaklar";
 "Resume" = "Sürdür";
+"ROM" = "ROM";
 "Save" = "Kaydet";
 "Save a ZIP file containing logs and crash reports." = "Günlükleri ve çökme raporlarını içeren bir ZIP dosyası kaydedin.";
 "Save Diagnostics to Files" = "Tanılamayı Dosyalar’a Kaydet";

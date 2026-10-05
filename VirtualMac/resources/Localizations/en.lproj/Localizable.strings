@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Another Virtual Mac Is Running";
 "Apple Pencil Pressure" = "Apple Pencil Pressure";
 "Apple Pencil Pressure and Tilt" = "Apple Pencil Pressure and Tilt";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Audio and Acceleration";
 "Audio Output" = "Audio Output";
 "Available macOS Releases" = "Available macOS Releases";
 "Available macOS Versions" = "Available macOS Versions";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Boot and Network";
 "Bottom Left" = "Bottom Left";
 "Bottom Right" = "Bottom Right";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed.";
 "Configuration failed: %@" = "Configuration failed: %@";
 "Configure %@" = "Configure %@";
+"Configured" = "Configured";
 "Continue" = "Continue";
 "Controls Opacity" = "Controls Opacity";
 "Copy Library Path" = "Copy Library Path";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC Address";
 "Mac Keyboard" = "Mac Keyboard";
 "Mac Keyboard Shortcuts" = "Mac Keyboard Shortcuts";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac Trackpad";
 "macOS Installed" = "macOS Installed";
 "Memory" = "Memory";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "New Virtual Mac";
 "No Results" = "No Results";
 "No Virtual Macs match your search." = "No Virtual Macs match your search.";
+"Not Configured" = "Not Configured";
 "Off" = "Off";
 "OK" = "OK";
 "On" = "On";
@@ -204,6 +209,7 @@
 "Resolution" = "Resolution";
 "Resources" = "Resources";
 "Resume" = "Resume";
+"ROM" = "ROM";
 "Save" = "Save";
 "Save a ZIP file containing logs and crash reports." = "Save a ZIP file containing logs and crash reports.";
 "Save Diagnostics to Files" = "Save Diagnostics to Files";

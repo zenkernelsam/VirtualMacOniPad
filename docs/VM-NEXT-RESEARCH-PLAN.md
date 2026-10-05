@@ -150,6 +150,8 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 详细证据与时间同步候选见 `docs/VM-TIME-AND-APPLE-IDENTITY-RESEARCH.md`。当前源码的时间同步候选只在 App 长时间 inactive 恢复后通过现有 GuestTools agent 执行 UTC 校时，未打包、未安装。
 
+Apple identity UI 已加入 VM 配置页“音频与加速”之后，停机时可填写用户自有的 Serial/MLB/ROM；当前只对 Serial 做 VZ MachineIdentifier 派生尝试，MLB/ROM 仍是待映射字段。
+
 ## Kernel/rootfs 补丁可行性边界（2026-10-03）
 
 ### USB：加载 AppleUSBUserHCI 不等于物理 USB 直通

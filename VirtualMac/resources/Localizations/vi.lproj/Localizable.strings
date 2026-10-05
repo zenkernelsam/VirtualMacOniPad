@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Một máy Mac ảo khác đang chạy";
 "Apple Pencil Pressure" = "Lực nhấn Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "Lực nhấn và độ nghiêng của Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Âm thanh và tăng tốc";
 "Audio Output" = "Đầu ra âm thanh";
 "Available macOS Releases" = "Các bản phát hành macOS có sẵn";
 "Available macOS Versions" = "Các phiên bản macOS khả dụng";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Vì tăng tốc OpenGL cần công cụ máy khách Virtual Mac, việc tắt công cụ máy khách cũng sẽ tắt tăng tốc OpenGL. Các ứng dụng như Final Cut Pro chủ yếu dùng Metal nhưng vẫn kiểm tra khả năng OpenGL để khởi chạy.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Khởi động và mạng";
 "Bottom Left" = "Dưới cùng bên trái";
 "Bottom Right" = "Dưới cùng bên phải";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Các máy Mac ảo hoàn chỉnh và ảnh khôi phục nằm ngoài Virtual Mac sẽ không bị xóa.";
 "Configuration failed: %@" = "Cấu hình không thành công: %@";
 "Configure %@" = "Định cấu hình %@";
+"Configured" = "Configured";
 "Continue" = "Tiếp tục";
 "Controls Opacity" = "Độ mờ của điều khiển";
 "Copy Library Path" = "Sao chép đường dẫn thư viện";
@@ -146,6 +149,7 @@
 "MAC Address" = "Địa chỉ MAC";
 "Mac Keyboard" = "Bàn phím Mac";
 "Mac Keyboard Shortcuts" = "Phím tắt Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Bàn di chuột Mac";
 "macOS Installed" = "Đã cài đặt macOS";
 "Memory" = "Bộ nhớ";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Máy Mac ảo mới";
 "No Results" = "Không có kết quả";
 "No Virtual Macs match your search." = "Không có Máy Mac ảo nào khớp với tìm kiếm.";
+"Not Configured" = "Not Configured";
 "Off" = "Tắt";
 "OK" = "OK";
 "On" = "Bật";
@@ -204,6 +209,7 @@
 "Resolution" = "Độ phân giải";
 "Resources" = "Tài nguyên";
 "Resume" = "Tiếp tục";
+"ROM" = "ROM";
 "Save" = "Lưu";
 "Save a ZIP file containing logs and crash reports." = "Lưu tệp ZIP chứa nhật ký và báo cáo sự cố.";
 "Save Diagnostics to Files" = "Lưu chẩn đoán vào Tệp";

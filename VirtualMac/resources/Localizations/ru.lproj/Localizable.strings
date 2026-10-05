@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Уже запущен другой виртуальный Mac";
 "Apple Pencil Pressure" = "Сила нажатия Apple Pencil";
 "Apple Pencil Pressure and Tilt" = "Нажим и наклон Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Аудио и ускорение";
 "Audio Output" = "Аудиовыход";
 "Available macOS Releases" = "Доступные выпуски macOS";
 "Available macOS Versions" = "Доступные версии macOS";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Поскольку для ускорения OpenGL нужны гостевые инструменты Virtual Mac, их отключение также отключит ускорение OpenGL. Приложения, такие как Final Cut Pro, в основном используют Metal, но для запуска проверяют возможности OpenGL.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Загрузка и сеть";
 "Bottom Left" = "Слева внизу";
 "Bottom Right" = "Справа внизу";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Готовые виртуальные Mac и образы восстановления вне приложения удалены не будут.";
 "Configuration failed: %@" = "Ошибка конфигурации: %@";
 "Configure %@" = "Настроить %@";
+"Configured" = "Configured";
 "Continue" = "Продолжить";
 "Controls Opacity" = "Непрозрачность элементов управления";
 "Copy Library Path" = "Копировать путь к библиотеке";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC Адрес";
 "Mac Keyboard" = "Клавиатура Mac";
 "Mac Keyboard Shortcuts" = "Сочетания клавиш Mac";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Трекпад Mac";
 "macOS Installed" = "macOS установлена";
 "Memory" = "Память";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Новый Виртуальный Mac";
 "No Results" = "Результатов нет";
 "No Virtual Macs match your search." = "Ни один виртуальный Mac не соответствует поиску.";
+"Not Configured" = "Not Configured";
 "Off" = "Выкл.";
 "OK" = "ОК";
 "On" = "Вкл.";
@@ -204,6 +209,7 @@
 "Resolution" = "Разрешение";
 "Resources" = "Ресурсы";
 "Resume" = "Возобновить";
+"ROM" = "ROM";
 "Save" = "Сохранить";
 "Save a ZIP file containing logs and crash reports." = "Сохраните ZIP-файл с журналами и отчетами о сбоях.";
 "Save Diagnostics to Files" = "Сохранить диагностику в «Файлы»";

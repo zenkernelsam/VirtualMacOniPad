@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Toinen virtuaalinen Mac on käynnissä";
 "Apple Pencil Pressure" = "Apple Pencilin paine";
 "Apple Pencil Pressure and Tilt" = "Apple Pencilin paine ja kallistus";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Ääni ja kiihdytys";
 "Audio Output" = "Äänilähtö";
 "Available macOS Releases" = "Saatavilla olevat macOS-julkaisut";
 "Available macOS Versions" = "Saatavilla olevat macOS-versiot";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Koska OpenGL-kiihdytys vaatii Virtual Macin vierastyökalut, niiden poistaminen käytöstä poistaa käytöstä myös OpenGL-kiihdytyksen. Final Cut Pron kaltaiset apit käyttävät enimmäkseen Metalia, mutta tarkistavat OpenGL-ominaisuudet käynnistyäkseen.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Käynnistys ja verkko";
 "Bottom Left" = "Alavasen";
 "Bottom Right" = "Alaoikea";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Valmiita virtuaalisia Maceja ja Virtual Macin ulkopuolisia palautuskuvia ei poisteta.";
 "Configuration failed: %@" = "Määritys epäonnistui: %@";
 "Configure %@" = "Määritä %@";
+"Configured" = "Configured";
 "Continue" = "Jatka";
 "Controls Opacity" = "Säätimien peittävyys";
 "Copy Library Path" = "Kopioi kirjastopolku";
@@ -146,6 +149,7 @@
 "MAC Address" = "Mac osoite";
 "Mac Keyboard" = "Mac-näppäimistö";
 "Mac Keyboard Shortcuts" = "Macin pikanäppäimet";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-ohjauslevy";
 "macOS Installed" = "macOS asennettu";
 "Memory" = "Muisti";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Uusi virtuaalinen Mac";
 "No Results" = "Ei tuloksia";
 "No Virtual Macs match your search." = "Yksikään virtuaalinen Mac ei vastaa hakuasi.";
+"Not Configured" = "Not Configured";
 "Off" = "Pois";
 "OK" = "OK";
 "On" = "Päällä";
@@ -204,6 +209,7 @@
 "Resolution" = "Resoluutio";
 "Resources" = "Resurssit";
 "Resume" = "Jatka";
+"ROM" = "ROM";
 "Save" = "Tallenna";
 "Save a ZIP file containing logs and crash reports." = "Tallenna lokit ja kaatumisraportit sisältävä ZIP-tiedosto.";
 "Save Diagnostics to Files" = "Tallenna diagnostiikka Tiedostot-appiin";

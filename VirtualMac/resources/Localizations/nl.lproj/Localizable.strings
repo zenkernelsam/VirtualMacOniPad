@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Er wordt al een andere Virtual Mac uitgevoerd";
 "Apple Pencil Pressure" = "Apple Pencil-druk";
 "Apple Pencil Pressure and Tilt" = "Druk en kanteling van Apple Pencil";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Audio en versnelling";
 "Audio Output" = "Audio-uitvoer";
 "Available macOS Releases" = "Beschikbare macOS-versies";
 "Available macOS Versions" = "Beschikbare macOS-versies";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Omdat OpenGL-versnelling de Virtual Mac-gasttools vereist, wordt OpenGL-versnelling ook uitgeschakeld wanneer je de gasttools uitschakelt. Apps zoals Final Cut Pro gebruiken vooral Metal, maar controleren OpenGL-mogelijkheden om te kunnen starten.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Opstarten en netwerk";
 "Bottom Left" = "Linksonder";
 "Bottom Right" = "Rechtsonder";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Voltooide Virtual Macs en herstelimages buiten Virtual Mac worden niet verwijderd.";
 "Configuration failed: %@" = "Configuratie mislukt: %@";
 "Configure %@" = "%@ configureren";
+"Configured" = "Configured";
 "Continue" = "Ga door";
 "Controls Opacity" = "Dekking van regelaars";
 "Copy Library Path" = "Kopieer bibliotheekpad";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC-adres";
 "Mac Keyboard" = "Mac-toetsenbord";
 "Mac Keyboard Shortcuts" = "Mac-sneltoetsen";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-trackpad";
 "macOS Installed" = "macOS geïnstalleerd";
 "Memory" = "Geheugen";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Nieuwe virtuele Mac";
 "No Results" = "Geen resultaten";
 "No Virtual Macs match your search." = "Geen enkele virtuele Mac komt overeen met uw zoekopdracht.";
+"Not Configured" = "Not Configured";
 "Off" = "Uit";
 "OK" = "OK";
 "On" = "Aan";
@@ -204,6 +209,7 @@
 "Resolution" = "Resolutie";
 "Resources" = "Resources";
 "Resume" = "Hervat";
+"ROM" = "ROM";
 "Save" = "Bewaar";
 "Save a ZIP file containing logs and crash reports." = "Bewaar een ZIP-bestand met logbestanden en crashrapporten.";
 "Save Diagnostics to Files" = "Diagnostische gegevens bewaren in Bestanden";

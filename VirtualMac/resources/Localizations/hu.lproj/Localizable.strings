@@ -21,11 +21,13 @@
 "Another Virtual Mac Is Running" = "Egy másik virtuális Mac fut";
 "Apple Pencil Pressure" = "Apple Pencil nyomásérzékelése";
 "Apple Pencil Pressure and Tilt" = "Apple Pencil nyomás és dőlés";
+"Apple Services Identity" = "Apple Services Identity";
 "Audio and Acceleration" = "Hang és gyorsítás";
 "Audio Output" = "Hangkimenet";
 "Available macOS Releases" = "Elérhető macOS-kiadások";
 "Available macOS Versions" = "Elérhető macOS-verziók";
 "Because OpenGL acceleration requires Virtual Mac guest tools, turning off Virtual Mac guest tools will also turn off OpenGL acceleration. Apps such as Final Cut Pro mostly use Metal, but they check for OpenGL capabilities in order to launch." = "Mivel az OpenGL-gyorsításhoz szükség van a Virtual Mac vendégeszközeire, azok kikapcsolása az OpenGL-gyorsítást is kikapcsolja. A Final Cut Pro és más appok főként a Metalt használják, de induláskor ellenőrzik az OpenGL-képességeket.";
+"Board Serial Number (MLB)" = "Board Serial Number (MLB)";
 "Boot and Network" = "Indítás és hálózat";
 "Bottom Left" = "Bal alsó";
 "Bottom Right" = "Jobb alsó";
@@ -49,6 +51,7 @@
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "A kész virtuális Macek és a Virtual Macen kívüli helyreállítási lemezképek nem lesznek eltávolítva.";
 "Configuration failed: %@" = "Sikertelen konfiguráció: %@";
 "Configure %@" = "%@ konfigurálása";
+"Configured" = "Configured";
 "Continue" = "Folytatás";
 "Controls Opacity" = "Vezérlők átlátszatlansága";
 "Copy Library Path" = "Könyvtár elérési út másolása";
@@ -146,6 +149,7 @@
 "MAC Address" = "MAC-cím";
 "Mac Keyboard" = "Mac-billentyűzet";
 "Mac Keyboard Shortcuts" = "Mac Billentyűparancsok";
+"Mac Serial Number" = "Mac Serial Number";
 "Mac Trackpad" = "Mac-trackpad";
 "macOS Installed" = "macOS telepítve";
 "Memory" = "Memória";
@@ -162,6 +166,7 @@
 "New Virtual Mac" = "Új Virtuális Mac";
 "No Results" = "Nincs találat";
 "No Virtual Macs match your search." = "Egyetlen virtuális Mac sem felel meg a keresésnek.";
+"Not Configured" = "Not Configured";
 "Off" = "Ki";
 "OK" = "OK";
 "On" = "Be";
@@ -204,6 +209,7 @@
 "Resolution" = "Felbontás";
 "Resources" = "Erőforrások";
 "Resume" = "Folytatás";
+"ROM" = "ROM";
 "Save" = "Mentés";
 "Save a ZIP file containing logs and crash reports." = "Mentsen egy naplókat és összeomlási jelentéseket tartalmazó ZIP-fájlt.";
 "Save Diagnostics to Files" = "Diagnosztika mentése a Fájlokba";

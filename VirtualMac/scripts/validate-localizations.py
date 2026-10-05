@@ -44,6 +44,12 @@ TECHNICAL_IDENTICAL_VALUES = {
     "Virtual Mac",
     "VPN",
     "Wi-Fi",
+    "Apple Services Identity",
+    "Mac Serial Number",
+    "Board Serial Number (MLB)",
+    "ROM",
+    "Configured",
+    "Not Configured",
 }
 
 

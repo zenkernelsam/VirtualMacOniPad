@@ -60,3 +60,7 @@
 5. 保留原 bundle 和 93 回滚，不承诺 Apple 服务一定允许虚拟机或重复身份。
 
 不生成第三方序列号、不复用他人身份、不绕过 Activation Lock/Apple 风控、不伪造签名、不注入运行中 VMM。若 Apple 服务因虚拟机策略或硬件信任链拒绝，结论应记录为平台限制。
+
+### 当前 UI 入口候选（已实现，待设备验收）
+
+VM 配置页的“音频与加速”之后新增“Apple Services Identity”入口，停机时可填写 Mac Serial Number、Board Serial Number (MLB) 和 ROM；值保存在当前 VM 的 `VirtualMac.plist`，不写入 Git、日志或打包元数据。开机配置阶段只对已知的 Mac Serial 尝试调用 VZ 私有 `_VZMacSerialNumber` + `_machineIdentifierWithSerialNumber:` 派生 `VZMacMachineIdentifier`；MLB/ROM 暂时保存为未来映射字段并明确打印，不伪称已接入。当前仍未拿用户三码做实测，也未承诺 iCloud 一定恢复。

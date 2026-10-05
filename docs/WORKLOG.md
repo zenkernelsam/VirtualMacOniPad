@@ -526,3 +526,10 @@
 - [x] 修复所有身份列表回调的 section/row 边界检查；删除按 path 查找、更新 immutable data source 并显式 reload；当前/删除中的路径受保护；身份池保留真实 timestamp/suffix 文件名。
 - [x] 修复旧 Serial override 启动时改写 MachineIdentifier 的路径；损坏 HardwareModel/MachineIdentifier 现在转为配置错误，不抛异常崩溃。
 - [x] 新 VM 启动证据仍有 GuestTools ready、PVG frame 和 framebuffer ACK；本次 crash 属于管理 UI，不是 VM 黑屏。
+
+
+## 2026-10-06 — 103 identity audit package delivery
+
+- [x] 完整身份功能审计后构建 103：`VirtualMac/build/release/VirtualMac_1.2.3_b8fddeeb65.deb`，版本 `2:1.2.3+103.identityaudit`，20,864,040 bytes，SHA256 `bebfc09d47c7a81902d90f57c2d735cd75e38305311c0e3fe9f188ddbebc82a4`。
+- [x] 103 包含 stale index 越界保护、删除后数据源刷新、真实 suffix 文件名保留、Add 错误回显、MachineIdentifier/HardwareModel 异常保护、旧 Serial override 禁用；331串本地化、App 编译和 package stage audit 通过。
+- [x] 已复制到飞牛和 iPad Files，远端大小/SHA256 一致；未安装、未重启。

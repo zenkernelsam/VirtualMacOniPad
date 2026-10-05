@@ -425,4 +425,11 @@
 - [x] 93 包：`VirtualMac/build/release/VirtualMac_1.2.3_078e03b64c.deb`；Debian version=`2:1.2.3+93.078e03b.diskcached`；20,867,912 bytes；SHA256=`4f5b3883c71abe75eaaf2206e8a4c211ad7f4b269f7cf24a8186c39101a1d700`。飞牛副本同大小同 SHA256：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_078e03b64c.deb`。
 - [x] 解包核验：App 含 `cache=cached(2) synchronization=fsync(2)` 与 fallback 字符串，同时保留 HUD/readiness/GPU 代码；`ldid -h` 可读。93 未安装、未重启，92 保留为回滚；需要用户正常关 VM 后安装，观察 attachment 日志、I/O 体感、wakeups、内存压力和 guest 文件系统一致性。
 - [x] 记录两个后续需求：挂起恢复后的 guest 时间同步；iCloud/Apple 服务身份链与合法 Mac identity 研究。两者不混入 93 磁盘 MVP。
+
+## 2026-10-05 — 93 Cached+Fsync 已安装只读核对
+
+- [x] iPad `dpkg-query` 返回 `com.mac.virtual 2:1.2.3+93.078e03b.diskcached install ok installed`；App Info.plist 为 `CFBundleShortVersionString=1.2.3`、`CFBundleVersion=134`，与用户界面 `1.2.3 (134)` 一致。
+- [x] 新日志逐字出现 `[VirtualMac] disk attachment cache=cached(2) synchronization=fsync(2)`，证明 93 的高级磁盘策略实际走到；未见 cached+fsync fallback。
+- [x] GuestTools 多次启动均最终出现 `guest menu extra acknowledged token`；某次曾到 `repair attempt 7` 后确认 token，不能据此宣称长期无 repair，但当前握手完成。
+- [x] GPU stderr 仍为 `profile=host-clamped-v1 pairs=12 serializer=unchanged`、`existingApplied=12 dropped=0`，并出现 native BC ABI validation；本次只读核对未见新的 fault/recovery 行。93 已安装，尚未做磁盘 I/O 对照、Godot 长时或性能结论。
 - [x] 新增 `VirtualMac/scripts/research/record-ipad-key-events.py` 只读 SSH 捕获工具，并做 3 秒 smoke test；当前 92 会话已超过 `sendKey` 前 12 次日志上限，本轮只得到 pointer 坐标、没有新的 HID/keyCode 行，不能据此判定 F1–F12 失败。完整逐键记录需后续 Debug Logging 版本/启动。

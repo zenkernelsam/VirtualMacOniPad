@@ -79,7 +79,6 @@
 "Delete Temporary Installation Files?" = "Hapus File Instalasi Sementara?";
 "Delete Virtual Mac" = "Hapus Virtual Mac";
 "Delete Virtual Mac?" = "Hapus Virtual Mac?";
-"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Jelaskan masalahnya, lalu lampirkan ZIP diagnostik dan rekaman layar. Jika Safari tidak dapat membuka Github, gunakan komputer.";
 "Developer Beta" = "Beta Pengembang";
 "Developers" = "Pengembang";
@@ -118,9 +117,9 @@
 "Full Screen" = "Layar Penuh";
 "Full Screen Mirroring" = "Pencerminan Layar Penuh";
 "General" = "Umum";
-"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Dapatkan Bantuan";
 "Height" = "Tinggi";
+"Identity changes require a new Virtual Mac." = "Identity changes require a new Virtual Mac.";
 "Incomplete Installation" = "Instalasi Belum Selesai";
 "Incomplete Installations" = "Instalasi yang Belum Selesai";
 "Input" = "Input";
@@ -257,15 +256,12 @@
 "Switch to Running Virtual Mac" = "Beralih ke Virtual Mac yang Berjalan";
 "Switch to the Official Version of Dopamine" = "Beralih ke versi resmi Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Beralihlah ke Virtual Mac yang berjalan dan matikan sebelum memulai yang lain.";
-"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Arsip diagnostik tidak dapat dibuat.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Nilai progres pertama dapat memerlukan beberapa menit saat Virtual Mac beralih dari DFU ke RestoreOS. iPad Anda akan tetap aktif.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Nilai progres pertama dapat memerlukan beberapa menit saat Virtual Mac beralih dari DFU ke RestoreOS. iPhone Anda akan tetap aktif.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Virtual Mac yang belum selesai dan file instalasinya akan dihapus.";
 "The installer could not be started: %s" = "Penginstal tidak dapat dimulai: %s";
 "The new Virtual Mac is ready to use." = "Virtual Mac baru siap digunakan.";
-"The original identity is protected." = "The original identity is protected.";
-"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Citra pemulihan parsial akan dihapus.";
 "The Virtual Mac configuration could not be created." = "Konfigurasi Virtual Mac tidak dapat dibuat.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac tidak menerbitkan framebuffer layar.";

@@ -50,14 +50,10 @@ TECHNICAL_IDENTICAL_VALUES = {
     "ROM",
     "Configured",
     "Not Configured",
-    "Generate New Identity",
     "Manage Identities",
     "Serial / MLB / ROM",
+    "Identity changes require a new Virtual Mac.",
     "Use Original Identity",
-    "Deleted",
-    "The active identity must be switched before it can be deleted.",
-    "The original identity is protected.",
-    "The original identity is protected. Deleted generated identities are moved to an isolated folder.",
 }
 
 

@@ -79,7 +79,6 @@
 "Delete Temporary Installation Files?" = "确定删除安装临时文件吗？";
 "Delete Virtual Mac" = "删除虚拟Mac";
 "Delete Virtual Mac?" = "要删除虚拟Mac吗？";
-"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "描述问题并附上诊断ZIP和屏幕录制。如果Safari无法访问Github，改用电脑访问。";
 "Developer Beta" = "开发者测试版";
 "Developers" = "开发者";
@@ -118,9 +117,9 @@
 "Full Screen" = "全屏";
 "Full Screen Mirroring" = "全屏幕镜像";
 "General" = "通用";
-"Generate New Identity" = "Generate New Identity";
 "Get Help" = "获取帮助";
 "Height" = "高度";
+"Identity changes require a new Virtual Mac." = "Identity changes require a new Virtual Mac.";
 "Incomplete Installation" = "未完成的安装";
 "Incomplete Installations" = "未完成的安装";
 "Input" = "输入";
@@ -257,15 +256,12 @@
 "Switch to Running Virtual Mac" = "切换到正在运行的虚拟Mac";
 "Switch to the Official Version of Dopamine" = "切换到官方版Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "请切换到正在运行的虚拟Mac并将其关机，然后再启动另一台。";
-"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "无法创建诊断归档。";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "虚拟Mac从DFU切换到RestoreOS时，首次显示进度可能需要几分钟。你的iPad将保持唤醒。";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "虚拟Mac从DFU切换到RestoreOS时，首次显示进度可能需要几分钟。你的iPhone将保持唤醒。";
 "The incomplete Virtual Mac and its installation files will be deleted." = "将删除未完成的虚拟Mac及其安装文件。";
 "The installer could not be started: %s" = "无法启动安装程序：%s";
 "The new Virtual Mac is ready to use." = "新的虚拟Mac已可使用。";
-"The original identity is protected." = "The original identity is protected.";
-"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "将删除未下载完成的恢复镜像。";
 "The Virtual Mac configuration could not be created." = "无法创建虚拟Mac配置。";
 "The Virtual Mac did not publish a display framebuffer." = "虚拟Mac未提供显示帧缓冲区。";

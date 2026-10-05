@@ -111,3 +111,11 @@ bundle 表示长度，只接受相同长度且 ECID 不超过 `2^63-1` 的
 身份池的 Manage Identities 现在为每个生成项提供 Delete。original.mid 和当前
 活动身份受保护；确认删除后只把非活动生成项移动到
 `Identities/.Trash/`，不会直接删除。该目录不参与身份列表。
+
+## 8. 2026-10-05 第二次黑屏取证：不是 68B 单因
+
+97 安装后的新包 `.diag/identity-diagnostics-20261005-new/VirtualMac-Diagnostics-20261005-223213.zip` 显示，生成了 60 字节身份后，VMM 请求确实带入新的 ECID，配置校验和 `VM STARTED` 仍成功；紧接着 Guest trace 出现，约 66 秒记录 21,260 次 `guest_did_reset_virtual_machine`，VMM 最后以 status 0 正常退出。
+
+因此 97 的 60B 过滤没有解决黑屏，之前对 68B 高位 ECID 的门控只能算格式保护，不能算根因修复。现有安装的 `MachineIdentifier` 已恢复为 `Identities/original.mid`。当前证据更符合：已安装 macOS 的 `AuxiliaryStorage`/NVRAM 身份链与单独替换 `MachineIdentifier` 不匹配；没有 Apple VZ clone/新 AuxiliaryStorage 配对流程前，不应继续修改现有 VM 的身份。
+
+应用现在对已安装 bundle 隐藏身份生成/切换动作，并提示“Identity changes require a new Virtual Mac.”；Original 仍可恢复。身份池改为独立的设置窗口，单层显示已归档身份，当前项不可左滑删除，其他项可左滑后直接移入 `.Trash`，删除后不弹成功提示。

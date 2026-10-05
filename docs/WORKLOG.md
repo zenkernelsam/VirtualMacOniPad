@@ -478,3 +478,11 @@
 ## 2026-10-05 — 97 package copied to iPad Files
 
 - [x] 按用户要求将 `VirtualMac_1.2.3_70ad64229b.deb` 复制到 iPad Files：`/var/mobile/Containers/Shared/AppGroup/1B2AD29A-2C34-4770-86EC-E11CD02312FF/File Provider Storage/`。远端大小 20,862,296 bytes、SHA256 `7e54889e08b4c174da7274483ed5260effd4640babc1fccd838cbf2c467a50e3` 与本机一致；仅上传，未安装、未重启。
+
+## 2026-10-05 — 97+ black-screen follow-up and identity UI redesign
+
+- [x] 先将本机旧 `.diag/identity-diagnostics-20261005/` 移入 `~/.Trash/VirtualMac-old-diagnostics-20261005`，再从 iPad Files 拉取新包 `.diag/identity-diagnostics-20261005-new/VirtualMac-Diagnostics-20261005-223213.zip`。
+- [x] 新证据：97 生成的第二个身份为 60B，VMM platform request 带入新 ECID，`VM configuration validation result=1`、`VM STARTED state=1` 后立即出现 trace；`vzxpchook.log` 记录约66秒内 21,260 次 `guest_did_reset_virtual_machine`，最后 `VMM exited status=0 signal=0`。这否定了“仅 68B 高位 ECID 导致黑屏”的结论；当前更可能是现有 AuxiliaryStorage/NVRAM 与单独替换 MachineIdentifier 不匹配。
+- [x] 结论闸门：没有完整 clone/新 AuxiliaryStorage 配对流程前，禁止对已安装 VM 生成或切换身份；原身份文件已恢复，未改 Disk.img/AuxiliaryStorage。
+- [x] Apple identity 管理改为独立 form-sheet 设置窗口和单层 UITableView；当前活动身份不可删除，其他归档身份支持系统左滑 Delete，成功后直接移入 `Identities/.Trash/`，不再弹删除成功提示。已安装 VM 隐藏生成/切换入口并提示 `Identity changes require a new Virtual Mac.`。
+- [ ] 97+ 代码尚未构建/安装；仍需完成语法、包审计和用户停机窗口验证。

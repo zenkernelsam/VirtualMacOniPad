@@ -79,7 +79,6 @@
 "Delete Temporary Installation Files?" = "Geçici Kurulum Dosyaları Silinsin mi?";
 "Delete Virtual Mac" = "Sanal Mac’i Sil";
 "Delete Virtual Mac?" = "Sanal Mac Silinsin mi?";
-"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Sorunu açıklayın, ardından tanılama ZIP dosyasını ve ekran kaydını ekleyin. Safari Github’ı açamıyorsa bunun yerine bir bilgisayar kullanın.";
 "Developer Beta" = "Geliştirici Betası";
 "Developers" = "Geliştiriciler";
@@ -118,9 +117,9 @@
 "Full Screen" = "Tam Ekran";
 "Full Screen Mirroring" = "Tam Ekran Yansıtma";
 "General" = "Genel";
-"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Yardım Al";
 "Height" = "Yükseklik";
+"Identity changes require a new Virtual Mac." = "Identity changes require a new Virtual Mac.";
 "Incomplete Installation" = "Tamamlanmamış Kurulum";
 "Incomplete Installations" = "Tamamlanmamış Kurulumlar";
 "Input" = "Giriş";
@@ -257,15 +256,12 @@
 "Switch to Running Virtual Mac" = "Çalışan Sanal Mac’e Geç";
 "Switch to the Official Version of Dopamine" = "Dopamine’in resmi sürümüne geç";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Başka birini başlatmadan önce çalışan Sanal Mac’e geçip onu kapatın.";
-"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Tanı arşivi oluşturulamadı.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Sanal Mac DFU’dan RestoreOS’e geçerken ilk ilerleme değeri birkaç dakika sürebilir. iPad’iniz uyanık kalacak.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Sanal Mac DFU’dan RestoreOS’e geçerken ilk ilerleme değeri birkaç dakika sürebilir. iPhone’unuz uyanık kalacak.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Tamamlanmamış Sanal Mac ve kurulum dosyaları silinecek.";
 "The installer could not be started: %s" = "Yükleyici başlatılamadı: %s";
 "The new Virtual Mac is ready to use." = "Yeni Sanal Mac kullanıma hazır.";
-"The original identity is protected." = "The original identity is protected.";
-"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Kısmen indirilmiş geri yükleme imajı silinecek.";
 "The Virtual Mac configuration could not be created." = "Sanal Mac yapılandırması oluşturulamadı.";
 "The Virtual Mac did not publish a display framebuffer." = "Sanal Mac bir ekran framebuffer’ı yayımlamadı.";

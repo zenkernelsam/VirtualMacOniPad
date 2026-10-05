@@ -79,7 +79,6 @@
 "Delete Temporary Installation Files?" = "Xóa tệp cài đặt tạm thời?";
 "Delete Virtual Mac" = "Xóa máy Mac ảo";
 "Delete Virtual Mac?" = "Xóa máy Mac ảo?";
-"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Mô tả sự cố, sau đó đính kèm tệp ZIP chẩn đoán và bản ghi màn hình. Nếu Safari không thể mở Github, hãy dùng máy tính.";
 "Developer Beta" = "Bản beta dành cho nhà phát triển";
 "Developers" = "Nhà phát triển";
@@ -118,9 +117,9 @@
 "Full Screen" = "Toàn màn hình";
 "Full Screen Mirroring" = "Phản Chiếu Toàn Màn Hình";
 "General" = "Cài đặt chung";
-"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Nhận trợ giúp";
 "Height" = "Chiều cao";
+"Identity changes require a new Virtual Mac." = "Identity changes require a new Virtual Mac.";
 "Incomplete Installation" = "Bản cài đặt chưa hoàn tất";
 "Incomplete Installations" = "Các bản cài đặt chưa hoàn tất";
 "Input" = "Đầu vào";
@@ -257,15 +256,12 @@
 "Switch to Running Virtual Mac" = "Chuyển sang máy Mac ảo đang chạy";
 "Switch to the Official Version of Dopamine" = "Chuyển sang phiên bản Dopamine chính thức";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Hãy chuyển sang máy Mac ảo đang chạy và tắt máy đó trước khi khởi động máy khác.";
-"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Không thể tạo tệp chẩn đoán.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Giá trị tiến trình đầu tiên có thể mất vài phút trong khi máy Mac ảo chuyển từ DFU sang RestoreOS. iPad của bạn sẽ không ngủ.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Giá trị tiến trình đầu tiên có thể mất vài phút trong khi máy Mac ảo chuyển từ DFU sang RestoreOS. iPhone của bạn sẽ không ngủ.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Máy Mac ảo chưa hoàn tất và các tệp cài đặt của máy sẽ bị xóa.";
 "The installer could not be started: %s" = "Không thể khởi chạy trình cài đặt: %s";
 "The new Virtual Mac is ready to use." = "Máy Mac ảo mới đã sẵn sàng để sử dụng.";
-"The original identity is protected." = "The original identity is protected.";
-"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Ảnh khôi phục tải xuống một phần sẽ bị xóa.";
 "The Virtual Mac configuration could not be created." = "Không thể tạo cấu hình máy Mac ảo.";
 "The Virtual Mac did not publish a display framebuffer." = "Máy Mac ảo không công bố framebuffer màn hình.";

@@ -608,8 +608,168 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     }
 }
 
+@protocol VZAppleIdentityManagerDelegate <NSObject>
+- (void)identityManager:(id)manager didSelectPath:(NSString *)path;
+- (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path;
+- (void)identityManagerDidRequestGenerate:(id)manager;
+- (void)identityManagerDidRequestOriginal:(id)manager;
+@optional
+- (NSArray<NSString *> *)identityManagerPaths:(id)manager;
+- (NSData *)identityManagerActiveData:(id)manager;
+@end
+
+@interface VZAppleIdentityManagerViewController : UIViewController
+    <UITableViewDataSource, UITableViewDelegate>
+@property(nonatomic, assign) id<VZAppleIdentityManagerDelegate> delegate;
+@property(nonatomic, retain) NSArray<NSString *> *identityPaths;
+@property(nonatomic, retain) NSData *activeData;
+- (instancetype)initWithIdentityPaths:(NSArray<NSString *> *)paths
+                            activeData:(NSData *)active;
+- (void)reloadIdentityData;
+@end
+
+@implementation VZAppleIdentityManagerViewController
+
+- (instancetype)initWithIdentityPaths:(NSArray<NSString *> *)paths
+                            activeData:(NSData *)active
+{
+    if ((self = [super initWithNibName:nil bundle:nil])) {
+        self.identityPaths = paths;
+        self.activeData = active;
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    self.title = VZL(@"Manage Identities");
+    self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
+    self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
+        initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+                             target:self action:@selector(done)] autorelease];
+    UITableView *table = [[[UITableView alloc]
+        initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped] autorelease];
+    table.translatesAutoresizingMaskIntoConstraints = NO;
+    table.dataSource = self;
+    table.delegate = self;
+    [self.view addSubview:table];
+    [NSLayoutConstraint activateConstraints:@[
+        [table.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [table.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [table.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [table.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+    ]];
+    self.view.accessibilityLabel = VZL(@"Manage Identities");
+}
+
+- (void)reloadIdentityData
+{
+    NSArray *paths = [self.delegate respondsToSelector:
+        @selector(identityManagerPaths:)] ?
+        [(id)self.delegate identityManagerPaths:self] : self.identityPaths;
+    NSData *active = [self.delegate respondsToSelector:
+        @selector(identityManagerActiveData:)] ?
+        [(id)self.delegate identityManagerActiveData:self] : self.activeData;
+    self.identityPaths = paths;
+    self.activeData = active;
+    [(UITableView *)self.view.subviews.firstObject reloadData];
+}
+
+- (void)done
+{
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (NSInteger)tableView:(UITableView *)tableView
+ numberOfRowsInSection:(NSInteger)section
+{
+    (void)tableView;
+    (void)section;
+    return self.identityPaths.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView
+         cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"identity"];
+    if (!cell)
+        cell = [[[UITableViewCell alloc]
+            initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"identity"]
+            autorelease];
+    NSString *path = self.identityPaths[indexPath.row];
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    NSString *label = VZAppleIdentityLabelForData(data);
+    cell.textLabel.text = label.length ? label :
+        path.lastPathComponent.stringByDeletingPathExtension;
+    cell.detailTextLabel.text = self.activeData &&
+        [self.activeData isEqualToData:data] ? VZL(@"Configured") : nil;
+    cell.accessoryType = self.activeData &&
+        [self.activeData isEqualToData:data]
+        ? UITableViewCellAccessoryCheckmark : UITableViewCellAccessoryNone;
+    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+    return cell;
+}
+
+- (void)tableView:(UITableView *)tableView
+ didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    (void)tableView;
+    [self.delegate identityManager:self
+                    didSelectPath:self.identityPaths[indexPath.row]];
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+- (UISwipeActionsConfiguration *)tableView:(UITableView *)tableView
+  trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    (void)tableView;
+    NSString *path = self.identityPaths[indexPath.row];
+    NSData *data = [NSData dataWithContentsOfFile:path];
+    if (self.activeData && [self.activeData isEqualToData:data])
+        return nil;
+    UIContextualAction *delete = [UIContextualAction
+        contextualActionWithStyle:UIContextualActionStyleDestructive
+                            title:VZL(@"Delete")
+                          handler:^(UIContextualAction *action,
+                                    UIView *sourceView,
+                                    void (^completion)(BOOL)) {
+        (void)action;
+        (void)sourceView;
+        BOOL deleted = [self.delegate identityManager:self
+                                didRequestDeletePath:path];
+        if (deleted)
+            [self.identityPaths
+                enumerateObjectsUsingBlock:^(NSString *candidate,
+                                               NSUInteger index,
+                                               BOOL *stop) {
+                if ([candidate isEqualToString:path]) {
+                    NSMutableArray *updated =
+                        [self.identityPaths mutableCopy];
+                    [updated removeObjectAtIndex:index];
+                    self.identityPaths = updated;
+                    [updated release];
+                    *stop = YES;
+                }
+            }];
+        completion(deleted);
+    }];
+    delete.backgroundColor = UIColor.systemRedColor;
+    return [UISwipeActionsConfiguration configurationWithActions:@[delete]];
+}
+
+- (void)dealloc
+{
+    [_identityPaths release];
+    [_activeData release];
+    [super dealloc];
+}
+@end
+
+
 @interface VZVMConfigurationViewController : UITableViewController
-    <UIDocumentPickerDelegate, UIAdaptivePresentationControllerDelegate>
+    <UIDocumentPickerDelegate, UIAdaptivePresentationControllerDelegate,
+     VZAppleIdentityManagerDelegate>
 @property(nonatomic, copy) NSString *bundlePath;
 @property(nonatomic, copy) NSString *vmName;
 @property(nonatomic, assign) BOOL running;
@@ -1580,6 +1740,12 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     if (self.running)
         return;
+    if (self.bundlePath) {
+        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+            VZL(@"Identity changes require a new Virtual Mac."),
+            nil, VZFailureSupportOptionNone);
+        return;
+    }
     UIAlertController *alert = [UIAlertController
         alertControllerWithTitle:VZL(@"Apple Services Identity")
                          message:VZL(@"Experimental")
@@ -1686,16 +1852,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         alertControllerWithTitle:VZL(@"Apple Services Identity")
                          message:VZL(@"Experimental")
                   preferredStyle:UIAlertControllerStyleActionSheet];
-    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Generate New Identity")
-        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        (void)action;
-        [self generateNewAppleIdentity];
-    }]];
     if ([self appleIdentityPoolPathsDescending].count) {
         [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Manage Identities")
             style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
             (void)action;
-            [self manageAppleIdentitiesFromCell:cell];
+            [self presentAppleIdentityManagerFromCell:cell];
         }]];
     }
     [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Serial / MLB / ROM")
@@ -1717,176 +1878,57 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     [self presentViewController:sheet animated:YES completion:nil];
 }
 
+- (void)presentAppleIdentityManagerFromCell:(UITableViewCell *)cell
+{
+    if (self.running || !self.bundlePath)
+        return;
+    NSData *active = [NSData dataWithContentsOfFile:
+        [self.bundlePath stringByAppendingPathComponent:@"MachineIdentifier"]];
+    VZAppleIdentityManagerViewController *manager =
+        [[[VZAppleIdentityManagerViewController alloc]
+            initWithIdentityPaths:[self appleIdentityPoolPathsDescending]
+                        activeData:active] autorelease];
+    manager.delegate = self;
+    UINavigationController *navigation = [[[UINavigationController alloc]
+        initWithRootViewController:manager] autorelease];
+    navigation.modalPresentationStyle = UIModalPresentationFormSheet;
+    navigation.preferredContentSize = CGSizeMake(560, 620);
+    navigation.popoverPresentationController.sourceView = cell;
+    navigation.popoverPresentationController.sourceRect = cell.bounds;
+    [self presentViewController:navigation animated:YES completion:nil];
+}
+
 // One tap: generate a fresh VZMacMachineIdentifier, keep the previous bundle
 // identity as `original.mid`, archive the new one, and make it active.
 - (void)generateNewAppleIdentity
 {
     if (self.running || !self.bundlePath)
         return;
-    NSFileManager *manager = NSFileManager.defaultManager;
-    NSString *identityPath = [self.bundlePath
-        stringByAppendingPathComponent:@"MachineIdentifier"];
-    NSString *pool = [self appleIdentityPoolDirectory];
-    NSString *original = [self appleIdentityOriginalPath];
-    NSError *error = nil;
-    if (![manager createDirectoryAtPath:pool withIntermediateDirectories:YES
-                             attributes:nil error:&error]) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            error.localizedDescription, error.debugDescription,
-            VZFailureSupportOptionNone);
-        return;
-    }
-    if (![manager fileExistsAtPath:original] &&
-        [manager fileExistsAtPath:identityPath]) {
-        NSData *originalData = [NSData dataWithContentsOfFile:identityPath];
-        if (!originalData.length ||
-            ![originalData writeToFile:original options:NSDataWritingAtomic
-                                  error:&error]) {
-            VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-                error.localizedDescription ?: VZL(@"Could Not Save"),
-                error.debugDescription, VZFailureSupportOptionNone);
-            return;
-        }
-    }
-    NSString *label = nil;
-    if (!VZWriteFreshAppleIdentity(self.bundlePath, &label, &error)) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            error.localizedDescription, error.debugDescription,
-            VZFailureSupportOptionNone);
-        return;
-    }
-    NSData *active = [NSData dataWithContentsOfFile:identityPath];
-    if (active.length) {
-        NSString *name = [NSString stringWithFormat:@"%lld.mid",
-            (long long)(NSDate.date.timeIntervalSince1970 * 1000.0)];
-        NSString *archivePath = [pool stringByAppendingPathComponent:name];
-        if (![active writeToFile:archivePath options:NSDataWritingAtomic
-                           error:&error]) {
-            VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-                error.localizedDescription ?: VZL(@"Could Not Save"),
-                error.debugDescription, VZFailureSupportOptionNone);
-            return;
-        }
-    }
-    // A generated bundle identity is only consumed when the manual Serial
-    // override is off, so clear it.
-    [self.options removeObjectForKey:VZAppleSerialNumberKey];
-    [self.options removeObjectForKey:VZAppleBoardSerialNumberKey];
-    [self.options removeObjectForKey:VZAppleROMKey];
-    self.options[VZAppleIdentityEnabledKey] = @NO;
-    [self.tableView reloadData];
-    [self presentAppleIdentityApplied:label];
+    VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+        VZL(@"Identity changes require a new Virtual Mac."),
+        nil, VZFailureSupportOptionNone);
 }
 
-- (void)manageAppleIdentitiesFromCell:(UITableViewCell *)cell
-{
-    if (self.running)
-        return;
-    NSArray<NSString *> *paths = [self appleIdentityPoolPathsDescending];
-    NSData *active = [NSData dataWithContentsOfFile:[self.bundlePath
-        stringByAppendingPathComponent:@"MachineIdentifier"]];
-    UIAlertController *sheet = [UIAlertController
-        alertControllerWithTitle:VZL(@"Manage Identities") message:nil
-                  preferredStyle:UIAlertControllerStyleActionSheet];
-    for (NSString *path in paths) {
-        NSData *data = [NSData dataWithContentsOfFile:path];
-        if (!data.length)
-            continue;
-        NSString *label = VZAppleIdentityLabelForData(data);
-        NSString *title = label.length
-            ? label
-            : path.lastPathComponent.stringByDeletingPathExtension;
-        if (active && [active isEqualToData:data])
-            title = [title stringByAppendingString:@" \u2713"];
-        [sheet addAction:[UIAlertAction actionWithTitle:title
-            style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-            (void)action;
-            [self applyAppleIdentityAtPath:path];
-        }]];
-        NSString *deleteTitle = [NSString stringWithFormat:@"%@ %@",
-            VZL(@"Delete"), title];
-        [sheet addAction:[UIAlertAction actionWithTitle:deleteTitle
-            style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-            (void)action;
-            [self confirmDeleteAppleIdentityAtPath:path label:title active:active];
-        }]];
-    }
-    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Generate New Identity")
-        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        (void)action;
-        [self generateNewAppleIdentity];
-    }]];
-    if ([self bundleAppleIdentityWasRegenerated]) {
-        [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Use Original Identity")
-            style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-            (void)action;
-            [self useBundleAppleIdentity];
-        }]];
-    }
-    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
-        style:UIAlertActionStyleCancel handler:nil]];
-    sheet.popoverPresentationController.sourceView = cell;
-    sheet.popoverPresentationController.sourceRect = cell.bounds;
-    [self presentViewController:sheet animated:YES completion:nil];
-}
-
-- (void)confirmDeleteAppleIdentityAtPath:(NSString *)path
-                                   label:(NSString *)label
-                                  active:(NSData *)active
+- (BOOL)deleteAppleIdentityAtPath:(NSString *)path
 {
     if (self.running || !path.length)
-        return;
-    NSData *candidate = [NSData dataWithContentsOfFile:path];
-    if (!candidate.length || (active && [active isEqualToData:candidate])) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            VZL(@"The active identity must be switched before it can be deleted."),
-            nil, VZFailureSupportOptionNone);
-        return;
-    }
-    NSString *message = [NSString stringWithFormat:@"%@\n%@",
-        label ?: path.lastPathComponent,
-        VZL(@"The original identity is protected. Deleted generated identities are moved to an isolated folder.")];
-    UIAlertController *alert = [UIAlertController
-        alertControllerWithTitle:VZL(@"Delete") message:message
-                  preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
-        style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Delete")
-        style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-        (void)action;
-        [self deleteAppleIdentityAtPath:path active:active];
-    }]];
-    [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)deleteAppleIdentityAtPath:(NSString *)path active:(NSData *)active
-{
-    if (self.running || !path.length)
-        return;
+        return NO;
     NSFileManager *manager = NSFileManager.defaultManager;
     NSString *original = [self appleIdentityOriginalPath];
     if ([path isEqualToString:original]) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            VZL(@"The original identity is protected."), nil,
-            VZFailureSupportOptionNone);
-        return;
+        return NO;
     }
     NSData *candidate = [NSData dataWithContentsOfFile:path];
-    if (!candidate.length || (active && [active isEqualToData:candidate])) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            VZL(@"The active identity must be switched before it can be deleted."),
-            nil, VZFailureSupportOptionNone);
-        return;
-    }
+    NSData *active = [NSData dataWithContentsOfFile:[self.bundlePath
+        stringByAppendingPathComponent:@"MachineIdentifier"]];
+    if (!candidate.length || (active && [active isEqualToData:candidate]))
+        return NO;
     NSString *trash = [[self appleIdentityPoolDirectory]
         stringByAppendingPathComponent:@".Trash"];
     NSError *error = nil;
     if (![manager createDirectoryAtPath:trash withIntermediateDirectories:YES
                              attributes:nil error:&error]) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            error.localizedDescription, error.debugDescription,
-            VZFailureSupportOptionNone);
-        return;
+        return NO;
     }
     NSString *base = path.lastPathComponent;
     NSString *destination = [trash stringByAppendingPathComponent:base];
@@ -1897,13 +1939,47 @@ void VZRemovePaths(NSArray<NSString *> *paths)
             [NSString stringWithFormat:@"%@.%lu", base, (unsigned long)suffix]];
     }
     if (![manager moveItemAtPath:path toPath:destination error:&error]) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            error.localizedDescription, error.debugDescription,
-            VZFailureSupportOptionNone);
-        return;
+        return NO;
     }
     [self.tableView reloadData];
-    [self presentAppleIdentityApplied:VZL(@"Deleted")];
+    return YES;
+}
+
+- (NSArray<NSString *> *)identityManagerPaths:(id)manager
+{
+    (void)manager;
+    return [self appleIdentityPoolPathsDescending];
+}
+
+- (NSData *)identityManagerActiveData:(id)manager
+{
+    (void)manager;
+    return [NSData dataWithContentsOfFile:[self.bundlePath
+        stringByAppendingPathComponent:@"MachineIdentifier"]];
+}
+
+- (void)identityManager:(id)manager didSelectPath:(NSString *)path
+{
+    (void)manager;
+    [self applyAppleIdentityAtPath:path];
+}
+
+- (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path
+{
+    (void)manager;
+    return [self deleteAppleIdentityAtPath:path];
+}
+
+- (void)identityManagerDidRequestGenerate:(id)manager
+{
+    (void)manager;
+    [self generateNewAppleIdentity];
+}
+
+- (void)identityManagerDidRequestOriginal:(id)manager
+{
+    (void)manager;
+    [self useBundleAppleIdentity];
 }
 
 // Apply a previously generated identity from the pool as the active one.
@@ -1911,29 +1987,9 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     if (self.running || !self.bundlePath || !path.length)
         return;
-    NSError *error = nil;
-    NSData *data = [NSData dataWithContentsOfFile:path options:0 error:&error];
-    if (!data.length) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            error.localizedDescription, error.debugDescription,
-            VZFailureSupportOptionNone);
-        return;
-    }
-    NSString *identityPath = [self.bundlePath
-        stringByAppendingPathComponent:@"MachineIdentifier"];
-    if (![data writeToFile:identityPath options:NSDataWritingAtomic
-                    error:&error]) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            error.localizedDescription, error.debugDescription,
-            VZFailureSupportOptionNone);
-        return;
-    }
-    [self.options removeObjectForKey:VZAppleSerialNumberKey];
-    [self.options removeObjectForKey:VZAppleBoardSerialNumberKey];
-    [self.options removeObjectForKey:VZAppleROMKey];
-    self.options[VZAppleIdentityEnabledKey] = @NO;
-    [self.tableView reloadData];
-    [self presentAppleIdentityApplied:VZAppleIdentityLabelForData(data)];
+    VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+        VZL(@"Identity changes require a new Virtual Mac."),
+        nil, VZFailureSupportOptionNone);
 }
 
 // Restore the identity captured when the bundle was first re-generated.

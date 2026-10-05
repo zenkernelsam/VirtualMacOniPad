@@ -79,7 +79,6 @@
 "Delete Temporary Installation Files?" = "¿Eliminar los archivos temporales de instalación?";
 "Delete Virtual Mac" = "Eliminar Virtual Mac";
 "Delete Virtual Mac?" = "¿Eliminar Virtual Mac?";
-"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Describe el problema y adjunta el ZIP de diagnóstico y la grabación de pantalla. Si Safari no puede abrir Github, usa un ordenador.";
 "Developer Beta" = "Beta para desarrolladores";
 "Developers" = "Desarrolladores";
@@ -118,9 +117,9 @@
 "Full Screen" = "Pantalla completa";
 "Full Screen Mirroring" = "Duplicación a Pantalla Completa";
 "General" = "General";
-"Generate New Identity" = "Generate New Identity";
 "Get Help" = "Obtener ayuda";
 "Height" = "Altura";
+"Identity changes require a new Virtual Mac." = "Identity changes require a new Virtual Mac.";
 "Incomplete Installation" = "Instalación incompleta";
 "Incomplete Installations" = "Instalaciones incompletas";
 "Input" = "Entrada";
@@ -257,15 +256,12 @@
 "Switch to Running Virtual Mac" = "Cambiar al Virtual Mac en ejecución";
 "Switch to the Official Version of Dopamine" = "Cambiar a la versión oficial de Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Cambia al Virtual Mac en ejecución y apágalo antes de iniciar otro.";
-"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "No se pudo crear el archivo de diagnósticos.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "El primer valor de progreso puede tardar varios minutos mientras el Virtual Mac pasa de DFU a RestoreOS. Tu iPad permanecerá activo.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "El primer valor de progreso puede tardar varios minutos mientras el Virtual Mac pasa de DFU a RestoreOS. Tu iPhone permanecerá activo.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Se eliminarán el Virtual Mac incompleto y sus archivos de instalación.";
 "The installer could not be started: %s" = "No se pudo iniciar el instalador: %s";
 "The new Virtual Mac is ready to use." = "El nuevo Virtual Mac está listo para usarse.";
-"The original identity is protected." = "The original identity is protected.";
-"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Se eliminará la imagen de restauración descargada parcialmente.";
 "The Virtual Mac configuration could not be created." = "No se pudo crear la configuración del Virtual Mac.";
 "The Virtual Mac did not publish a display framebuffer." = "El Virtual Mac no publicó un framebuffer de pantalla.";

@@ -79,7 +79,6 @@
 "Delete Temporary Installation Files?" = "अस्थायी इंस्टॉलेशन फ़ाइलें हटाएँ?";
 "Delete Virtual Mac" = "वर्चुअल Mac हटाएँ";
 "Delete Virtual Mac?" = "वर्चुअल Mac हटाएँ?";
-"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "समस्या का वर्णन करें, फिर डायग्नोस्टिक्स ZIP और स्क्रीन रिकॉर्डिंग संलग्न करें। यदि Safari Github नहीं खोल पाता है, तो कंप्यूटर का उपयोग करें।";
 "Developer Beta" = "डेवलपर बीटा";
 "Developers" = "डेवलपर";
@@ -118,9 +117,9 @@
 "Full Screen" = "पूर्ण स्क्रीन";
 "Full Screen Mirroring" = "पूर्ण स्क्रीन मिररिंग";
 "General" = "सामान्य";
-"Generate New Identity" = "Generate New Identity";
 "Get Help" = "सहायता पाएँ";
 "Height" = "ऊँचाई";
+"Identity changes require a new Virtual Mac." = "Identity changes require a new Virtual Mac.";
 "Incomplete Installation" = "अधूरा इंस्टॉलेशन";
 "Incomplete Installations" = "अधूरे इंस्टॉलेशन";
 "Input" = "इनपुट";
@@ -257,15 +256,12 @@
 "Switch to Running Virtual Mac" = "चल रहे वर्चुअल Mac पर जाएँ";
 "Switch to the Official Version of Dopamine" = "Dopamine के आधिकारिक संस्करण पर जाएँ";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "किसी अन्य को शुरू करने से पहले चल रहे वर्चुअल Mac पर जाएँ और उसे बंद करें।";
-"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "डायग्नोस्टिक्स आर्काइव नहीं बनाया जा सका।";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "वर्चुअल Mac के DFU से RestoreOS में बदलने के दौरान पहला प्रगति मान आने में कई मिनट लग सकते हैं। आपका iPad सक्रिय रहेगा।";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "वर्चुअल Mac के DFU से RestoreOS में बदलने के दौरान पहला प्रगति मान आने में कई मिनट लग सकते हैं। आपका iPhone सक्रिय रहेगा।";
 "The incomplete Virtual Mac and its installation files will be deleted." = "अधूरा वर्चुअल Mac और उसकी इंस्टॉलेशन फ़ाइलें हटा दी जाएँगी।";
 "The installer could not be started: %s" = "इंस्टॉलर शुरू नहीं किया जा सका: %s";
 "The new Virtual Mac is ready to use." = "नया वर्चुअल Mac उपयोग के लिए तैयार है।";
-"The original identity is protected." = "The original identity is protected.";
-"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "आंशिक रीस्टोर इमेज हटा दी जाएगी।";
 "The Virtual Mac configuration could not be created." = "वर्चुअल Mac कॉन्फ़िगरेशन नहीं बनाया जा सका।";
 "The Virtual Mac did not publish a display framebuffer." = "वर्चुअल Mac ने डिस्प्ले फ़्रेमबफ़र प्रकाशित नहीं किया।";

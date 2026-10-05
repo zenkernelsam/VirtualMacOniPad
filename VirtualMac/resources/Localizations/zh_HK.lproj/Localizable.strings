@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "為此虛擬Mac選擇名稱。";
 "Choose Custom IPSW" = "選擇自訂IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "選擇打開虛擬Mac時顯示資料庫還是啓動一台虛擬Mac。";
+"Clone Created" = "Clone Created";
 "Compatibility" = "相容性";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "不會刪除完整的虛擬Mac，也不會刪除虛擬Mac文件夾之外的恢復鏡像。";
 "Configuration failed: %@" = "配置失敗：%@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "無法儲存";
 "Could Not Start Installer" = "無法啟動安裝程式";
 "Couldn’t Export Diagnostics" = "無法導出診斷信息";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "建立Github問題";
 "Create Virtual Mac" = "建立虛擬Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "自定義";
 "Debug Logging" = "偵錯記錄";
 "Debug logging has been enabled for the next boot." = "已為下次啟動開啟除錯記錄。";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "無法創建虛擬Mac配置。";
 "The Virtual Mac did not publish a display framebuffer." = "虛擬Mac未提供顯示幀緩衝區。";
 "The Virtual Mac display view is unavailable" = "虛擬Mac顯示視圖不可用";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "這些選項只會在虛擬Mac位於最前方並正在執行時影響iOS。";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "這些選項只會在虛擬Mac位於最前方並正在執行時影響iPadOS。";
 "This iPad is incompatible with Virtual Mac" = "此iPad與虛擬Mac不相容";

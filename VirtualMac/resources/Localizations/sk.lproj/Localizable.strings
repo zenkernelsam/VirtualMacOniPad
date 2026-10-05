@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Vyberte název tohoto virtuálnyho Macu.";
 "Choose Custom IPSW" = "Vybrať vlastný IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Vyberte, či Virtual Mac otvorí knižnicu alebo spustí virtuálny Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Kompatibilita";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Dokončené virtuálne Macy a obrazy obnovy mimo aplikácie Virtual Mac nebudú odstránené.";
 "Configuration failed: %@" = "Konfigurácia zlyhala: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Nepodarilo sa uložiť";
 "Could Not Start Installer" = "Inštalátor sa nepodarilo spustiť";
 "Couldn’t Export Diagnostics" = "Diagnostiku se nepodarilo exportovat";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Vytvoriť hlásenie na Github-e";
 "Create Virtual Mac" = "Vytvoriť Virtuálny Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Vlastní";
 "Debug Logging" = "Zaznamenávanie ladenia";
 "Debug logging has been enabled for the next boot." = "Zaznamenávanie ladenia bolo zapnuté pre nasledujúce spustenie.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Konfiguráciu virtuálneho Macu sa nepodarilo vytvoriť.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtuálny Mac nezverejnil framebuffer displeja.";
 "The Virtual Mac display view is unavailable" = "Zobrazenie displeja virtuálnyho Macu není dostupné";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Tieto možnosti ovplyvňujú iOS iba vtedy, keď je Virtuálny Mac v popredí a virtuálny Mac je spustený.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Tieto možnosti ovplyvňujú iPadOS iba vtedy, keď je Virtuálny Mac v popredí a virtuálny Mac je spustený.";
 "This iPad is incompatible with Virtual Mac" = "Tento iPad nie je kompatibilný s aplikáciou Virtual Mac";

@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Choose a name for this Virtual Mac.";
 "Choose Custom IPSW" = "Choose Custom IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Choose whether Virtual Mac opens its library or starts a Virtual Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Compatibility";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed.";
 "Configuration failed: %@" = "Configuration failed: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Could Not Save";
 "Could Not Start Installer" = "Could Not Start Installer";
 "Couldn’t Export Diagnostics" = "Couldn’t Export Diagnostics";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Create Github Issue";
 "Create Virtual Mac" = "Create Virtual Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Custom";
 "Debug Logging" = "Debug Logging";
 "Debug logging has been enabled for the next boot." = "Debug logging has been enabled for the next boot.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "The Virtual Mac configuration could not be created.";
 "The Virtual Mac did not publish a display framebuffer." = "The Virtual Mac did not publish a display framebuffer.";
 "The Virtual Mac display view is unavailable" = "The Virtual Mac display view is unavailable";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running.";
 "This iPad is incompatible with Virtual Mac" = "This iPad is incompatible with Virtual Mac";

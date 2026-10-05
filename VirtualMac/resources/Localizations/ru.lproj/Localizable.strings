@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Выберите имя для этого виртуального Mac.";
 "Choose Custom IPSW" = "Выбрать собственный IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Выберите, открывать ли библиотеку или запускать виртуальный Mac при открытии приложения.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Совместимость";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Готовые виртуальные Mac и образы восстановления вне приложения удалены не будут.";
 "Configuration failed: %@" = "Ошибка конфигурации: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Не удалось сохранить";
 "Could Not Start Installer" = "Не удалось запустить установщик";
 "Couldn’t Export Diagnostics" = "Не удалось экспортировать диагностику";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Создать обращение на Github";
 "Create Virtual Mac" = "Создать Виртуальный Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Пользовательская";
 "Debug Logging" = "Ведение журнала отладки";
 "Debug logging has been enabled for the next boot." = "Журнал отладки включён для следующей загрузки.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Не удалось создать конфигурацию виртуального Mac.";
 "The Virtual Mac did not publish a display framebuffer." = "Виртуальный Mac не опубликовал кадровый буфер дисплея.";
 "The Virtual Mac display view is unavailable" = "Представление дисплея виртуального Mac недоступно";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Эти параметры влияют на iOS только тогда, когда Виртуальный Mac находится на переднем плане и запущен виртуальный Mac.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Эти параметры влияют на iPadOS только тогда, когда Виртуальный Mac находится на переднем плане и запущен виртуальный Mac.";
 "This iPad is incompatible with Virtual Mac" = "Этот iPad несовместим с Virtual Mac";

@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Vælg et navn til denne Virtual Mac.";
 "Choose Custom IPSW" = "Vælg brugerdefineret IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Vælg, om Virtual Mac skal åbne biblioteket eller starte en Virtual Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Kompatibilitet";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Færdige Virtual Macs og gendannelsesbilleder uden for Virtual Mac fjernes ikke.";
 "Configuration failed: %@" = "Konfiguration mislykkedes: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Kunne ikke gemme";
 "Could Not Start Installer" = "Installationsprogrammet kunne ikke startes";
 "Couldn’t Export Diagnostics" = "Kunne ikke eksportere diagnosticering";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Opret Github-problem";
 "Create Virtual Mac" = "Opret en Virtuel Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Tilpasset";
 "Debug Logging" = "Fejllogning";
 "Debug logging has been enabled for the next boot." = "Fejllogning er slået til ved næste start.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Konfigurationen til Virtual Mac kunne ikke oprettes.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac udgav ingen skærm-framebuffer.";
 "The Virtual Mac display view is unavailable" = "Skærmvisningen til Virtual Mac er ikke tilgængelig";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Disse indstillinger påvirker kun iOS, når Virtuel Mac er i forgrunden, og en virtuel Mac kører.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Disse indstillinger påvirker kun iPadOS, når Virtuel Mac er i forgrunden, og en virtuel Mac kører.";
 "This iPad is incompatible with Virtual Mac" = "Denne iPad er ikke kompatibel med Virtual Mac";

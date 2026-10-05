@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "この仮想Macの名前を選択してください。";
 "Choose Custom IPSW" = "カスタムIPSWを選択";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "仮想Macを開いたときにライブラリを表示するか、仮想Macを起動するかを選択します。";
+"Clone Created" = "Clone Created";
 "Compatibility" = "互換性";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "完了済みの仮想Macと、仮想Macフォルダ外の復元イメージは削除されません。";
 "Configuration failed: %@" = "構成に失敗しました：%@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "保存できませんでした";
 "Could Not Start Installer" = "インストーラを開始できませんでした";
 "Couldn’t Export Diagnostics" = "診断情報を書き出せませんでした";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Githubで問題を報告";
 "Create Virtual Mac" = "仮想Macを作成";
+"Creating Clone" = "Creating Clone";
 "Custom" = "カスタム";
 "Debug Logging" = "デバッグログ";
 "Debug logging has been enabled for the next boot." = "次回の起動に対してデバッグログをオンにしました。";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "仮想Macの構成を作成できませんでした。";
 "The Virtual Mac did not publish a display framebuffer." = "仮想Macがディスプレイのフレームバッファを公開しませんでした。";
 "The Virtual Mac display view is unavailable" = "仮想Macのディスプレイ表示を利用できません";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "これらのオプションは、仮想Macが最前面で実行中の場合にのみiOSに影響します。";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "これらのオプションは、仮想Macが最前面で実行中の場合にのみiPadOSに影響します。";
 "This iPad is incompatible with Virtual Mac" = "このiPadはVirtual Macに対応していません";

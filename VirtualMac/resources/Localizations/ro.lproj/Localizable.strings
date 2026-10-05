@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Alegeți un nume per acest Mac virtual.";
 "Choose Custom IPSW" = "Alegeți un IPSW personalizat";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Alegeți se Mac virtual deve aprire la biblioteca o avviare un Mac virtual.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Compatibilitate";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Mac-urile virtuale complete și imaginile de restaurare din afara aplicației Virtual Mac nu vor fi eliminate.";
 "Configuration failed: %@" = "Configurarea a eșuat: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Nu s-a putut salva";
 "Could Not Start Installer" = "Programul de instalare nu a putut fi pornit";
 "Couldn’t Export Diagnostics" = "Nu s-au putut exporta datele de diagnosticare";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Creați o sesizare pe Github";
 "Create Virtual Mac" = "Creați un Mac virtual";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Personalizzata";
 "Debug Logging" = "Jurnalizare pentru depanare";
 "Debug logging has been enabled for the next boot." = "Jurnalizarea pentru depanare a fost activată pentru următoarea pornire.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Configurația Mac-ului virtual nu a putut fi creată.";
 "The Virtual Mac did not publish a display framebuffer." = "Mac-ul virtual nu a publicat un buffer de cadre pentru afișaj.";
 "The Virtual Mac display view is unavailable" = "Vizualizarea afișajului Mac-ului virtual nu este disponibilă";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Aceste opțiuni afectează iOS numai când Mac virtual este în prim-plan și rulează un Mac virtual.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Aceste opțiuni afectează iPadOS numai când Mac virtual este în prim-plan și rulează un Mac virtual.";
 "This iPad is incompatible with Virtual Mac" = "Acest iPad nu este compatibil cu Virtual Mac";

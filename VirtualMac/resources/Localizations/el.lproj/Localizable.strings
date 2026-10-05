@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Επιλέξτε όνομα για αυτό το Εικονικό Mac.";
 "Choose Custom IPSW" = "Επιλογή προσαρμοσμένου IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Επιλέξτε αν το Εικονικό Mac θα ανοίγει τη βιβλιοθήκη του ή θα εκκινεί ένα Εικονικό Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Συμβατότητα";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Τα ολοκληρωμένα Εικονικά Mac και τα είδωλα επαναφοράς εκτός της εφαρμογής δεν αφαιρούνται.";
 "Configuration failed: %@" = "Η διαμόρφωση απέτυχε: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Δεν ήταν δυνατή η αποθήκευση";
 "Could Not Start Installer" = "Δεν ήταν δυνατή η εκκίνηση του προγράμματος εγκατάστασης";
 "Couldn’t Export Diagnostics" = "Δεν ήταν δυνατή η εξαγωγή διαγνωστικών";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Δημιουργία ζητήματος στο Github";
 "Create Virtual Mac" = "Δημιουργία Εικονικού Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Προσαρμοσμένο";
 "Debug Logging" = "Καταγραφή εντοπισμού σφαλμάτων";
 "Debug logging has been enabled for the next boot." = "Η καταγραφή εντοπισμού σφαλμάτων ενεργοποιήθηκε για την επόμενη εκκίνηση.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Δεν ήταν δυνατή η δημιουργία της διαμόρφωσης του Εικονικού Mac.";
 "The Virtual Mac did not publish a display framebuffer." = "Το Εικονικό Mac δεν δημοσίευσε framebuffer οθόνης.";
 "The Virtual Mac display view is unavailable" = "Η προβολή οθόνης του Εικονικού Mac δεν είναι διαθέσιμη";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Αυτές οι επιλογές επηρεάζουν το iOS μόνο όταν το Εικονικό Mac βρίσκεται στο προσκήνιο και εκτελείται ένα εικονικό Mac.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Αυτές οι επιλογές επηρεάζουν το iPadOS μόνο όταν το Εικονικό Mac βρίσκεται στο προσκήνιο και εκτελείται ένα εικονικό Mac.";
 "This iPad is incompatible with Virtual Mac" = "Αυτό το iPad δεν είναι συμβατό με το Virtual Mac";

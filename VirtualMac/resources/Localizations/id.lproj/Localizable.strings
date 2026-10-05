@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Pilih nama untuk Virtual Mac ini.";
 "Choose Custom IPSW" = "Pilih IPSW Khusus";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Pilih apakah Virtual Mac membuka perpustakaannya atau memulai Virtual Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Kesesuaian";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Perangkat Virtual Mac lengkap dan citra pemulihan di luar Virtual Mac tidak akan dihapus.";
 "Configuration failed: %@" = "Konfigurasi gagal: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Tidak Dapat Menyimpan";
 "Could Not Start Installer" = "Penginstal Tidak Dapat Dimulai";
 "Couldn’t Export Diagnostics" = "Tidak Dapat Mengekspor Diagnostik";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Buat laporan di Github";
 "Create Virtual Mac" = "Buat Mac Virtual";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Khusus";
 "Debug Logging" = "Pencatatan debug";
 "Debug logging has been enabled for the next boot." = "Pencatatan debug telah dinyalakan untuk boot berikutnya.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Konfigurasi Virtual Mac tidak dapat dibuat.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac tidak menerbitkan framebuffer layar.";
 "The Virtual Mac display view is unavailable" = "Tampilan layar Virtual Mac tidak tersedia";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Pilihan ini hanya memengaruhi iOS saat Mac Virtual berada di depan dan Mac virtual sedang berjalan.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Pilihan ini hanya memengaruhi iPadOS saat Mac Virtual berada di depan dan Mac virtual sedang berjalan.";
 "This iPad is incompatible with Virtual Mac" = "iPad ini tidak kompatibel dengan Virtual Mac";

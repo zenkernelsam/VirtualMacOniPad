@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Adjon nevet ennek a virtuális Macnek.";
 "Choose Custom IPSW" = "Egyéni IPSW kiválasztása";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Válassza ki, hogy a Virtual Mac a könyvtárat nyissa meg, vagy elindítson egy virtuális Macet.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Kompatibilitás";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "A kész virtuális Macek és a Virtual Macen kívüli helyreállítási lemezképek nem lesznek eltávolítva.";
 "Configuration failed: %@" = "Sikertelen konfiguráció: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Nem sikerült menteni";
 "Could Not Start Installer" = "A telepítő nem indítható el";
 "Couldn’t Export Diagnostics" = "A diagnosztika nem exportálható";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Github-hibajegy létrehozása";
 "Create Virtual Mac" = "Virtuális Mac létrehozása";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Egyéni";
 "Debug Logging" = "Hibakeresési naplózás";
 "Debug logging has been enabled for the next boot." = "A hibakeresési naplózás be lett kapcsolva a következő indításhoz.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "A virtuális Mac konfigurációja nem hozható létre.";
 "The Virtual Mac did not publish a display framebuffer." = "A virtuális Mac nem tett közzé kijelző-framebuffert.";
 "The Virtual Mac display view is unavailable" = "A virtuális Mac kijelzőnézete nem érhető el";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Ezek a beállítások csak akkor befolyásolják az iOS-t, amikor a Virtuális Mac van előtérben, és fut egy virtuális Mac.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Ezek a beállítások csak akkor befolyásolják az iPadOS-t, amikor a Virtuális Mac van előtérben, és fut egy virtuális Mac.";
 "This iPad is incompatible with Virtual Mac" = "Ez az iPad nem kompatibilis a Virtual Mac alkalmazással";

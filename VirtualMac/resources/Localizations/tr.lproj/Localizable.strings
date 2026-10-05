@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Bu Sanal Mac için bir ad seçin.";
 "Choose Custom IPSW" = "Özel IPSW Seç";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Virtual Mac’in arşivini açmasını mı yoksa bir Sanal Mac başlatmasını mı istediğinizi seçin.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Uyumluluk";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Virtual Mac dışındaki tamamlanmış Sanal Mac’ler ve geri yükleme imajları kaldırılmaz.";
 "Configuration failed: %@" = "Yapılandırma başarısız: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Kaydedilemedi";
 "Could Not Start Installer" = "Yükleyici Başlatılamadı";
 "Couldn’t Export Diagnostics" = "Tanılar Dışa Aktarılamadı";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Github Sorunu Oluştur";
 "Create Virtual Mac" = "Sanal Mac Oluştur";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Özel";
 "Debug Logging" = "Hata ayıklama günlüğü";
 "Debug logging has been enabled for the next boot." = "Hata ayıklama günlüğü bir sonraki başlatma için açıldı.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Sanal Mac yapılandırması oluşturulamadı.";
 "The Virtual Mac did not publish a display framebuffer." = "Sanal Mac bir ekran framebuffer’ı yayımlamadı.";
 "The Virtual Mac display view is unavailable" = "Sanal Mac ekran görünümü kullanılamıyor";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Bu seçenekler iOS’i yalnızca Sanal Mac öndeyken ve bir sanal Mac çalışırken etkiler.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Bu seçenekler iPadOS’i yalnızca Sanal Mac öndeyken ve bir sanal Mac çalışırken etkiler.";
 "This iPad is incompatible with Virtual Mac" = "Bu iPad, Virtual Mac ile uyumlu değil";

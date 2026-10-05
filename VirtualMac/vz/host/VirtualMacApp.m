@@ -5145,6 +5145,109 @@ BOOL VZGenerateFreshAppleIdentityData(NSString *bundlePath,
     return YES;
 }
 
+BOOL VZGenerateCloneAppleIdentityData(NSData **outData, NSError **error) {
+    if (outData)
+        *outData = nil;
+    if (!objc_getClass("VZMacMachineIdentifier") &&
+        !ensureExtractedFrameworksLoaded()) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:20 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"Virtualization frameworks could not be loaded"}];
+        return NO;
+    }
+    Class identifierClass = objc_getClass("VZMacMachineIdentifier");
+    SEL cloneSelector = S("_machineIdentifierForVirtualMachineClone");
+    if (!identifierClass || ![identifierClass respondsToSelector:cloneSelector]) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:21 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"This VZ payload does not expose clone identity support"}];
+        return NO;
+    }
+    NSData *representation = nil;
+    @try {
+        id identifier = ((id(*)(id, SEL))objc_msgSend)(
+            (id)identifierClass, cloneSelector);
+        representation = [((id(*)(id, SEL))objc_msgSend)(
+            identifier, S("dataRepresentation")) retain];
+    } @catch (NSException *exception) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:22 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    exception.reason ?: @"Clone identity generation failed"}];
+        return NO;
+    }
+    if (!representation.length) {
+        [representation release];
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:23 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"Clone identity produced no data"}];
+        return NO;
+    }
+    if (outData)
+        *outData = representation;
+    else
+        [representation release];
+    return YES;
+}
+
+BOOL VZCreateCloneAuxiliaryStorage(NSString *bundlePath,
+                                   NSString *destinationPath,
+                                   NSError **error) {
+    if (!bundlePath.length || !destinationPath.length)
+        return NO;
+    if (!objc_getClass("VZMacAuxiliaryStorage") &&
+        !ensureExtractedFrameworksLoaded())
+        return NO;
+    NSData *hardwareData = [NSData dataWithContentsOfFile:
+        [bundlePath stringByAppendingPathComponent:@"HardwareModel"]];
+    id hardwareModel = nil;
+    @try {
+        hardwareModel = ((id(*)(id, SEL, id))objc_msgSend)(
+            ((id(*)(id, SEL))objc_msgSend)(
+                (id)objc_getClass("VZMacHardwareModel"), S("alloc")),
+            S("initWithDataRepresentation:"), hardwareData);
+    } @catch (NSException *exception) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:24 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    exception.reason ?: @"Hardware model could not be loaded"}];
+        return NO;
+    }
+    if (!hardwareModel)
+        return NO;
+    NSError *creationError = nil;
+    SEL selector = S("initCreatingStorageAtURL:hardwareModel:options:error:");
+    id storage = nil;
+    @try {
+        storage = ((id(*)(id, SEL, id, id, unsigned long long, NSError **))objc_msgSend)(
+            ((id(*)(id, SEL))objc_msgSend)(
+                (id)objc_getClass("VZMacAuxiliaryStorage"), S("alloc")),
+            selector, [NSURL fileURLWithPath:destinationPath],
+            hardwareModel, 0, &creationError);
+    } @catch (NSException *exception) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:25 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    exception.reason ?: @"Auxiliary storage creation failed"}];
+        [hardwareModel release];
+        return NO;
+    }
+    [storage release];
+    [hardwareModel release];
+    if (!storage) {
+        if (error)
+            *error = creationError ?: [NSError errorWithDomain:@"VirtualMac"
+                code:26 userInfo:@{
+                    NSLocalizedDescriptionKey:
+                        @"Auxiliary storage creation failed"}];
+        return NO;
+    }
+    return YES;
+}
+
 static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
                             NSError **error) {
     BOOL guestToolsEnabled =

@@ -612,6 +612,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)identityManager:(id)manager didSelectPath:(NSString *)path;
 - (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path;
 - (void)identityManagerDidRequestGenerate:(id)manager;
+- (void)identityManagerDidRequestClone:(id)manager;
 - (void)identityManagerDidRequestOriginal:(id)manager;
 @optional
 - (NSArray<NSString *> *)identityManagerPaths:(id)manager;
@@ -650,9 +651,16 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
         initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                              target:self action:@selector(done)] autorelease];
-    self.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc]
+    UIBarButtonItem *add = [[[UIBarButtonItem alloc]
         initWithTitle:VZL(@"Add Identity") style:UIBarButtonItemStylePlain
                target:self action:@selector(addIdentity)] autorelease];
+    UIBarButtonItem *clone = [[[UIBarButtonItem alloc]
+        initWithTitle:VZL(@"Create Clone") style:UIBarButtonItemStylePlain
+               target:self action:@selector(createClone)] autorelease];
+    self.navigationItem.rightBarButtonItems = @[clone, add];
+    self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
+        initWithBarButtonSystemItem:UIBarButtonSystemItemDone
+                             target:self action:@selector(done)] autorelease];
     UITableView *table = [[[UITableView alloc]
         initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped] autorelease];
     table.translatesAutoresizingMaskIntoConstraints = NO;
@@ -694,6 +702,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     [self.delegate identityManagerDidRequestGenerate:self];
     [self reloadIdentityData];
+}
+
+- (void)createClone
+{
+    [self.delegate identityManagerDidRequestClone:self];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -2070,6 +2083,94 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)identityManagerDidRequestGenerate:(id)manager
 {
     [self generateNewAppleIdentityPresenting:(UIViewController *)manager];
+}
+
+- (void)identityManagerDidRequestClone:(id)manager
+{
+    if (self.running || !self.bundlePath)
+        return;
+    NSString *source = [[self.bundlePath copy] autorelease];
+    NSString *name = VZUniqueVMName(
+        [NSString stringWithFormat:@"%@ Identity Clone", self.vmName]);
+    NSString *destination = [VZVMLibraryPath()
+        stringByAppendingPathComponent:
+            [name stringByAppendingPathExtension:@"bundle"]];
+    UIAlertController *progress = [UIAlertController
+        alertControllerWithTitle:VZL(@"Creating Clone")
+                         message:VZL(@"The VM disk is being cloned. Keep Virtual Mac open.")
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [self presentViewController:progress animated:YES completion:nil];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSFileManager *files = NSFileManager.defaultManager;
+        NSError *error = nil;
+        BOOL ok = [files createDirectoryAtPath:destination
+                   withIntermediateDirectories:NO attributes:nil error:&error];
+        NSData *cloneIdentity = nil;
+        if (ok) {
+            ok = [files copyItemAtPath:[source stringByAppendingPathComponent:@"Disk.img"]
+                                toPath:[destination stringByAppendingPathComponent:@"Disk.img"]
+                                 error:&error];
+        }
+        if (ok) {
+            ok = [files copyItemAtPath:[source stringByAppendingPathComponent:@"HardwareModel"]
+                                toPath:[destination stringByAppendingPathComponent:@"HardwareModel"]
+                                 error:&error];
+        }
+        if (ok) {
+            ok = VZCreateCloneAuxiliaryStorage(source,
+                [destination stringByAppendingPathComponent:@"AuxiliaryStorage"],
+                &error);
+        }
+        if (ok)
+            ok = VZGenerateCloneAppleIdentityData(&cloneIdentity, &error);
+        if (ok)
+            ok = [cloneIdentity writeToFile:
+                [destination stringByAppendingPathComponent:@"MachineIdentifier"]
+                options:NSDataWritingAtomic error:&error];
+        if (ok) {
+            NSMutableDictionary *options =
+                [NSMutableDictionary dictionaryWithDictionary:
+                    VZVMOptionsForBundle(source)];
+            options[@"VMName"] = name;
+            options[@"MACAddress"] = VZRandomMACAddress();
+            options[VZAppleIdentityEnabledKey] = @NO;
+            ok = VZWriteVMOptions(options, destination, &error);
+        }
+        if (ok) {
+            NSString *pool = [destination stringByAppendingPathComponent:@"Identities"];
+            ok = [files createDirectoryAtPath:pool
+                  withIntermediateDirectories:YES attributes:nil error:&error];
+            if (ok)
+                ok = [cloneIdentity writeToFile:
+                    [pool stringByAppendingPathComponent:@"original.mid"]
+                    options:NSDataWritingAtomic error:&error];
+        }
+        [cloneIdentity release];
+        if (!ok)
+            [files removeItemAtPath:destination error:nil];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [progress dismissViewControllerAnimated:YES completion:^{
+                if (!ok) {
+                    VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+                        error.localizedDescription ?: VZL(@"Could Not Save"),
+                        error.debugDescription, VZFailureSupportOptionNone);
+                    return;
+                }
+                UIAlertController *done = [UIAlertController
+                    alertControllerWithTitle:VZL(@"Clone Created")
+                                     message:name
+                              preferredStyle:UIAlertControllerStyleAlert];
+                [done addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
+                    style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+                    (void)action;
+                    [self dismissViewControllerAnimated:YES completion:^{
+                        [self done:nil];
+                    }];
+                }]];
+                [self presentViewController:done animated:YES completion:nil];
+            }];
+        });
+    });
 }
 
 - (void)identityManagerDidRequestOriginal:(id)manager

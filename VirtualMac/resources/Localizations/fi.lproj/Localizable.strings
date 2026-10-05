@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Valitse nimi tälle virtuaaliselle Macille.";
 "Choose Custom IPSW" = "Valitse oma IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Valitse, avaako Virtual Mac kirjaston vai käynnistääkö se virtuaalisen Macin.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Yhteensopivuus";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Valmiita virtuaalisia Maceja ja Virtual Macin ulkopuolisia palautuskuvia ei poisteta.";
 "Configuration failed: %@" = "Määritys epäonnistui: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Tallennus ei onnistunut";
 "Could Not Start Installer" = "Asennusohjelmaa ei voitu käynnistää";
 "Couldn’t Export Diagnostics" = "Diagnostiikkaa ei voitu viedä";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Luo ilmoitus Githubiin";
 "Create Virtual Mac" = "Luo virtuaalinen Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Mukautettu";
 "Debug Logging" = "Virheenkorjausloki";
 "Debug logging has been enabled for the next boot." = "Virheenkorjausloki otettiin käyttöön seuraavaa käynnistystä varten.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Virtuaalisen Macin määritystä ei voitu luoda.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtuaalinen Mac ei julkaissut näytön framebufferia.";
 "The Virtual Mac display view is unavailable" = "Virtuaalisen Macin näyttönäkymä ei ole käytettävissä";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Nämä valinnat vaikuttavat iOS:ään vain, kun Virtuaalinen Mac on etualalla ja virtuaalinen Mac on käynnissä.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Nämä valinnat vaikuttavat iPadOS:ään vain, kun Virtuaalinen Mac on etualalla ja virtuaalinen Mac on käynnissä.";
 "This iPad is incompatible with Virtual Mac" = "Tämä iPad ei ole yhteensopiva Virtual Macin kanssa";

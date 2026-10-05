@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "इस वर्चुअल Mac के लिए नाम चुनें।";
 "Choose Custom IPSW" = "कस्टम IPSW चुनें";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "चुनें कि वर्चुअल Mac अपनी लाइब्रेरी खोले या कोई वर्चुअल Mac शुरू करे।";
+"Clone Created" = "Clone Created";
 "Compatibility" = "अनुकूलता";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "वर्चुअल Mac के बाहर मौजूद पूरे वर्चुअल Mac और रीस्टोर इमेज नहीं हटाए जाएँगे।";
 "Configuration failed: %@" = "कॉन्फ़िगरेशन विफल: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "सेव नहीं हो सका";
 "Could Not Start Installer" = "इंस्टॉलर शुरू नहीं हो सका";
 "Couldn’t Export Diagnostics" = "डायग्नोस्टिक्स एक्सपोर्ट नहीं हो सके";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Github पर समस्या बनाएं";
 "Create Virtual Mac" = "वर्चुअल Mac बनाएँ";
+"Creating Clone" = "Creating Clone";
 "Custom" = "कस्टम";
 "Debug Logging" = "डीबग लॉगिंग";
 "Debug logging has been enabled for the next boot." = "अगले बूट के लिए डीबग लॉगिंग चालू कर दी गई है।";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "वर्चुअल Mac कॉन्फ़िगरेशन नहीं बनाया जा सका।";
 "The Virtual Mac did not publish a display framebuffer." = "वर्चुअल Mac ने डिस्प्ले फ़्रेमबफ़र प्रकाशित नहीं किया।";
 "The Virtual Mac display view is unavailable" = "वर्चुअल Mac डिस्प्ले व्यू उपलब्ध नहीं है";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "ये विकल्प iOS को केवल तब प्रभावित करते हैं, जब वर्चुअल Mac सामने हो और कोई वर्चुअल Mac चल रहा हो।";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "ये विकल्प iPadOS को केवल तब प्रभावित करते हैं, जब वर्चुअल Mac सामने हो और कोई वर्चुअल Mac चल रहा हो।";
 "This iPad is incompatible with Virtual Mac" = "यह iPad Virtual Mac के साथ संगत नहीं है";

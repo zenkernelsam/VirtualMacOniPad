@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Velg et navn for denne Virtual Mac.";
 "Choose Custom IPSW" = "Velg egendefinert IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Velg om Virtual Mac skal åpne biblioteket eller starte en Virtual Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Kompatibilitet";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Fullførte Virtual Mac-maskiner og gjenopprettingsbilder utenfor Virtual Mac fjernes ikke.";
 "Configuration failed: %@" = "Konfigurasjon mislyktes: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Kunne ikke arkivere";
 "Could Not Start Installer" = "Kunne ikke starte installereren";
 "Couldn’t Export Diagnostics" = "Kunne ikke eksportere diagnostikk";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Opprett Github-problem";
 "Create Virtual Mac" = "Opprett en virtuell Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Tilpasset";
 "Debug Logging" = "Feilsøkingslogging";
 "Debug logging has been enabled for the next boot." = "Feilsøkingslogging er slått på for neste oppstart.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Konfigurasjonen for Virtual Mac kunne ikke opprettes.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac publiserte ingen skjerm-framebuffer.";
 "The Virtual Mac display view is unavailable" = "Skjermvisningen for Virtual Mac er utilgjengelig";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Disse innstillingene påvirker bare iOS når Virtuell Mac er i forgrunnen og en virtuell Mac kjører.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Disse innstillingene påvirker bare iPadOS når Virtuell Mac er i forgrunnen og en virtuell Mac kjører.";
 "This iPad is incompatible with Virtual Mac" = "Denne iPaden er ikke kompatibel med Virtual Mac";

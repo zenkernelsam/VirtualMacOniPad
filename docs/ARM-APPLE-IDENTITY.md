@@ -119,3 +119,19 @@ bundle 表示长度，只接受相同长度且 ECID 不超过 `2^63-1` 的
 因此 97 的 60B 过滤没有解决黑屏，之前对 68B 高位 ECID 的门控只能算格式保护，不能算根因修复。现有安装的 `MachineIdentifier` 已恢复为 `Identities/original.mid`。当前证据更符合：已安装 macOS 的 `AuxiliaryStorage`/NVRAM 身份链与单独替换 `MachineIdentifier` 不匹配；没有 Apple VZ clone/新 AuxiliaryStorage 配对流程前，不应继续修改现有 VM 的身份。
 
 应用现在对已安装 bundle 隐藏身份生成/切换动作，并提示“Identity changes require a new Virtual Mac.”；Original 仍可恢复。身份池改为独立的设置窗口，单层显示已归档身份，当前项不可左滑删除，其他项可左滑后直接移入 `.Trash`，删除后不弹成功提示。
+
+## 9. 2026-10-06 真正的 clone 身份路径
+
+静态/运行时 probe 确认 Ventura VZ payload 提供私有 clone API：
+
+- `+[VZMacMachineIdentifier _machineIdentifierForVirtualMachineClone]`
+  返回带 `DisableECIDChecks` 的 clone 表示；
+- `VZMacAuxiliaryStorage` 提供
+  `initCreatingStorageAtURL:hardwareModel:options:error:`，当前
+  HardwareModel 实测可创建 33.6MB 新 AuxiliaryStorage。
+
+因此随机替换现有 bundle 的 `MachineIdentifier` 不是正确路径。管理窗口新增
+`Create Clone`：停止状态下复制 Disk.img/HardwareModel，创建新的
+AuxiliaryStorage，写入 clone MachineIdentifier，分配新 MAC，并保存为新的
+VirtualMac bundle。当前 VM 和原身份链保留不变。克隆完成后回到 VM library，
+用户应启动新 clone 做 Apple 服务实测；不把 Apple 服务成功当作未验事实。

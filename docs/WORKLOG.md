@@ -538,3 +538,10 @@
 ## 2026-10-06 — candidate selection UX clarification
 
 - [x] 候选身份点击改为本地预览选择，不再从 manager 弹出“Identity changes require a new Virtual Mac”错误；当前 `Configured` 仍表示实际 MachineIdentifier，`Selected Identity` 只表示候选选择。没有完整 clone/AuxiliaryStorage 配对流程时不执行切换。
+
+## 2026-10-06 — clone identity path implemented
+
+- [x] macOS framework runtime probe 验证 `VZMacMachineIdentifier` 私有 clone selector：`_machineIdentifierForVirtualMachineClone` 返回带 `DisableECIDChecks` 的 81/93B 表示；普通 `init` 仅返回 60/68B。
+- [x] `VZMacAuxiliaryStorage initCreatingStorageAtURL:hardwareModel:options:error:` 只读实测成功创建 33,570,816B 新 NVRAM。
+- [x] 管理窗口新增 Create Clone：后台复制 Disk.img/HardwareModel，创建新 AuxiliaryStorage，写入 clone identity、新 MAC 和配置，生成新的 VM bundle；当前 VM 不覆盖。
+- [ ] clone 实机启动、GuestTools、Apple 服务结果待用户停机窗口验证；本轮未安装/重启。

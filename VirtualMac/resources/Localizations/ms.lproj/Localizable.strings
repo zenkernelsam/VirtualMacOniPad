@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Pilih nama untuk Mac maya ini.";
 "Choose Custom IPSW" = "Pilih IPSW Tersuai";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Pilih sama ada Virtual Mac membuka pustakanya atau memulakan Mac Maya.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Keserasian";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Peranti Mac maya lengkap dan imej pemulihan di luar Mac maya tidak akan dipadam.";
 "Configuration failed: %@" = "Konfigurasi gagal: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Tidak Dapat Menyimpan";
 "Could Not Start Installer" = "Pemasang Tidak Dapat Dimulakan";
 "Couldn’t Export Diagnostics" = "Tidak Dapat Mengeksport Diagnostik";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Cipta laporan di Github";
 "Create Virtual Mac" = "Cipta Mac Maya";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Tersuai";
 "Debug Logging" = "Pengelogan nyahpepijat";
 "Debug logging has been enabled for the next boot." = "Pengelogan nyahpepijat telah diaktifkan untuk but seterusnya.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Konfigurasi Mac maya tidak boleh dibuat.";
 "The Virtual Mac did not publish a display framebuffer." = "Mac maya tidak menerbitkan framebuffer paparan.";
 "The Virtual Mac display view is unavailable" = "Paparan skrin Mac Maya tidak tersedia";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Pilihan ini hanya menjejaskan iOS ketika Mac Maya berada di hadapan dan Mac maya sedang berjalan.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Pilihan ini hanya menjejaskan iPadOS ketika Mac Maya berada di hadapan dan Mac maya sedang berjalan.";
 "This iPad is incompatible with Virtual Mac" = "iPad ini tidak serasi dengan Virtual Mac";

@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "ตั้งชื่อ Virtual Mac เครื่องนี้";
 "Choose Custom IPSW" = "เลือก IPSW แบบกำหนดเอง";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "เลือกว่าจะให้ Virtual Mac เปิดคลังหรือเริ่ม Virtual Mac เครื่องหนึ่ง";
+"Clone Created" = "Clone Created";
 "Compatibility" = "ความเข้ากันได้";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Virtual Mac ที่เสร็จสมบูรณ์และอิมเมจกู้คืนที่อยู่นอก Virtual Mac จะไม่ถูกลบ";
 "Configuration failed: %@" = "กำหนดค่าไม่สำเร็จ: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "ไม่สามารถบันทึก";
 "Could Not Start Installer" = "ไม่สามารถเริ่มตัวติดตั้ง";
 "Couldn’t Export Diagnostics" = "ไม่สามารถส่งออกข้อมูลวินิจฉัยได้";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "สร้างรายงานใน Github";
 "Create Virtual Mac" = "สร้าง Mac เสมือน";
+"Creating Clone" = "Creating Clone";
 "Custom" = "กำหนดเอง";
 "Debug Logging" = "การบันทึกการแก้ไขข้อบกพร่อง";
 "Debug logging has been enabled for the next boot." = "เปิดการบันทึกข้อมูลดีบักสำหรับการบูตครั้งถัดไปแล้ว";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "ไม่สามารถสร้างการกำหนดค่า Virtual Mac ได้";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac ไม่ได้เผยแพร่เฟรมบัฟเฟอร์จอภาพ";
 "The Virtual Mac display view is unavailable" = "มุมมองจอภาพ Virtual Mac ไม่พร้อมใช้งาน";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "ตัวเลือกเหล่านี้มีผลกับ iOS เฉพาะเมื่อ Mac เสมือน อยู่ด้านหน้าและ Mac เสมือนกำลังทำงาน";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "ตัวเลือกเหล่านี้มีผลกับ iPadOS เฉพาะเมื่อ Mac เสมือน อยู่ด้านหน้าและ Mac เสมือนกำลังทำงาน";
 "This iPad is incompatible with Virtual Mac" = "iPad เครื่องนี้ไม่รองรับ Virtual Mac";

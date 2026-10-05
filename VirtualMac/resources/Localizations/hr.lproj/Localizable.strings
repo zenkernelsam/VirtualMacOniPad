@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Odaberite naziv za ovaj Virtualni Mac.";
 "Choose Custom IPSW" = "Odaberi prilagođeni IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Odaberite hoće li Virtualni Mac otvoriti medijateku ili pokrenuti Virtualni Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Kompatibilnost";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Dovršeni Virtualni Macovi i slike za obnovu izvan aplikacije neće se ukloniti.";
 "Configuration failed: %@" = "Konfiguracija nije uspjela: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Nije moguće spremiti";
 "Could Not Start Installer" = "Instalacijski program nije moguće pokrenuti";
 "Couldn’t Export Diagnostics" = "Nije moguće izvesti dijagnostiku";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Izradi prijavu na Githubu";
 "Create Virtual Mac" = "Izradi Virtualni Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Prilagođeno";
 "Debug Logging" = "Bilježenje za otklanjanje pogrešaka";
 "Debug logging has been enabled for the next boot." = "Bilježenje za otklanjanje grešaka uključeno je za sljedeće pokretanje.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Nije moguće izraditi konfiguraciju Virtualnog Maca.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtualni Mac nije objavio framebuffer zaslona.";
 "The Virtual Mac display view is unavailable" = "Prikaz zaslona Virtualnog Maca nije dostupan";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Ove opcije utječu na iOS samo dok je Virtualni Mac u prvom planu i virtualni Mac je pokrenut.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Ove opcije utječu na iPadOS samo dok je Virtualni Mac u prvom planu i virtualni Mac je pokrenut.";
 "This iPad is incompatible with Virtual Mac" = "Ovaj iPad nije kompatibilan s aplikacijom Virtual Mac";

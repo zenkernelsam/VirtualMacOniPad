@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Izberite ime za ta Virtual Mac.";
 "Choose Custom IPSW" = "Izberi IPSW po meri";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Izberite, ali aplikacija Virtual Mac odpre knjižnico ali zažene Virtual Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Združljivost";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Dokončani Virtual Maci in obnovitvene slike zunaj aplikacije Virtual Mac ne bodo odstranjeni.";
 "Configuration failed: %@" = "Nastavitev ni uspela: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Ni bilo mogoče shraniti";
 "Could Not Start Installer" = "Namestitvenega programa ni bilo mogoče zagnati";
 "Couldn’t Export Diagnostics" = "Diagnostike ni bilo mogoče izvoziti";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Ustvari prijavo na Githubu";
 "Create Virtual Mac" = "Ustvari navidezni Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Po meri";
 "Debug Logging" = "Beleženje razhroščevanja";
 "Debug logging has been enabled for the next boot." = "Beleženje razhroščevanja je vklopljeno za naslednji zagon.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Nastavitev Virtual Maca ni bilo mogoče ustvariti.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac ni objavil medpomnilnika sličic zaslona.";
 "The Virtual Mac display view is unavailable" = "Pogled zaslona Virtual Maca ni na voljo";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Te možnosti vplivajo na iOS samo, ko je Navidezni Mac v ospredju in deluje navidezni Mac.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Te možnosti vplivajo na iPadOS samo, ko je Navidezni Mac v ospredju in deluje navidezni Mac.";
 "This iPad is incompatible with Virtual Mac" = "Ta iPad ni združljiv z aplikacijo Virtual Mac";

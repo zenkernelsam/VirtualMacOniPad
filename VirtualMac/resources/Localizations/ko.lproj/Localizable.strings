@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "이 가상 Mac의 이름을 선택하십시오.";
 "Choose Custom IPSW" = "사용자 설정IPSW 선택";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "가상 Mac을 열 때 보관함을 표시할지 가상 Mac을 시작할지 선택하십시오.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "호환성";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "완료된 가상 Mac과 가상 Mac 폴더 외부의 복원 이미지는 삭제되지 않습니다.";
 "Configuration failed: %@" = "구성 실패: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "저장할 수 없음";
 "Could Not Start Installer" = "설치 프로그램을 시작할 수 없음";
 "Couldn’t Export Diagnostics" = "진단을 내보낼 수 없음";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Github 문제 신고";
 "Create Virtual Mac" = "가상 Mac 생성";
+"Creating Clone" = "Creating Clone";
 "Custom" = "사용자 지정";
 "Debug Logging" = "디버그 기록";
 "Debug logging has been enabled for the next boot." = "다음 부팅에 디버그 로깅이 활성화되었습니다.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "가상 Mac 구성을 생성할 수 없습니다.";
 "The Virtual Mac did not publish a display framebuffer." = "가상 Mac이 디스플레이 프레임버퍼를 게시하지 않았습니다.";
 "The Virtual Mac display view is unavailable" = "가상 Mac 디스플레이 보기를 사용할 수 없음";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "이 옵션은 가상 Mac이 전면에서 실행 중일 때만 iOS에 영향을 줍니다.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "이 옵션은 가상 Mac이 전면에서 실행 중일 때만 iPadOS에 영향을 줍니다.";
 "This iPad is incompatible with Virtual Mac" = "이 iPad는 Virtual Mac과 호환되지 않습니다";

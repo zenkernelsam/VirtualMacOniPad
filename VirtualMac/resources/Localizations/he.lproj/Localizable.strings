@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "בחירת שם עבור Mac וירטואלי זה.";
 "Choose Custom IPSW" = "בחירת IPSW מותאם אישית";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "יש לבחור אם Mac וירטואלי יפתח את הספרייה או יפעיל Mac וירטואלי.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "תאימות";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "מחשבי Mac וירטואליים שהושלמו ותמונות שחזור מחוץ ליישום לא יוסרו.";
 "Configuration failed: %@" = "התצורה נכשלה: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "לא ניתן היה לשמור";
 "Could Not Start Installer" = "לא ניתן היה להפעיל את תוכנית ההתקנה";
 "Couldn’t Export Diagnostics" = "לא ניתן לייצא את נתוני האבחון";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "יצירת דיווח ב-Github";
 "Create Virtual Mac" = "יצירת Mac וירטואלי";
+"Creating Clone" = "Creating Clone";
 "Custom" = "מותאם אישית";
 "Debug Logging" = "רישום ניפוי באגים";
 "Debug logging has been enabled for the next boot." = "רישום ניפוי השגיאות הופעל להפעלה הבאה.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "לא ניתן ליצור את תצורת ה-Mac הווירטואלי.";
 "The Virtual Mac did not publish a display framebuffer." = "ה-Mac הווירטואלי לא פרסם framebuffer של הצג.";
 "The Virtual Mac display view is unavailable" = "תצוגת ה-Mac הווירטואלי אינה זמינה";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "אפשרויות אלה משפיעות על iOS רק כאשר Mac וירטואלי בחזית ומופעל Mac וירטואלי.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "אפשרויות אלה משפיעות על iPadOS רק כאשר Mac וירטואלי בחזית ומופעל Mac וירטואלי.";
 "This iPad is incompatible with Virtual Mac" = "ה-iPad הזה אינו תואם ל-Virtual Mac";

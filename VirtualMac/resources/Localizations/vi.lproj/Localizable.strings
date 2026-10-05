@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Chọn tên cho máy Mac ảo này.";
 "Choose Custom IPSW" = "Chọn IPSW tùy chỉnh";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Chọn mở thư viện hay khởi động một máy Mac ảo khi mở Virtual Mac.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Khả năng tương thích";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Các máy Mac ảo hoàn chỉnh và ảnh khôi phục nằm ngoài Virtual Mac sẽ không bị xóa.";
 "Configuration failed: %@" = "Cấu hình không thành công: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Không thể lưu";
 "Could Not Start Installer" = "Không thể khởi động trình cài đặt";
 "Couldn’t Export Diagnostics" = "Không thể xuất dữ liệu chẩn đoán";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Tạo báo cáo trên Github";
 "Create Virtual Mac" = "Tạo Máy Mac ảo";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Tùy chỉnh";
 "Debug Logging" = "Ghi nhật ký gỡ lỗi";
 "Debug logging has been enabled for the next boot." = "Đã bật ghi nhật ký gỡ lỗi cho lần khởi động tiếp theo.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Không thể tạo cấu hình máy Mac ảo.";
 "The Virtual Mac did not publish a display framebuffer." = "Máy Mac ảo không công bố framebuffer màn hình.";
 "The Virtual Mac display view is unavailable" = "Chế độ xem màn hình máy Mac ảo không khả dụng";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Các tùy chọn này chỉ ảnh hưởng đến iOS khi Máy Mac ảo ở phía trước và Máy Mac ảo đang chạy.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Các tùy chọn này chỉ ảnh hưởng đến iPadOS khi Máy Mac ảo ở phía trước và Máy Mac ảo đang chạy.";
 "This iPad is incompatible with Virtual Mac" = "iPad này không tương thích với Virtual Mac";

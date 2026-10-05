@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Wybierz nazwę dla tego Virtual Maca.";
 "Choose Custom IPSW" = "Wybierz niestandardowy IPSW";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Wybierz, czy aplikacja Virtual Mac ma otwierać bibliotekę, czy uruchamiać Virtual Maca.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Zgodność";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Kompletne Virtual Maki i obrazy odtwarzania poza aplikacją Virtual Mac nie zostaną usunięte.";
 "Configuration failed: %@" = "Konfiguracja nie powiodła się: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Nie można zachować";
 "Could Not Start Installer" = "Nie można uruchomić instalatora";
 "Couldn’t Export Diagnostics" = "Nie udało się wyeksportować diagnostyki";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Utwórz zgłoszenie w Githubie";
 "Create Virtual Mac" = "Utwórz Wirtualny Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Własna";
 "Debug Logging" = "Rejestrowanie debugowania";
 "Debug logging has been enabled for the next boot." = "Rejestrowanie debugowania zostało włączone dla następnego rozruchu.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "Nie udało się utworzyć konfiguracji Virtual Maca.";
 "The Virtual Mac did not publish a display framebuffer." = "Virtual Mac nie udostępnił bufora ramki ekranu.";
 "The Virtual Mac display view is unavailable" = "Widok ekranu Virtual Maca jest niedostępny";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Te opcje wpływają na iOS tylko wtedy, gdy Wirtualny Mac jest na pierwszym planie i działa wirtualny Mac.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Te opcje wpływają na iPadOS tylko wtedy, gdy Wirtualny Mac jest na pierwszym planie i działa wirtualny Mac.";
 "This iPad is incompatible with Virtual Mac" = "Ten iPad nie jest zgodny z Virtual Mac";

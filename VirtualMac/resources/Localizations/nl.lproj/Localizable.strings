@@ -48,6 +48,7 @@
 "Choose a name for this Virtual Mac." = "Kies een naam voor deze Virtual Mac.";
 "Choose Custom IPSW" = "Aangepaste IPSW kiezen";
 "Choose whether Virtual Mac opens its library or starts a Virtual Mac." = "Kies of Virtual Mac de bibliotheek opent of een Virtual Mac start.";
+"Clone Created" = "Clone Created";
 "Compatibility" = "Verenigbaarheid";
 "Complete Virtual Mac devices and restore images outside Virtual Mac are not removed." = "Voltooide Virtual Macs en herstelimages buiten Virtual Mac worden niet verwijderd.";
 "Configuration failed: %@" = "Configuratie mislukt: %@";
@@ -63,8 +64,10 @@
 "Could Not Save" = "Bewaren mislukt";
 "Could Not Start Installer" = "Installatieprogramma kon niet worden gestart";
 "Couldn’t Export Diagnostics" = "Diagnostische gegevens konden niet worden geëxporteerd";
+"Create Clone" = "Create Clone";
 "Create Github Issue" = "Github-probleem aanmaken";
 "Create Virtual Mac" = "Maak een virtuele Mac";
+"Creating Clone" = "Creating Clone";
 "Custom" = "Aangepast";
 "Debug Logging" = "Foutopsporingslogboek";
 "Debug logging has been enabled for the next boot." = "Debuglogboekregistratie is ingeschakeld voor de volgende start.";
@@ -268,6 +271,7 @@
 "The Virtual Mac configuration could not be created." = "De configuratie van de Virtual Mac kon niet worden aangemaakt.";
 "The Virtual Mac did not publish a display framebuffer." = "De Virtual Mac heeft geen beeldschermframebuffer gepubliceerd.";
 "The Virtual Mac display view is unavailable" = "De beeldschermweergave van Virtual Mac is niet beschikbaar";
+"The VM disk is being cloned. Keep Virtual Mac open." = "The VM disk is being cloned. Keep Virtual Mac open.";
 "These options affect iOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Deze opties zijn alleen van invloed op iOS wanneer Virtuele Mac op de voorgrond staat en er een virtuele Mac actief is.";
 "These options affect iPadOS only while Virtual Mac is frontmost and a Virtual Mac is running." = "Deze opties zijn alleen van invloed op iPadOS wanneer Virtuele Mac op de voorgrond staat en er een virtuele Mac actief is.";
 "This iPad is incompatible with Virtual Mac" = "Deze iPad is niet compatibel met Virtual Mac";

@@ -648,6 +648,9 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
         initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                              target:self action:@selector(done)] autorelease];
+    self.navigationItem.rightBarButtonItem = [[[UIBarButtonItem alloc]
+        initWithTitle:VZL(@"Add Identity") style:UIBarButtonItemStylePlain
+               target:self action:@selector(addIdentity)] autorelease];
     UITableView *table = [[[UITableView alloc]
         initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped] autorelease];
     table.translatesAutoresizingMaskIntoConstraints = NO;
@@ -679,6 +682,12 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)done
 {
     [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)addIdentity
+{
+    [self.delegate identityManagerDidRequestGenerate:self];
+    [self reloadIdentityData];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -1852,13 +1861,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         alertControllerWithTitle:VZL(@"Apple Services Identity")
                          message:VZL(@"Experimental")
                   preferredStyle:UIAlertControllerStyleActionSheet];
-    if ([self appleIdentityPoolPathsDescending].count) {
-        [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Manage Identities")
-            style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-            (void)action;
-            [self presentAppleIdentityManagerFromCell:cell];
-        }]];
-    }
+    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Manage Identities")
+        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        (void)action;
+        [self presentAppleIdentityManagerFromCell:cell];
+    }]];
     [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Serial / MLB / ROM")
         style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         (void)action;
@@ -1898,15 +1905,50 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     [self presentViewController:navigation animated:YES completion:nil];
 }
 
-// One tap: generate a fresh VZMacMachineIdentifier, keep the previous bundle
-// identity as `original.mid`, archive the new one, and make it active.
+// Generate a compatible candidate for the identity pool. Existing VM
+// MachineIdentifier/AuxiliaryStorage pairs are never replaced here.
 - (void)generateNewAppleIdentity
 {
     if (self.running || !self.bundlePath)
         return;
-    VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-        VZL(@"Identity changes require a new Virtual Mac."),
-        nil, VZFailureSupportOptionNone);
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSString *pool = [self appleIdentityPoolDirectory];
+    NSString *original = [self appleIdentityOriginalPath];
+    NSError *error = nil;
+    if (![manager createDirectoryAtPath:pool withIntermediateDirectories:YES
+                             attributes:nil error:&error])
+        return;
+    NSString *identityPath = [self.bundlePath
+        stringByAppendingPathComponent:@"MachineIdentifier"];
+    if (![manager fileExistsAtPath:original] &&
+        [manager fileExistsAtPath:identityPath]) {
+        NSData *current = [NSData dataWithContentsOfFile:identityPath];
+        if (!current.length ||
+            ![current writeToFile:original options:NSDataWritingAtomic
+                              error:&error])
+            return;
+    }
+    NSData *candidate = nil;
+    if (!VZGenerateFreshAppleIdentityData(self.bundlePath, &candidate,
+                                          NULL, &error))
+        return;
+    NSString *name = [NSString stringWithFormat:@"%lld.mid",
+        (long long)(NSDate.date.timeIntervalSince1970 * 1000.0)];
+    NSString *archivePath = [pool stringByAppendingPathComponent:name];
+    NSUInteger suffix = 0;
+    while ([manager fileExistsAtPath:archivePath]) {
+        suffix++;
+        archivePath = [pool stringByAppendingPathComponent:
+            [NSString stringWithFormat:@"%lld-%lu.mid",
+                (long long)(NSDate.date.timeIntervalSince1970 * 1000.0),
+                (unsigned long)suffix]];
+    }
+    BOOL written = [candidate writeToFile:archivePath
+                                  options:NSDataWritingAtomic error:&error];
+    [candidate release];
+    if (!written)
+        return;
+    [self.tableView reloadData];
 }
 
 - (BOOL)deleteAppleIdentityAtPath:(NSString *)path

@@ -20,6 +20,11 @@ FOUNDATION_EXPORT NSString * const VZAppleROMKey;
 BOOL VZWriteFreshAppleIdentity(NSString *bundlePath,
                                NSString *_Nullable *_Nullable outSerial,
                                NSError *_Nullable *_Nullable error);
+BOOL VZGenerateFreshAppleIdentityData(
+    NSString *bundlePath,
+    NSData *_Nullable *_Nullable outData,
+    NSString *_Nullable *_Nullable outSerial,
+    NSError *_Nullable *_Nullable error);
 
 // Best-effort display label for a MachineIdentifier data blob: the derived
 // serial number when the private getter is available, otherwise the ECID

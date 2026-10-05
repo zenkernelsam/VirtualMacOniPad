@@ -45,6 +45,7 @@ TECHNICAL_IDENTICAL_VALUES = {
     "VPN",
     "Wi-Fi",
     "Apple Services Identity",
+    "Add Identity",
     "Mac Serial Number",
     "Board Serial Number (MLB)",
     "ROM",

@@ -493,3 +493,10 @@
 - [x] 98 基于身份链保护和窗口式管理代码构建成功；包 `VirtualMac/build/release/VirtualMac_1.2.3_2d9f41b359.deb`，版本 `2:1.2.3+98.identitysafe`，20,854,388 bytes，SHA256 `352d7e8dfd3ff45eaa53a9e328db2d63ffba124343d2496468e805a0399ff762`。
 - [x] 解包字符串核对包含 `Manage Identities`、`UISwipeActionsConfiguration`、`.Trash`、身份链保护提示；stage audit、329串本地化审计、iPadOS14.5 deployment stamp 通过。
 - [x] 已复制到飞牛和 iPad Files；iPad 远端大小/SHA256 一致。仅上传，未安装、未重启。功能源码与文档已推送提交 `29ec8d2`。
+
+
+## 2026-10-05 — 99 identity manager add flow
+
+- [x] 修复 98+ 交互回归：身份池为空时仍显示 Manage Identities；管理窗口新增 Add Identity，生成候选只写入 `Identities/<timestamp>.mid`，不覆盖当前 `MachineIdentifier`；添加后立即刷新列表。
+- [x] 99 包 `VirtualMac/build/release/VirtualMac_1.2.3_827aca7603.deb`，版本 `2:1.2.3+99.identityadd`，20,858,236 bytes，SHA256 `e0fbdf4272371366af7794a3b28147449a66b30fbf0058470223ba29f8ab5a8b`；stage/localization/package string audit 通过。
+- [ ] 99 尚未安装/重启；需在停机窗口确认新增候选不会改变当前身份，管理窗口不会退出。

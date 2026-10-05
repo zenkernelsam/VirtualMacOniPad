@@ -13,6 +13,7 @@
 "A previous macOS installation did not finish." = "以前のmacOSインストールが完了しませんでした。";
 "About" = "情報";
 "Accommodate Double Tap" = "指のダブルタップを補正";
+"Add Identity" = "Add Identity";
 "Add Shared Folder" = "共有フォルダを追加";
 "Advanced" = "詳細";
 "Allowed: %llu–%llu%@" = "許容範囲：%llu〜%llu%@";

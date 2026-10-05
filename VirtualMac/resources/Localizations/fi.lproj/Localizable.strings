@@ -13,6 +13,7 @@
 "A previous macOS installation did not finish." = "Aiempi macOS-asennus ei valmistunut.";
 "About" = "Tietoja";
 "Accommodate Double Tap" = "Helpota kaksoisnapautusta sormella";
+"Add Identity" = "Add Identity";
 "Add Shared Folder" = "Lisää jaettu kansio";
 "Advanced" = "Lisäasetukset";
 "Allowed: %llu–%llu%@" = "Sallittu: %llu–%llu%@";

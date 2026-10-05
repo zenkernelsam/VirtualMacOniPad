@@ -13,6 +13,7 @@
 "A previous macOS installation did not finish." = "การติดตั้ง macOS ก่อนหน้านี้ไม่เสร็จสมบูรณ์";
 "About" = "เกี่ยวกับ";
 "Accommodate Double Tap" = "ช่วยให้แตะสองครั้งด้วยนิ้วได้ง่ายขึ้น";
+"Add Identity" = "Add Identity";
 "Add Shared Folder" = "เพิ่มโฟลเดอร์ที่แชร์";
 "Advanced" = "ขั้นสูง";
 "Allowed: %llu–%llu%@" = "ใช้ได้: %llu–%llu%@";

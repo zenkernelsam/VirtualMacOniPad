@@ -13,6 +13,7 @@
 "A previous macOS installation did not finish." = "이전 macOS 설치가 완료되지 않았습니다.";
 "About" = "정보";
 "Accommodate Double Tap" = "손가락 이중 탭 보정";
+"Add Identity" = "Add Identity";
 "Add Shared Folder" = "공유 폴더 추가";
 "Advanced" = "고급";
 "Allowed: %llu–%llu%@" = "허용 범위: %llu–%llu%@";

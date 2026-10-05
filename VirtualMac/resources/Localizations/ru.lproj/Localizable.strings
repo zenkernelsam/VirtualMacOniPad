@@ -13,6 +13,7 @@
 "A previous macOS installation did not finish." = "Предыдущая установка macOS не была завершена.";
 "About" = "Об этом приложении";
 "Accommodate Double Tap" = "Упростить двойное касание пальцем";
+"Add Identity" = "Add Identity";
 "Add Shared Folder" = "Добавить общую папку";
 "Advanced" = "Дополнительно";
 "Allowed: %llu–%llu%@" = "Допустимо: %llu–%llu%@";

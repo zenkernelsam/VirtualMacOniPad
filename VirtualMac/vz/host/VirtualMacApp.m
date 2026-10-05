@@ -5061,8 +5061,12 @@ NSString *VZAppleIdentityLabelForData(NSData *data) {
     return nil;
 }
 
-BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
-                               NSError **error) {
+BOOL VZGenerateFreshAppleIdentityData(NSString *bundlePath,
+                                        NSData **outData,
+                                        NSString **outSerial,
+                                        NSError **error) {
+    if (outData)
+        *outData = nil;
     if (!bundlePath.length) {
         if (error)
             *error = [NSError errorWithDomain:@"VirtualMac" code:1 userInfo:@{
@@ -5085,13 +5089,12 @@ BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
                     @"VZMacMachineIdentifier is unavailable"}];
         return NO;
     }
-    NSString *identifierPath =
-        [bundlePath stringByAppendingPathComponent:@"MachineIdentifier"];
+    NSString *identifierPath = [bundlePath
+        stringByAppendingPathComponent:@"MachineIdentifier"];
     NSUInteger expectedLength =
         [NSData dataWithContentsOfFile:identifierPath].length;
     NSData *representation = nil;
-    const NSUInteger maxAttempts = 16;
-    for (NSUInteger attempt = 0; attempt < maxAttempts; attempt++) {
+    for (NSUInteger attempt = 0; attempt < 16; attempt++) {
         @try {
             id identifier = ((id(*)(id, SEL))objc_msgSend)(
                 ((id(*)(id, SEL))objc_msgSend)((id)identifierClass, S("alloc")),
@@ -5106,12 +5109,10 @@ BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
                 ? (plist[@"ECID"] ?: plist[@"ecid"]) : nil;
             BOOL shapeOK = candidate.length > 0 &&
                 (!expectedLength || candidate.length == expectedLength);
-            // The extracted Ventura VZ stack serializes ECIDs below 2^63 in
-            // the 60-byte form used by this bundle. Avoid the 68-byte,
-            // high-bit form that produced a started-but-frame-less guest.
-            BOOL scalarOK = !ecid || [ecid unsignedLongLongValue] <= LLONG_MAX;
+            BOOL scalarOK = !ecid ||
+                [ecid unsignedLongLongValue] <= LLONG_MAX;
             if (shapeOK && scalarOK) {
-                representation = candidate;
+                representation = [candidate retain];
                 break;
             }
             printf("[VirtualMac] identity candidate rejected attempt=%lu "
@@ -5120,30 +5121,48 @@ BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
                    (unsigned long)candidate.length,
                    (unsigned long)expectedLength, scalarOK);
         } @catch (NSException *exception) {
-            if (attempt + 1 == maxAttempts && error)
+            if (attempt == 15 && error)
                 *error = [NSError errorWithDomain:@"VirtualMac" code:4 userInfo:@{
                     NSLocalizedDescriptionKey:
                         exception.reason ?: @"Identity generation failed"}];
         }
     }
-    if (![representation isKindOfClass:NSData.class] ||
-        !representation.length) {
+    if (!representation.length) {
+        [representation release];
         if (error)
             *error = [NSError errorWithDomain:@"VirtualMac" code:5 userInfo:@{
                 NSLocalizedDescriptionKey:
                     @"No compatible machine identifier was generated"}];
         return NO;
     }
-    if (![representation writeToFile:identifierPath
-                             options:NSDataWritingAtomic error:error])
-        return NO;
     NSString *label = VZAppleIdentityLabelForData(representation);
+    if (outData)
+        *outData = representation;
+    else
+        [representation release];
     if (outSerial)
         *outSerial = label;
-    printf("[VirtualMac] Apple identity regenerated; bytes=%lu identity=%s\n",
-           (unsigned long)representation.length,
-           label.length ? label.UTF8String : "(unavailable)");
     return YES;
+}
+
+BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
+                               NSError **error) {
+    NSData *representation = nil;
+    if (!VZGenerateFreshAppleIdentityData(bundlePath, &representation,
+                                          outSerial, error))
+        return NO;
+    NSString *identifierPath = [bundlePath
+        stringByAppendingPathComponent:@"MachineIdentifier"];
+    BOOL written = [representation writeToFile:identifierPath
+                                       options:NSDataWritingAtomic error:error];
+    if (written) {
+        printf("[VirtualMac] Apple identity regenerated; bytes=%lu identity=%s\n",
+               (unsigned long)representation.length,
+               outSerial && *outSerial ? (*outSerial).UTF8String :
+                   "(unavailable)");
+    }
+    [representation release];
+    return written;
 }
 
 static id makeConfiguration(NSString *bundlePath, NSDictionary *options,

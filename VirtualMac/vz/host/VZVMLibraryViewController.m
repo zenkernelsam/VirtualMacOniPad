@@ -2055,11 +2055,10 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 
 - (void)identityManager:(id)manager didSelectPath:(NSString *)path
 {
+    (void)manager;
     (void)path;
-    VZPresentFailureReport((UIViewController *)manager,
-        VZL(@"Apple Services Identity"),
-        VZL(@"Identity changes require a new Virtual Mac."),
-        nil, VZFailureSupportOptionNone);
+    // Selection is a local preview. The active identity remains the
+    // MachineIdentifier paired with this VM's AuxiliaryStorage.
 }
 
 - (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path

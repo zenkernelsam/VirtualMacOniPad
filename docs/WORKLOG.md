@@ -533,3 +533,8 @@
 - [x] 完整身份功能审计后构建 103：`VirtualMac/build/release/VirtualMac_1.2.3_b8fddeeb65.deb`，版本 `2:1.2.3+103.identityaudit`，20,864,040 bytes，SHA256 `bebfc09d47c7a81902d90f57c2d735cd75e38305311c0e3fe9f188ddbebc82a4`。
 - [x] 103 包含 stale index 越界保护、删除后数据源刷新、真实 suffix 文件名保留、Add 错误回显、MachineIdentifier/HardwareModel 异常保护、旧 Serial override 禁用；331串本地化、App 编译和 package stage audit 通过。
 - [x] 已复制到飞牛和 iPad Files，远端大小/SHA256 一致；未安装、未重启。
+
+
+## 2026-10-06 — candidate selection UX clarification
+
+- [x] 候选身份点击改为本地预览选择，不再从 manager 弹出“Identity changes require a new Virtual Mac”错误；当前 `Configured` 仍表示实际 MachineIdentifier，`Selected Identity` 只表示候选选择。没有完整 clone/AuxiliaryStorage 配对流程时不执行切换。

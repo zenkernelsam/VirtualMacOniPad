@@ -512,3 +512,8 @@
 - [x] 修复 99 的列表状态 bug：点击候选身份现在只标记 `Selected Identity` 并在当前 manager 内提示安全限制，不从后台配置页抢占弹窗；左滑删除使用新数组计算 index、更新数据源并显式 reload，重复删除不会引用旧 cell。
 - [x] 100 包 `VirtualMac/build/release/VirtualMac_1.2.3_c434121f6a.deb`，版本 `2:1.2.3+100.identityui`，20,862,912 bytes，SHA256 `5e8a2b2db86ca23ca14ebe37ff0885b9f761e6066d2b1708dd27573e0cd4351f`；编译、331串本地化、stage/package audit 通过。
 - [ ] 100 尚未安装/重启；需停机窗口验证“选择候选→提示→窗口保持”“删除→列表立即更新→再次删除不崩”。
+
+
+## 2026-10-05 — 100 package copied to iPad Files
+
+- [x] 100 已复制至飞牛与 iPad Files：`VirtualMac_1.2.3_c434121f6a.deb`。iPad 远端大小 20,862,912 bytes、SHA256 `5e8a2b2db86ca23ca14ebe37ff0885b9f761e6066d2b1708dd27573e0cd4351f` 与本机一致；仅上传，未安装/重启。

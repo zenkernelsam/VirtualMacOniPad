@@ -415,6 +415,7 @@
 
 - [x] 新增 `docs/VM-DISK-IO-RESEARCH.md`。当前代码使用旧 `initWithURL:readOnly:error:`，没有显式选择 disk cache/synchronization；实际 payload 已含五参数 initializer、`Automatic/Uncached/Cached`、`Full/Fsync/None` 和 `AsynchronousRawDiskImage`。
 - [x] iPad 只读元数据：`Disk.img` 逻辑 512 GiB，`ls -ls` 实际约 419 GiB，宿主 `/private/var` 可用约 1.1 TiB；空间不足不是当前慢 I/O 的充分解释。未改 92、未切换策略、未压测。
+- [x] 94 时间同步候选源码完成并通过 arm64 syntax compile：App 长时间 inactive（>=30s）恢复后通过现有 GuestTools `guest-exec` 调用 guest `/bin/date -u`，agent 未连接时跳过；不改 NVRAM、不注入 VMM。未安装/未实景验证。
 - [x] 决策候选：首选单独 A/B `Automatic + Fsync`，其次评估 `Cached + Fsync`；`Cached + None` 有断电/强杀损坏风险，禁止作为默认优化。`virtioQueueCount` 作为独立实验，不能与 cache/sync 同时改。
 - [x] 外部磁盘格式审计：实际 VZ payload 只见 `RawDiskImage`/`AsynchronousRawDiskImage`/`Di2DiskImage`/`.asif`，未见 VDI/VMDK/QCOW2 backend；VirtualBox/VMware/QEMU 文件不能直接接入当前 VZ。可移植的是异步队列、cache/sync、discard 和离线 compact 思路，不是格式本身。`docs/VM-DISK-IO-RESEARCH.md` 已补入 VMware 免费/部分开源与完整磁盘栈不可直接等同的边界。
 
@@ -425,6 +426,12 @@
 - [x] 93 包：`VirtualMac/build/release/VirtualMac_1.2.3_078e03b64c.deb`；Debian version=`2:1.2.3+93.078e03b.diskcached`；20,867,912 bytes；SHA256=`4f5b3883c71abe75eaaf2206e8a4c211ad7f4b269f7cf24a8186c39101a1d700`。飞牛副本同大小同 SHA256：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_078e03b64c.deb`。
 - [x] 解包核验：App 含 `cache=cached(2) synchronization=fsync(2)` 与 fallback 字符串，同时保留 HUD/readiness/GPU 代码；`ldid -h` 可读。93 未安装、未重启，92 保留为回滚；需要用户正常关 VM 后安装，观察 attachment 日志、I/O 体感、wakeups、内存压力和 guest 文件系统一致性。
 - [x] 记录两个后续需求：挂起恢复后的 guest 时间同步；iCloud/Apple 服务身份链与合法 Mac identity 研究。两者不混入 93 磁盘 MVP。
+
+## 2026-10-05 — 94 时间同步候选包
+
+- [x] 94 完整包基于 93 Cached+Fsync、GPU、readiness、HUD 全部配置，仅新增长时间 host resume 后的 guest UTC clock sync。构建、签名、93 个 Mach-O stamp、package stage audit 和 localization audit 通过。
+- [x] 包：`VirtualMac/build/release/VirtualMac_1.2.3_284fcf55bd.deb`；Debian version=`2:1.2.3+94.284fcf5.clock`；20,875,104 bytes；SHA256=`f6a1b81bd6bcdcef221c629f6c676a2542b8a4c419af758264f7b897bb75a76f`。飞牛副本同大小同 hash：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_284fcf55bd.deb`。
+- [x] 解包核验：App 含 `application resumed after ... syncing guest clock`、`requesting guest UTC clock sync`、Cached+Fsync、HUD/readiness 字符串；`ldid -h` 可读。94 未安装/未重启，93 保留回滚；需要后续用户正常关闭 VM 后安装并验证 guest 时间恢复。
 - [x] 新增 `docs/VM-TIME-AND-APPLE-IDENTITY-RESEARCH.md`：记录挂起恢复校时证据与合法 Apple identity 研究边界。VZ payload 静态确认 `VZMacMachineIdentifier` 含 ECID/serial/disableECIDChecks/dataRepresentation，以及私有 serial/ECID 派生方法；当前 App 仍只从 bundle 读取 HardwareModel/MachineIdentifier。
 
 ## 2026-10-05 — 93 Cached+Fsync 已安装只读核对

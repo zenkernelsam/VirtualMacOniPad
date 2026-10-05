@@ -54,6 +54,10 @@ TECHNICAL_IDENTICAL_VALUES = {
     "Manage Identities",
     "Serial / MLB / ROM",
     "Use Original Identity",
+    "Deleted",
+    "The active identity must be switched before it can be deleted.",
+    "The original identity is protected.",
+    "The original identity is protected. Deleted generated identities are moved to an isolated folder.",
 }
 
 

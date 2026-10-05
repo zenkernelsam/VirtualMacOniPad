@@ -465,3 +465,11 @@
 - [x] localization audit（37 语言 / 329 UI keys）、arm64 syntax compile、Mac 侧 `vzidentity` probe 编译实测、完整构建、93 Mach-O deployment stamp、签名和 package stage audit 通过；仅保留既有构建 warning。
 - [x] 包：`VirtualMac/build/release/VirtualMac_1.2.3_3bc72c7de6.deb`；Debian version=`2:1.2.3+96.3bc72c7.identityfull`；20,863,928 bytes；SHA256=`d3436134c00ff4b59f3df60104aabffe7b6392067019f795c3b20463c9b5e8ef`。飞牛副本同大小同 SHA256。
 - [x] 解包核验：App 含 Generate/Manage/Use Original、Serial→MachineIdentifier、clock sync、Cached+Fsync、HUD 字符串；App `ldid -h` 可读。96 未安装、未重启，93/95 保留为回滚。
+
+## 2026-10-05 — 97 identity black-screen audit and deletion fix
+
+- [x] 只读分析用户诊断包 `.diag/identity-diagnostics-20261005/VirtualMac-Diagnostics-20261005-212504.zip`。生成身份启动逐字出现 `VM configuration validation result=1 error=(none)`、`VM STARTED state=1`，但 `framebuffer state after-2s ... lastFrame=0x0/0x0`；同包 Original 启动出现 `Apple guest agent ready` 与 `PVG frame=1/2/3`。未把现象夸大为 VZ 明确报错或已证明唯一根因。
+- [x] 当前 iPad bundle 的 `MachineIdentifier` 与 `Identities/original.mid` 均为 60B；失败尝试归档的生成样本为 68B、高位 ECID。Python 形状回归通过：60B Original、68B 高位样本拒绝、既有低位 60B 样本接受。
+- [x] `VZWriteFreshAppleIdentity` 增加保守门控：读取当前表示长度，最多16次生成，仅接受相同长度且 ECID 不超过 `2^63-1`；候选不合格不覆盖原文件。
+- [x] Manage Identities 增加逐项 Delete；Original 和当前活动身份保护；删除确认后移动到 `Identities/.Trash/` 隔离目录，不直接 `rm`。37语言/333串审计、`git diff --check` 通过。
+- [x] 97 完整构建成功（Xcode iPhoneOS 26.2 SDK、5 jobs/background）；包 `VirtualMac/build/release/VirtualMac_1.2.3_70ad64229b.deb`，版本 `2:1.2.3+97.identityfix`，SHA256 `7e54889e08b4c174da7274483ed5260effd4640babc1fccd838cbf2c467a50e3`，20,862,296 bytes。已复制飞牛同名副本并逐字节 hash 一致；release/飞牛均清理为最新3个。未安装、未重启、未上传 iPad。

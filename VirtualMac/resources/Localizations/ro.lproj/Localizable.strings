@@ -79,6 +79,7 @@
 "Delete Temporary Installation Files?" = "Ștergeți fișierele temporare de instalare?";
 "Delete Virtual Mac" = "Ștergeți Mac virtual";
 "Delete Virtual Mac?" = "Ștergeți Mac virtual?";
+"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Descrieți problema, apoi atașați arhiva ZIP cu diagnostice și înregistrarea ecranului. Dacă Safari nu poate deschide Github, utilizați un computer.";
 "Developer Beta" = "Beta pentru dezvoltatori";
 "Developers" = "Dezvoltatori";
@@ -256,12 +257,15 @@
 "Switch to Running Virtual Mac" = "Passa al Mac virtual rulează";
 "Switch to the Official Version of Dopamine" = "Treceți la versiunea oficială de Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Passa al Mac virtual rulează e spegnilo prima di avviarne un altro.";
+"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Arhiva de diagnosticare nu a putut fi creată.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Prima valoare a progresului poate apărea după câteva minute, în timp ce Mac-ul virtual trece din DFU în RestoreOS. iPad-ul va rămâne activ.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Prima valoare a progresului poate apărea după câteva minute, în timp ce Mac-ul virtual trece din DFU în RestoreOS. iPhone-ul va rămâne activ.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Mac-ul virtual incomplet și fișierele sale de instalare vor fi șterse.";
 "The installer could not be started: %s" = "Programul de instalare nu a putut fi pornit: %s";
 "The new Virtual Mac is ready to use." = "Noul Mac virtual este gata de utilizare.";
+"The original identity is protected." = "The original identity is protected.";
+"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Imaginea de restaurare descărcată parțial va fi ștearsă.";
 "The Virtual Mac configuration could not be created." = "Configurația Mac-ului virtual nu a putut fi creată.";
 "The Virtual Mac did not publish a display framebuffer." = "Mac-ul virtual nu a publicat un buffer de cadre pentru afișaj.";

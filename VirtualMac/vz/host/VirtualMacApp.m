@@ -23,6 +23,7 @@
 #include <objc/message.h>
 #include <mach-o/loader.h>
 #include <errno.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/socket.h>
@@ -5084,31 +5085,55 @@ BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
                     @"VZMacMachineIdentifier is unavailable"}];
         return NO;
     }
+    NSString *identifierPath =
+        [bundlePath stringByAppendingPathComponent:@"MachineIdentifier"];
+    NSUInteger expectedLength =
+        [NSData dataWithContentsOfFile:identifierPath].length;
     NSData *representation = nil;
-    @try {
-        id identifier = ((id(*)(id, SEL))objc_msgSend)(
-            ((id(*)(id, SEL))objc_msgSend)((id)identifierClass, S("alloc")),
-            S("init"));
-        representation = identifier
-            ? ((id(*)(id, SEL))objc_msgSend)(identifier, S("dataRepresentation"))
-            : nil;
-    } @catch (NSException *exception) {
-        if (error)
-            *error = [NSError errorWithDomain:@"VirtualMac" code:4 userInfo:@{
-                NSLocalizedDescriptionKey:
-                    exception.reason ?: @"Identity generation failed"}];
-        return NO;
+    const NSUInteger maxAttempts = 16;
+    for (NSUInteger attempt = 0; attempt < maxAttempts; attempt++) {
+        @try {
+            id identifier = ((id(*)(id, SEL))objc_msgSend)(
+                ((id(*)(id, SEL))objc_msgSend)((id)identifierClass, S("alloc")),
+                S("init"));
+            NSData *candidate = identifier
+                ? ((id(*)(id, SEL))objc_msgSend)(identifier,
+                                                 S("dataRepresentation"))
+                : nil;
+            id plist = [NSPropertyListSerialization propertyListWithData:candidate
+                options:NSPropertyListImmutable format:NULL error:NULL];
+            NSNumber *ecid = [plist isKindOfClass:NSDictionary.class]
+                ? (plist[@"ECID"] ?: plist[@"ecid"]) : nil;
+            BOOL shapeOK = candidate.length > 0 &&
+                (!expectedLength || candidate.length == expectedLength);
+            // The extracted Ventura VZ stack serializes ECIDs below 2^63 in
+            // the 60-byte form used by this bundle. Avoid the 68-byte,
+            // high-bit form that produced a started-but-frame-less guest.
+            BOOL scalarOK = !ecid || [ecid unsignedLongLongValue] <= LLONG_MAX;
+            if (shapeOK && scalarOK) {
+                representation = candidate;
+                break;
+            }
+            printf("[VirtualMac] identity candidate rejected attempt=%lu "
+                   "bytes=%lu expected=%lu scalar=%d\n",
+                   (unsigned long)(attempt + 1),
+                   (unsigned long)candidate.length,
+                   (unsigned long)expectedLength, scalarOK);
+        } @catch (NSException *exception) {
+            if (attempt + 1 == maxAttempts && error)
+                *error = [NSError errorWithDomain:@"VirtualMac" code:4 userInfo:@{
+                    NSLocalizedDescriptionKey:
+                        exception.reason ?: @"Identity generation failed"}];
+        }
     }
     if (![representation isKindOfClass:NSData.class] ||
         !representation.length) {
         if (error)
             *error = [NSError errorWithDomain:@"VirtualMac" code:5 userInfo:@{
                 NSLocalizedDescriptionKey:
-                    @"Identity generation produced no data"}];
+                    @"No compatible machine identifier was generated"}];
         return NO;
     }
-    NSString *identifierPath =
-        [bundlePath stringByAppendingPathComponent:@"MachineIdentifier"];
     if (![representation writeToFile:identifierPath
                              options:NSDataWritingAtomic error:error])
         return NO;

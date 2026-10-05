@@ -79,6 +79,7 @@
 "Delete Temporary Installation Files?" = "Apagar arquivos temporários de instalação?";
 "Delete Virtual Mac" = "Apagar Virtual Mac";
 "Delete Virtual Mac?" = "Apagar o Virtual Mac?";
+"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Descreva o problema e anexe o ZIP de diagnóstico e a gravação da tela. Se o Safari não conseguir abrir o Github, use um computador.";
 "Developer Beta" = "Beta para desenvolvedores";
 "Developers" = "Desenvolvedores";
@@ -256,12 +257,15 @@
 "Switch to Running Virtual Mac" = "Alternar para o Virtual Mac em execução";
 "Switch to the Official Version of Dopamine" = "Mudar para a versão oficial do Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Alterne para o Virtual Mac em execução e desligue-o antes de iniciar outro.";
+"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Não foi possível criar o arquivo de diagnósticos.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "O primeiro valor de progresso pode demorar vários minutos enquanto o Virtual Mac passa de DFU para RestoreOS. Seu iPad permanecerá ativo.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "O primeiro valor de progresso pode demorar vários minutos enquanto o Virtual Mac passa de DFU para RestoreOS. Seu iPhone permanecerá ativo.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "O Virtual Mac incompleto e seus arquivos de instalação serão apagados.";
 "The installer could not be started: %s" = "Não foi possível iniciar o instalador: %s";
 "The new Virtual Mac is ready to use." = "O novo Virtual Mac está pronto para uso.";
+"The original identity is protected." = "The original identity is protected.";
+"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "A imagem de restauração parcialmente baixada será apagada.";
 "The Virtual Mac configuration could not be created." = "Não foi possível criar a configuração do Virtual Mac.";
 "The Virtual Mac did not publish a display framebuffer." = "O Virtual Mac não publicou um framebuffer de tela.";

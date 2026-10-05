@@ -79,6 +79,7 @@
 "Delete Temporary Installation Files?" = "Padam Fail Pemasangan Sementara?";
 "Delete Virtual Mac" = "Padam Mac maya";
 "Delete Virtual Mac?" = "Padam Mac maya?";
+"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Terangkan masalah, kemudian lampirkan ZIP diagnostik dan rakaman skrin. Jika Safari tidak dapat membuka Github, gunakan komputer.";
 "Developer Beta" = "Beta Pembangun";
 "Developers" = "Pembangun";
@@ -256,12 +257,15 @@
 "Switch to Running Virtual Mac" = "Beralih ke Mac maya yang Berjalan";
 "Switch to the Official Version of Dopamine" = "Tukar kepada versi rasmi Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Beralihlah ke Mac maya yang berjalan dan matikan sebelum memulakan yang lain.";
+"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Arkib diagnostik tidak boleh dibuat.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Nilai kemajuan pertama mungkin mengambil masa beberapa minit apabila Virtual Mac beralih daripada DFU kepada RestoreOS. iPad akan kekal aktif.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Nilai kemajuan pertama mungkin mengambil masa beberapa minit apabila Virtual Mac beralih daripada DFU kepada RestoreOS. iPhone akan kekal aktif.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Mac maya yang belum selesai dan fail pemasangannya akan dipadam.";
 "The installer could not be started: %s" = "Pemasang tidak dapat dimulakan: %s";
 "The new Virtual Mac is ready to use." = "Mac maya baru siap digunakan.";
+"The original identity is protected." = "The original identity is protected.";
+"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Imej pemulihan separa akan dipadam.";
 "The Virtual Mac configuration could not be created." = "Konfigurasi Mac maya tidak boleh dibuat.";
 "The Virtual Mac did not publish a display framebuffer." = "Mac maya tidak menerbitkan framebuffer paparan.";

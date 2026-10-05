@@ -79,6 +79,7 @@
 "Delete Temporary Installation Files?" = "Διαγραφή προσωρινών αρχείων εγκατάστασης;";
 "Delete Virtual Mac" = "Διαγραφή Εικονικού Mac";
 "Delete Virtual Mac?" = "Διαγραφή Εικονικού Mac;";
+"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "Περιγράψτε το πρόβλημα και επισυνάψτε το αρχείο ZIP διαγνωστικών και την εγγραφή οθόνης. Αν το Safari δεν μπορεί να ανοίξει το Github, χρησιμοποιήστε έναν υπολογιστή.";
 "Developer Beta" = "Beta προγραμματιστή";
 "Developers" = "Προγραμματιστές";
@@ -256,12 +257,15 @@
 "Switch to Running Virtual Mac" = "Μετάβαση στο Εικονικό Mac που εκτελείται";
 "Switch to the Official Version of Dopamine" = "Μετάβαση στην επίσημη έκδοση του Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Μεταβείτε στο Εικονικό Mac που εκτελείται και τερματίστε το πριν εκκινήσετε κάποιο άλλο.";
+"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "Δεν ήταν δυνατή η δημιουργία του αρχείου διαγνωστικών.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Η πρώτη τιμή προόδου μπορεί να χρειαστεί αρκετά λεπτά όσο το Εικονικό Mac μεταβαίνει από το DFU στο RestoreOS. Το iPad σας θα παραμείνει ενεργό.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Η πρώτη τιμή προόδου μπορεί να χρειαστεί αρκετά λεπτά όσο το Εικονικό Mac μεταβαίνει από το DFU στο RestoreOS. Το iPhone σας θα παραμείνει ενεργό.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "Το ημιτελές Εικονικό Mac και τα αρχεία εγκατάστασής του θα διαγραφούν.";
 "The installer could not be started: %s" = "Δεν ήταν δυνατή η έναρξη του προγράμματος εγκατάστασης: %s";
 "The new Virtual Mac is ready to use." = "Το νέο Εικονικό Mac είναι έτοιμο για χρήση.";
+"The original identity is protected." = "The original identity is protected.";
+"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "Το μερικώς ληφθέν είδωλο επαναφοράς θα διαγραφεί.";
 "The Virtual Mac configuration could not be created." = "Δεν ήταν δυνατή η δημιουργία της διαμόρφωσης του Εικονικού Mac.";
 "The Virtual Mac did not publish a display framebuffer." = "Το Εικονικό Mac δεν δημοσίευσε framebuffer οθόνης.";

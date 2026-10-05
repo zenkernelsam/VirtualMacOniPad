@@ -70,3 +70,10 @@ VM 配置页的”音频与加速”之后新增”Apple Services Identity”入
 “Apple Services Identity” 入口已扩展为**一键 `Generate New Identity`**：生成全新 `VZMacMachineIdentifier` 写成 bundle 的 `MachineIdentifier`，归档到 bundle 内 `Identities/`（支持多重身份切换、恢复 `original.mid`），生成前按需 dlopen 抽取的 VZ 框架（`ensureExtractedFrameworksLoaded`）。身份表示实测为二进制 plist `{ECID: <int>}`，序列号由 ECID 派生、不存储，显示回退用 ECID。
 
 Apple 服务的硬性要求（宿主+客户机 macOS 15、全新安装、**宿主 Secure Enclave 派生身份**、new-style UDID；Parallels KB 另列 App Store/Xcode 为框架限制）与 iPad 阻断点、复刻清单见 [`docs/ARM-APPLE-IDENTITY.md`](ARM-APPLE-IDENTITY.md)。结论：iPad 宿主下无法通过注入/生成身份获得 Apple 服务，一键生成仅用于本地身份管理。
+
+2026-10-05 的独立诊断显示，唯一 68 字节、高位 ECID 生成样本对应
+“VM STARTED 但没有 framebuffer frame”；同一包中的 60 字节 Original 启动收到
+GuestTools ready 和 PVG frames。没有配置错误码，结论保持为强相关而非排他因果。
+97 起生成器按当前 bundle 的表示长度和 `ECID <= 2^63-1` 做保守门控，失败候选
+不覆盖原文件；Manage Identities 可将非活动生成项移入 `Identities/.Trash/`，
+保护 Original 和当前活动项。

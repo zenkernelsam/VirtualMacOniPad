@@ -1803,6 +1803,13 @@ void VZRemovePaths(NSArray<NSString *> *paths)
             (void)action;
             [self applyAppleIdentityAtPath:path];
         }]];
+        NSString *deleteTitle = [NSString stringWithFormat:@"%@ %@",
+            VZL(@"Delete"), title];
+        [sheet addAction:[UIAlertAction actionWithTitle:deleteTitle
+            style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+            (void)action;
+            [self confirmDeleteAppleIdentityAtPath:path label:title active:active];
+        }]];
     }
     [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Generate New Identity")
         style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
@@ -1821,6 +1828,82 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     sheet.popoverPresentationController.sourceView = cell;
     sheet.popoverPresentationController.sourceRect = cell.bounds;
     [self presentViewController:sheet animated:YES completion:nil];
+}
+
+- (void)confirmDeleteAppleIdentityAtPath:(NSString *)path
+                                   label:(NSString *)label
+                                  active:(NSData *)active
+{
+    if (self.running || !path.length)
+        return;
+    NSData *candidate = [NSData dataWithContentsOfFile:path];
+    if (!candidate.length || (active && [active isEqualToData:candidate])) {
+        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+            VZL(@"The active identity must be switched before it can be deleted."),
+            nil, VZFailureSupportOptionNone);
+        return;
+    }
+    NSString *message = [NSString stringWithFormat:@"%@\n%@",
+        label ?: path.lastPathComponent,
+        VZL(@"The original identity is protected. Deleted generated identities are moved to an isolated folder.")];
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:VZL(@"Delete") message:message
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Delete")
+        style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+        (void)action;
+        [self deleteAppleIdentityAtPath:path active:active];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)deleteAppleIdentityAtPath:(NSString *)path active:(NSData *)active
+{
+    if (self.running || !path.length)
+        return;
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSString *original = [self appleIdentityOriginalPath];
+    if ([path isEqualToString:original]) {
+        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+            VZL(@"The original identity is protected."), nil,
+            VZFailureSupportOptionNone);
+        return;
+    }
+    NSData *candidate = [NSData dataWithContentsOfFile:path];
+    if (!candidate.length || (active && [active isEqualToData:candidate])) {
+        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+            VZL(@"The active identity must be switched before it can be deleted."),
+            nil, VZFailureSupportOptionNone);
+        return;
+    }
+    NSString *trash = [[self appleIdentityPoolDirectory]
+        stringByAppendingPathComponent:@".Trash"];
+    NSError *error = nil;
+    if (![manager createDirectoryAtPath:trash withIntermediateDirectories:YES
+                             attributes:nil error:&error]) {
+        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+            error.localizedDescription, error.debugDescription,
+            VZFailureSupportOptionNone);
+        return;
+    }
+    NSString *base = path.lastPathComponent;
+    NSString *destination = [trash stringByAppendingPathComponent:base];
+    NSUInteger suffix = 0;
+    while ([manager fileExistsAtPath:destination]) {
+        suffix++;
+        destination = [trash stringByAppendingPathComponent:
+            [NSString stringWithFormat:@"%@.%lu", base, (unsigned long)suffix]];
+    }
+    if (![manager moveItemAtPath:path toPath:destination error:&error]) {
+        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+            error.localizedDescription, error.debugDescription,
+            VZFailureSupportOptionNone);
+        return;
+    }
+    [self.tableView reloadData];
+    [self presentAppleIdentityApplied:VZL(@"Deleted")];
 }
 
 // Apply a previously generated identity from the pool as the active one.

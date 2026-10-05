@@ -79,6 +79,7 @@
 "Delete Temporary Installation Files?" = "למחוק קובצי התקנה זמניים?";
 "Delete Virtual Mac" = "מחיקת Mac וירטואלי";
 "Delete Virtual Mac?" = "למחוק את ה-Mac הווירטואלי?";
+"Deleted" = "Deleted";
 "Describe the problem and attach the diagnostics ZIP and screen recording. If Safari cannot access Github, use a computer instead." = "תארו את הבעיה ולאחר מכן צרפו את קובץ ה-ZIP של האבחון ואת הקלטת המסך. אם Safari לא מצליח לפתוח את Github, השתמשו במחשב.";
 "Developer Beta" = "גרסת בטא למפתחים";
 "Developers" = "מפתחים";
@@ -256,12 +257,15 @@
 "Switch to Running Virtual Mac" = "מעבר ל-Mac הווירטואלי שפועל";
 "Switch to the Official Version of Dopamine" = "מעבר לגרסה הרשמית של Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "יש לעבור ל-Mac הווירטואלי שפועל ולכבות אותו לפני הפעלת אחד אחר.";
+"The active identity must be switched before it can be deleted." = "The active identity must be switched before it can be deleted.";
 "The diagnostics archive could not be created." = "לא ניתן ליצור את ארכיון האבחון.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "ערך ההתקדמות הראשון עשוי להופיע לאחר מספר דקות בזמן שה-Mac הווירטואלי עובר מ-DFU ל-RestoreOS. ה-iPad יישאר פעיל.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "ערך ההתקדמות הראשון עשוי להופיע לאחר מספר דקות בזמן שה-Mac הווירטואלי עובר מ-DFU ל-RestoreOS. ה-iPhone יישאר פעיל.";
 "The incomplete Virtual Mac and its installation files will be deleted." = "ה-Mac הווירטואלי שלא הושלם וקובצי ההתקנה שלו יימחקו.";
 "The installer could not be started: %s" = "לא ניתן להפעיל את תוכנית ההתקנה: %s";
 "The new Virtual Mac is ready to use." = "ה-Mac הווירטואלי החדש מוכן לשימוש.";
+"The original identity is protected." = "The original identity is protected.";
+"The original identity is protected. Deleted generated identities are moved to an isolated folder." = "The original identity is protected. Deleted generated identities are moved to an isolated folder.";
 "The partial restore image will be deleted." = "תמונת השחזור שהורדה חלקית תימחק.";
 "The Virtual Mac configuration could not be created." = "לא ניתן ליצור את תצורת ה-Mac הווירטואלי.";
 "The Virtual Mac did not publish a display framebuffer." = "ה-Mac הווירטואלי לא פרסם framebuffer של הצג.";

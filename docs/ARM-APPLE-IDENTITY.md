@@ -87,3 +87,27 @@ VM 配置页 → "Apple Services Identity"（section 6）单击：
 ## 边界
 
 不伪造签名、不绕过 Activation Lock/风控、不复用他人身份。若 Apple 因虚拟机策略或硬件信任链拒绝，结论记为平台限制。
+## 7. 2026-10-05 黑屏取证与保守修复
+
+用户在一个新生成身份上观察到黑屏，随后恢复 Original。诊断包
+`.diag/identity-diagnostics-20261005/VirtualMac-Diagnostics-20261005-212504.zip`
+的逐字证据是：
+
+- 生成身份后，日志仍为 `VM configuration validation result=1 error=(none)`
+  和 `VM STARTED state=1`，所以不是 VZ 配置校验直接拒绝；
+- 该次启动在 `framebuffer state after-2s` 仍为 `lastFrame=0x0/0x0`，
+  且随后没有 GuestTools ready 或 PVG frame；
+- 同一诊断包中，恢复 Original 的启动出现
+  `Apple guest agent ready` 和 `PVG frame=1/2/3`；
+- 当前 bundle 的 `MachineIdentifier` 与 `Identities/original.mid` 均为
+  60 字节；失败尝试留下的生成样本是 68 字节，ECID 需要高位整数表示。
+
+这组数据证明了“生成身份启动停在无显示帧阶段”的现象，但没有 VZ 错误码，
+因此不把 ECID 表示形状写成已经排他的根因。97 的保守门控在生成前读取当前
+bundle 表示长度，只接受相同长度且 ECID 不超过 `2^63-1` 的
+`VZMacMachineIdentifier`；不合格候选丢弃并重新生成，16 次都不合格则保留
+原文件并报告失败。这样避免了本次 68 字节、高位 ECID 样本再次覆盖可启动身份。
+
+身份池的 Manage Identities 现在为每个生成项提供 Delete。original.mid 和当前
+活动身份受保护；确认删除后只把非活动生成项移动到
+`Identities/.Trash/`，不会直接删除。该目录不参与身份列表。

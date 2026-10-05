@@ -102,6 +102,7 @@ static UIPinchGestureRecognizer *gPinchRecognizer;
 static UIRotationGestureRecognizer *gRotationRecognizer;
 static UITapGestureRecognizer *gSmartMagnifyRecognizer;
 static BOOL gSoftwareKeyboardRequested;
+static NSDate *gLastApplicationResignDate;
 static NSLayoutConstraint *gHUDHorizontalConstraint;
 static NSLayoutConstraint *gHUDVerticalConstraint;
 static IMP gOriginalFrameUpdate;
@@ -6078,12 +6079,23 @@ static void disconnectExternalDisplay(void) {
 - (void)applicationWillResignActive:(UIApplication *)application
 {
     (void)application;
+    [gLastApplicationResignDate release];
+    gLastApplicationResignDate = [NSDate.date retain];
     resetPointerSession(YES);
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application
 {
     (void)application;
+    NSTimeInterval inactiveDuration = gLastApplicationResignDate
+        ? -[gLastApplicationResignDate timeIntervalSinceNow] : 0;
+    if (inactiveDuration >= 30.0 && gVirtualMachine) {
+        printf("[VirtualMac] application resumed after %.0fs; syncing guest clock\n",
+               inactiveDuration);
+        VZGuestToolsSyncGuestClock();
+    }
+    [gLastApplicationResignDate release];
+    gLastApplicationResignDate = nil;
     resetPointerSession(YES);
     if (gInputView) {
         for (id interaction in gInputView.interactions)

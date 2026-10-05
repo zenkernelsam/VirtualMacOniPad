@@ -13,6 +13,11 @@ void VZGuestToolsStartProvisioning(NSString *bundlePath,
                                    BOOL removalPending);
 void VZGuestToolsReset(void);
 
+// Corrects the guest wall clock after the iPad app returns from a long
+// inactive/suspended period. The command travels over the existing privileged
+// AppleQEMUGuestAgent virtio socket; it is a no-op until that agent is ready.
+void VZGuestToolsSyncGuestClock(void);
+
 // Updates the virtual Mac's NVRAM before its platform configuration is used.
 BOOL VZGuestToolsConfigureBootArguments(id auxiliaryStorage,
                                         BOOL guestAgentEnabled,

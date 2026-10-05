@@ -148,6 +148,8 @@ GPU 的结论必须区分四类证据：声明（capability/deviceInfo）、执�
 
 不能直接生成或复用他人的真实序列号、绕过 Activation Lock/Apple 风控、伪造签名或注入运行中的 VMM。若存在 Apple 官方支持的虚拟 Mac identity 配置，应优先研究该路径；否则只能报告限制和风险，不能承诺通过“fakesmc”让 iCloud 正常工作。
 
+详细证据与时间同步候选见 `docs/VM-TIME-AND-APPLE-IDENTITY-RESEARCH.md`。当前源码的时间同步候选只在 App 长时间 inactive 恢复后通过现有 GuestTools agent 执行 UTC 校时，未打包、未安装。
+
 ## Kernel/rootfs 补丁可行性边界（2026-10-03）
 
 ### USB：加载 AppleUSBUserHCI 不等于物理 USB 直通

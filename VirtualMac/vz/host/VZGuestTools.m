@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 
 typedef void (^VZGuestAgentResponse)(NSDictionary *response);
@@ -389,6 +390,34 @@ static void VZGuestToolsRun(NSString *path, NSArray *arguments,
             return;
         }
         VZGuestToolsPollProcess(processIdentifier, 0, completion);
+    });
+}
+
+void VZGuestToolsSyncGuestClock(void)
+{
+    if (gGuestWriteDescriptor < 0) {
+        VZGuestToolsLog(@"guest clock sync skipped: agent is not connected");
+        return;
+    }
+    time_t now = time(NULL);
+    struct tm utc = {0};
+    if (now == (time_t)-1 || gmtime_r(&now, &utc) == NULL) {
+        VZGuestToolsLog(@"guest clock sync skipped: host UTC conversion failed");
+        return;
+    }
+    // macOS /bin/date accepts the POSIX setting form
+    // MMDDhhmmYYYY.ss when invoked with -u. The guest's timezone remains
+    // unchanged; only the UTC wall-clock instant is corrected.
+    NSString *spec = [NSString stringWithFormat:
+        @"%02d%02d%02d%02d%04d.%02d", utc.tm_mon + 1, utc.tm_mday,
+        utc.tm_hour, utc.tm_min, utc.tm_year + 1900, utc.tm_sec];
+    VZGuestToolsLog(@"requesting guest UTC clock sync spec=%@", spec);
+    VZGuestToolsRun(@"/bin/date", @[@"-u", spec],
+        ^(BOOL success, NSData *output) {
+        NSString *text = [[[NSString alloc] initWithData:output
+            encoding:NSUTF8StringEncoding] autorelease];
+        VZGuestToolsLog(@"guest UTC clock sync %@%@", success ? @"succeeded" : @"failed",
+                        text.length ? [NSString stringWithFormat:@" output=%@", text] : @"");
     });
 }
 

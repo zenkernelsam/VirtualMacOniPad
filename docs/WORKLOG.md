@@ -425,6 +425,7 @@
 - [x] 93 包：`VirtualMac/build/release/VirtualMac_1.2.3_078e03b64c.deb`；Debian version=`2:1.2.3+93.078e03b.diskcached`；20,867,912 bytes；SHA256=`4f5b3883c71abe75eaaf2206e8a4c211ad7f4b269f7cf24a8186c39101a1d700`。飞牛副本同大小同 SHA256：`/Users/ciscohe/Library/CloudStorage/飞牛同步-HomeNAS/VirtualMacOniPad_iOS/VirtualMac_1.2.3_078e03b64c.deb`。
 - [x] 解包核验：App 含 `cache=cached(2) synchronization=fsync(2)` 与 fallback 字符串，同时保留 HUD/readiness/GPU 代码；`ldid -h` 可读。93 未安装、未重启，92 保留为回滚；需要用户正常关 VM 后安装，观察 attachment 日志、I/O 体感、wakeups、内存压力和 guest 文件系统一致性。
 - [x] 记录两个后续需求：挂起恢复后的 guest 时间同步；iCloud/Apple 服务身份链与合法 Mac identity 研究。两者不混入 93 磁盘 MVP。
+- [x] 新增 `docs/VM-TIME-AND-APPLE-IDENTITY-RESEARCH.md`：记录挂起恢复校时证据与合法 Apple identity 研究边界。VZ payload 静态确认 `VZMacMachineIdentifier` 含 ECID/serial/disableECIDChecks/dataRepresentation，以及私有 serial/ECID 派生方法；当前 App 仍只从 bundle 读取 HardwareModel/MachineIdentifier。
 
 ## 2026-10-05 — 93 Cached+Fsync 已安装只读核对
 

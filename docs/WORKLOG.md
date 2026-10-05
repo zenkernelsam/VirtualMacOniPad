@@ -545,3 +545,9 @@
 - [x] `VZMacAuxiliaryStorage initCreatingStorageAtURL:hardwareModel:options:error:` 只读实测成功创建 33,570,816B 新 NVRAM。
 - [x] 管理窗口新增 Create Clone：后台复制 Disk.img/HardwareModel，创建新 AuxiliaryStorage，写入 clone identity、新 MAC 和配置，生成新的 VM bundle；当前 VM 不覆盖。
 - [ ] clone 实机启动、GuestTools、Apple 服务结果待用户停机窗口验证；本轮未安装/重启。
+
+## 2026-10-06 — 104 paired identity clone package delivery
+
+- [x] 104 完成真正的 clone identity 路径：`_machineIdentifierForVirtualMachineClone` + `initCreatingStorageAtURL:hardwareModel:options:error:`；管理窗口 Create Clone 会复制 Disk.img/HardwareModel、创建新 AuxiliaryStorage、写入 clone identity、新 MAC 和新 bundle。
+- [x] 104 包 `VirtualMac/build/release/VirtualMac_1.2.3_f257d6584e.deb`，版本 `2:1.2.3+104.identityclone`，20,846,016 bytes，SHA256 `1049841737d5cb917c56282eefd6868b6963c7d54762c71ccd5697af332e90c4`；编译、335串本地化、stage/package audit 通过。
+- [x] 已复制至飞牛和 iPad Files，远端大小/SHA256 一致；未安装/重启。当前 VM 保留不动，clone 实机启动和 Apple 服务结果待用户安装后验证。

@@ -435,6 +435,12 @@
 - [x] 新增 `docs/VM-TIME-AND-APPLE-IDENTITY-RESEARCH.md`：记录挂起恢复校时证据与合法 Apple identity 研究边界。VZ payload 静态确认 `VZMacMachineIdentifier` 含 ECID/serial/disableECIDChecks/dataRepresentation，以及私有 serial/ECID 派生方法；当前 App 仍只从 bundle 读取 HardwareModel/MachineIdentifier。
 - [x] Apple identity 配置入口已实现于 VM 配置页“音频与加速”之后：停机时填写 Mac Serial/Board Serial (MLB)/ROM，写入当前 VM `VirtualMac.plist`；开机仅对 Serial 尝试 VZ `_machineIdentifierWithSerialNumber:` 派生，MLB/ROM 保留待映射。37 个语言目录新增技术字段并通过 325-key localization audit；尚未用用户三码实测。
 
+## 2026-10-05 — 95 Apple identity UI 候选包与用户指定上传
+
+- [x] 95 完整构建/stage audit/签名/93 Mach-O deployment stamp/localization audit 通过；包含 Cached+Fsync、resume clock sync、Apple Services Identity UI、Serial→VZ MachineIdentifier 尝试、GPU/readiness/HUD。
+- [x] 包：`VirtualMac/build/release/VirtualMac_1.2.3_d190834319.deb`；Debian version=`2:1.2.3+95.d190834.identity`；20,862,576 bytes；SHA256=`ede36df4147a1a40652a2aaeb04933528c8cc6a0c820e3821268acd2360775df`。飞牛副本同 hash。
+- [x] 按用户明确指示，通过 SSH 上传到 `/var/mobile/Containers/Shared/AppGroup/1B2AD29A-2C34-4770-86EC-E11CD02312FF/File Provider Storage/VirtualMac_1.2.3_d190834319.deb`；远端大小 20,862,576 bytes、SHA256 与本地一致。未安装、未重启。
+
 ## 2026-10-05 — 93 Cached+Fsync 已安装只读核对
 
 - [x] iPad `dpkg-query` 返回 `com.mac.virtual 2:1.2.3+93.078e03b.diskcached install ok installed`；App Info.plist 为 `CFBundleShortVersionString=1.2.3`、`CFBundleVersion=134`，与用户界面 `1.2.3 (134)` 一致。

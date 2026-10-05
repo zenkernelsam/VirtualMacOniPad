@@ -486,3 +486,10 @@
 - [x] 结论闸门：没有完整 clone/新 AuxiliaryStorage 配对流程前，禁止对已安装 VM 生成或切换身份；原身份文件已恢复，未改 Disk.img/AuxiliaryStorage。
 - [x] Apple identity 管理改为独立 form-sheet 设置窗口和单层 UITableView；当前活动身份不可删除，其他归档身份支持系统左滑 Delete，成功后直接移入 `Identities/.Trash/`，不再弹删除成功提示。已安装 VM 隐藏生成/切换入口并提示 `Identity changes require a new Virtual Mac.`。
 - [ ] 97+ 代码尚未构建/安装；仍需完成语法、包审计和用户停机窗口验证。
+
+
+## 2026-10-05 — 98 identitysafe package delivery
+
+- [x] 98 基于身份链保护和窗口式管理代码构建成功；包 `VirtualMac/build/release/VirtualMac_1.2.3_2d9f41b359.deb`，版本 `2:1.2.3+98.identitysafe`，20,854,388 bytes，SHA256 `352d7e8dfd3ff45eaa53a9e328db2d63ffba124343d2496468e805a0399ff762`。
+- [x] 解包字符串核对包含 `Manage Identities`、`UISwipeActionsConfiguration`、`.Trash`、身份链保护提示；stage audit、329串本地化审计、iPadOS14.5 deployment stamp 通过。
+- [x] 已复制到飞牛和 iPad Files；iPad 远端大小/SHA256 一致。仅上传，未安装、未重启。功能源码与文档已推送提交 `29ec8d2`。

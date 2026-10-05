@@ -458,3 +458,10 @@
 - [x] 隔壁 Agent 的临时验证包：`VZ_SKIP_REBUILD=1 VZ_PACKAGE_VERSION="2:1.2.3+idtest.oneclick" build-ipad-deb.sh` 曾出包 `VirtualMac/build/release/VirtualMac_1.2.3_7d0e79388b.deb`（20,855,288B；当时未提交、文件名沿用旧 HEAD hash）。该临时包未安装，后续已纳入本轮审计修复并重新构建。
 - [x] 结论与复刻文档 `docs/ARM-APPLE-IDENTITY.md`：Apple 服务硬前提为宿主+客户机 macOS 15、全新装、宿主 Secure Enclave 派生身份（new-style UDID），Parallels KB 另列 App Store/Xcode 为框架限制 → iPad 宿主（iPadOS / Ventura 时代 VZ）无法通过注入或生成身份获得 Apple 服务。一键生成能力已实现；iCloud/App Store 实测待用户提供 `VZ_IPAD_UDID`/`VZ_IPAD_PASSWORD` 后按文档实验协议补录。
 - [x] 代码质量复核：发现并修复“Use Original Identity”覆盖现有 `MachineIdentifier` 时使用 `copyItemAtPath:` 导致必然失败的问题，改为原子 NSData 写入；生成身份的 original 备份和新身份归档也改为检查写入失败后停止并显示错误。临时 `GPUCache/` 已移至废纸篓；保留未跟踪 Metal 探针，不纳入提交。
+
+## 2026-10-05 — 96 Apple identity full package audited
+
+- [x] 96 完整包基于审计后的 `3bc72c7`：包含 Cached+Fsync、resume clock sync、Apple Services Identity 设置入口、Serial→VZ MachineIdentifier 尝试、Generate New/Manage/Use Original 身份池、GPU/readiness/HUD。
+- [x] localization audit（37 语言 / 329 UI keys）、arm64 syntax compile、Mac 侧 `vzidentity` probe 编译实测、完整构建、93 Mach-O deployment stamp、签名和 package stage audit 通过；仅保留既有构建 warning。
+- [x] 包：`VirtualMac/build/release/VirtualMac_1.2.3_3bc72c7de6.deb`；Debian version=`2:1.2.3+96.3bc72c7.identityfull`；20,863,928 bytes；SHA256=`d3436134c00ff4b59f3df60104aabffe7b6392067019f795c3b20463c9b5e8ef`。飞牛副本同大小同 SHA256。
+- [x] 解包核验：App 含 Generate/Manage/Use Original、Serial→MachineIdentifier、clock sync、Cached+Fsync、HUD 字符串；App `ldid -h` 可读。96 未安装、未重启，93/95 保留为回滚。

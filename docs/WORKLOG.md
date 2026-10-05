@@ -473,3 +473,8 @@
 - [x] `VZWriteFreshAppleIdentity` 增加保守门控：读取当前表示长度，最多16次生成，仅接受相同长度且 ECID 不超过 `2^63-1`；候选不合格不覆盖原文件。
 - [x] Manage Identities 增加逐项 Delete；Original 和当前活动身份保护；删除确认后移动到 `Identities/.Trash/` 隔离目录，不直接 `rm`。37语言/333串审计、`git diff --check` 通过。
 - [x] 97 完整构建成功（Xcode iPhoneOS 26.2 SDK、5 jobs/background）；包 `VirtualMac/build/release/VirtualMac_1.2.3_70ad64229b.deb`，版本 `2:1.2.3+97.identityfix`，SHA256 `7e54889e08b4c174da7274483ed5260effd4640babc1fccd838cbf2c467a50e3`，20,862,296 bytes。已复制飞牛同名副本并逐字节 hash 一致；release/飞牛均清理为最新3个。未安装、未重启、未上传 iPad。
+
+
+## 2026-10-05 — 97 package copied to iPad Files
+
+- [x] 按用户要求将 `VirtualMac_1.2.3_70ad64229b.deb` 复制到 iPad Files：`/var/mobile/Containers/Shared/AppGroup/1B2AD29A-2C34-4770-86EC-E11CD02312FF/File Provider Storage/`。远端大小 20,862,296 bytes、SHA256 `7e54889e08b4c174da7274483ed5260effd4640babc1fccd838cbf2c467a50e3` 与本机一致；仅上传，未安装、未重启。

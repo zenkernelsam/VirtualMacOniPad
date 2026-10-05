@@ -53,6 +53,7 @@ TECHNICAL_IDENTICAL_VALUES = {
     "Not Configured",
     "Manage Identities",
     "Serial / MLB / ROM",
+    "Selected Identity",
     "Identity changes require a new Virtual Mac.",
     "Use Original Identity",
 }

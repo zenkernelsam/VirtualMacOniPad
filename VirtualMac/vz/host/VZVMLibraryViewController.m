@@ -623,6 +623,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 @property(nonatomic, assign) id<VZAppleIdentityManagerDelegate> delegate;
 @property(nonatomic, retain) NSArray<NSString *> *identityPaths;
 @property(nonatomic, retain) NSData *activeData;
+@property(nonatomic, copy) NSString *selectedPath;
+@property(nonatomic, retain) UITableView *identityTableView;
 - (instancetype)initWithIdentityPaths:(NSArray<NSString *> *)paths
                             activeData:(NSData *)active;
 - (void)reloadIdentityData;
@@ -657,6 +659,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     table.dataSource = self;
     table.delegate = self;
     [self.view addSubview:table];
+    self.identityTableView = table;
     [NSLayoutConstraint activateConstraints:@[
         [table.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
         [table.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
@@ -676,7 +679,10 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         [(id)self.delegate identityManagerActiveData:self] : self.activeData;
     self.identityPaths = paths;
     self.activeData = active;
-    [(UITableView *)self.view.subviews.firstObject reloadData];
+    if (self.selectedPath &&
+        ![self.identityPaths containsObject:self.selectedPath])
+        self.selectedPath = nil;
+    [self.identityTableView reloadData];
 }
 
 - (void)done
@@ -711,10 +717,12 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     NSString *label = VZAppleIdentityLabelForData(data);
     cell.textLabel.text = label.length ? label :
         path.lastPathComponent.stringByDeletingPathExtension;
-    cell.detailTextLabel.text = self.activeData &&
-        [self.activeData isEqualToData:data] ? VZL(@"Configured") : nil;
-    cell.accessoryType = self.activeData &&
-        [self.activeData isEqualToData:data]
+    BOOL active = self.activeData && [self.activeData isEqualToData:data];
+    BOOL selected = self.selectedPath &&
+        [self.selectedPath isEqualToString:path];
+    cell.detailTextLabel.text = selected ? VZL(@"Selected Identity") :
+        active ? VZL(@"Configured") : nil;
+    cell.accessoryType = (active || selected)
         ? UITableViewCellAccessoryCheckmark : UITableViewCellAccessoryNone;
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     return cell;
@@ -723,9 +731,9 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)tableView:(UITableView *)tableView
  didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    (void)tableView;
-    [self.delegate identityManager:self
-                    didSelectPath:self.identityPaths[indexPath.row]];
+    self.selectedPath = self.identityPaths[indexPath.row];
+    [tableView reloadData];
+    [self.delegate identityManager:self didSelectPath:self.selectedPath];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 
@@ -747,20 +755,17 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         (void)sourceView;
         BOOL deleted = [self.delegate identityManager:self
                                 didRequestDeletePath:path];
-        if (deleted)
-            [self.identityPaths
-                enumerateObjectsUsingBlock:^(NSString *candidate,
-                                               NSUInteger index,
-                                               BOOL *stop) {
-                if ([candidate isEqualToString:path]) {
-                    NSMutableArray *updated =
-                        [self.identityPaths mutableCopy];
-                    [updated removeObjectAtIndex:index];
-                    self.identityPaths = updated;
-                    [updated release];
-                    *stop = YES;
-                }
-            }];
+        if (deleted) {
+            NSMutableArray *updated = [self.identityPaths mutableCopy];
+            NSUInteger index = [updated indexOfObject:path];
+            if (index != NSNotFound)
+                [updated removeObjectAtIndex:index];
+            self.identityPaths = updated;
+            [updated release];
+            if ([self.selectedPath isEqualToString:path])
+                self.selectedPath = nil;
+            [self.identityTableView reloadData];
+        }
         completion(deleted);
     }];
     delete.backgroundColor = UIColor.systemRedColor;
@@ -771,6 +776,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     [_identityPaths release];
     [_activeData release];
+    [_selectedPath release];
+    [_identityTableView release];
     [super dealloc];
 }
 @end
@@ -2002,8 +2009,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 
 - (void)identityManager:(id)manager didSelectPath:(NSString *)path
 {
-    (void)manager;
-    [self applyAppleIdentityAtPath:path];
+    (void)path;
+    VZPresentFailureReport((UIViewController *)manager,
+        VZL(@"Apple Services Identity"),
+        VZL(@"Identity changes require a new Virtual Mac."),
+        nil, VZFailureSupportOptionNone);
 }
 
 - (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path
@@ -2022,16 +2032,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     (void)manager;
     [self useBundleAppleIdentity];
-}
-
-// Apply a previously generated identity from the pool as the active one.
-- (void)applyAppleIdentityAtPath:(NSString *)path
-{
-    if (self.running || !self.bundlePath || !path.length)
-        return;
-    VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-        VZL(@"Identity changes require a new Virtual Mac."),
-        nil, VZFailureSupportOptionNone);
 }
 
 // Restore the identity captured when the bundle was first re-generated.

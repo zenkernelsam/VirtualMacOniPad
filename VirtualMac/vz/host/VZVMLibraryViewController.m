@@ -712,6 +712,13 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         cell = [[[UITableViewCell alloc]
             initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"identity"]
             autorelease];
+    if (indexPath.section != 0 ||
+        indexPath.row >= self.identityPaths.count) {
+        cell.textLabel.text = nil;
+        cell.detailTextLabel.text = nil;
+        cell.accessoryType = UITableViewCellAccessoryNone;
+        return cell;
+    }
     NSString *path = self.identityPaths[indexPath.row];
     NSData *data = [NSData dataWithContentsOfFile:path];
     NSString *label = VZAppleIdentityLabelForData(data);
@@ -731,6 +738,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)tableView:(UITableView *)tableView
  didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    if (indexPath.section != 0 ||
+        indexPath.row >= self.identityPaths.count) {
+        [tableView deselectRowAtIndexPath:indexPath animated:YES];
+        return;
+    }
     self.selectedPath = self.identityPaths[indexPath.row];
     [tableView reloadData];
     [self.delegate identityManager:self didSelectPath:self.selectedPath];
@@ -741,6 +753,9 @@ void VZRemovePaths(NSArray<NSString *> *paths)
   trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     (void)tableView;
+    if (indexPath.section != 0 ||
+        indexPath.row >= self.identityPaths.count)
+        return nil;
     NSString *path = self.identityPaths[indexPath.row];
     NSData *data = [NSData dataWithContentsOfFile:path];
     if (self.activeData && [self.activeData isEqualToData:data])
@@ -758,9 +773,10 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         if (deleted) {
             NSMutableArray *updated = [self.identityPaths mutableCopy];
             NSUInteger index = [updated indexOfObject:path];
-            if (index != NSNotFound)
+            if (index != NSNotFound) {
                 [updated removeObjectAtIndex:index];
-            self.identityPaths = updated;
+                self.identityPaths = updated;
+            }
             [updated release];
             if ([self.selectedPath isEqualToString:path])
                 self.selectedPath = nil;
@@ -1214,7 +1230,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         cell.detailTextLabel.text = nil;
     } else if (indexPath.section == 6) {
         cell.textLabel.text = VZL(@"Apple Services Identity");
-        BOOL serialOverride = [self.options[VZAppleIdentityEnabledKey] boolValue] &&
+        BOOL serialOverride = !self.bundlePath &&
+            [self.options[VZAppleIdentityEnabledKey] boolValue] &&
             [self.options[VZAppleSerialNumberKey] length] > 0;
         cell.detailTextLabel.text = (serialOverride ||
             [self bundleAppleIdentityWasRegenerated])
@@ -1819,13 +1836,18 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     return pool ? [pool stringByAppendingPathComponent:@"original.mid"] : nil;
 }
 
-// YES once a fresh identity has been generated, i.e. the bundle's identity now
-// differs from the one it was installed with.
+// YES only when the active bundle identity differs from the preserved original.
 - (BOOL)bundleAppleIdentityWasRegenerated
 {
     NSString *original = [self appleIdentityOriginalPath];
-    return original &&
-        [NSFileManager.defaultManager fileExistsAtPath:original];
+    if (!original ||
+        ![NSFileManager.defaultManager fileExistsAtPath:original])
+        return NO;
+    NSData *originalData = [NSData dataWithContentsOfFile:original];
+    NSData *activeData = [NSData dataWithContentsOfFile:
+        [self.bundlePath stringByAppendingPathComponent:@"MachineIdentifier"]];
+    return originalData.length && activeData.length &&
+        ![originalData isEqualToData:activeData];
 }
 
 // Archived, generated identities (newest first); excludes the preserved
@@ -1837,22 +1859,40 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         return @[];
     NSArray<NSString *> *names = [NSFileManager.defaultManager
         contentsOfDirectoryAtPath:pool error:nil];
-    NSMutableArray<NSNumber *> *stamps = [NSMutableArray array];
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray array];
     for (NSString *name in names) {
         if (![name.pathExtension isEqualToString:@"mid"])
             continue;
         NSString *stem = name.stringByDeletingPathExtension;
         if ([stem isEqualToString:@"original"])
             continue;
-        [stamps addObject:@(stem.longLongValue)];
+        NSScanner *scanner = [NSScanner scannerWithString:stem];
+        long long stamp = 0;
+        if (![scanner scanLongLong:&stamp] || stamp <= 0)
+            continue;
+        if (!scanner.isAtEnd) {
+            if (![scanner scanString:@"-" intoString:nil])
+                continue;
+            long long suffix = 0;
+            if (![scanner scanLongLong:&suffix] || !scanner.isAtEnd ||
+                suffix < 0)
+                continue;
+        }
+        [entries addObject:@{
+            @"stamp": @(stamp),
+            @"path": [pool stringByAppendingPathComponent:name],
+        }];
     }
-    [stamps sortUsingComparator:^NSComparisonResult(NSNumber *a, NSNumber *b) {
-        return [b compare:a];
+    [entries sortUsingComparator:^NSComparisonResult(NSDictionary *a,
+                                                       NSDictionary *b) {
+        NSComparisonResult result = [b[@"stamp"] compare:a[@"stamp"]];
+        return result == NSOrderedSame
+            ? [b[@"path"] compare:a[@"path"]]
+            : result;
     }];
     NSMutableArray<NSString *> *paths = [NSMutableArray array];
-    for (NSNumber *stamp in stamps)
-        [paths addObject:[pool stringByAppendingPathComponent:
-            [NSString stringWithFormat:@"%@.mid", stamp]]];
+    for (NSDictionary *entry in entries)
+        [paths addObject:entry[@"path"]];
     return paths;
 }
 
@@ -1914,31 +1954,29 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 
 // Generate a compatible candidate for the identity pool. Existing VM
 // MachineIdentifier/AuxiliaryStorage pairs are never replaced here.
-- (void)generateNewAppleIdentity
+- (BOOL)generateNewAppleIdentityPresenting:(UIViewController *)presenter
 {
     if (self.running || !self.bundlePath)
-        return;
+        return NO;
+    UIViewController *reporter = presenter ?: self;
     NSFileManager *manager = NSFileManager.defaultManager;
     NSString *pool = [self appleIdentityPoolDirectory];
-    NSString *original = [self appleIdentityOriginalPath];
     NSError *error = nil;
     if (![manager createDirectoryAtPath:pool withIntermediateDirectories:YES
-                             attributes:nil error:&error])
-        return;
-    NSString *identityPath = [self.bundlePath
-        stringByAppendingPathComponent:@"MachineIdentifier"];
-    if (![manager fileExistsAtPath:original] &&
-        [manager fileExistsAtPath:identityPath]) {
-        NSData *current = [NSData dataWithContentsOfFile:identityPath];
-        if (!current.length ||
-            ![current writeToFile:original options:NSDataWritingAtomic
-                              error:&error])
-            return;
+                             attributes:nil error:&error]) {
+        VZPresentFailureReport(reporter, VZL(@"Apple Services Identity"),
+            error.localizedDescription, error.debugDescription,
+            VZFailureSupportOptionNone);
+        return NO;
     }
     NSData *candidate = nil;
     if (!VZGenerateFreshAppleIdentityData(self.bundlePath, &candidate,
-                                          NULL, &error))
-        return;
+                                          NULL, &error)) {
+        VZPresentFailureReport(reporter, VZL(@"Apple Services Identity"),
+            error.localizedDescription, error.debugDescription,
+            VZFailureSupportOptionNone);
+        return NO;
+    }
     NSString *name = [NSString stringWithFormat:@"%lld.mid",
         (long long)(NSDate.date.timeIntervalSince1970 * 1000.0)];
     NSString *archivePath = [pool stringByAppendingPathComponent:name];
@@ -1953,9 +1991,14 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     BOOL written = [candidate writeToFile:archivePath
                                   options:NSDataWritingAtomic error:&error];
     [candidate release];
-    if (!written)
-        return;
+    if (!written) {
+        VZPresentFailureReport(reporter, VZL(@"Apple Services Identity"),
+            error.localizedDescription, error.debugDescription,
+            VZFailureSupportOptionNone);
+        return NO;
+    }
     [self.tableView reloadData];
+    return YES;
 }
 
 - (BOOL)deleteAppleIdentityAtPath:(NSString *)path
@@ -1963,8 +2006,12 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     if (self.running || !path.length)
         return NO;
     NSFileManager *manager = NSFileManager.defaultManager;
+    NSString *pool = [self appleIdentityPoolDirectory];
     NSString *original = [self appleIdentityOriginalPath];
-    if ([path isEqualToString:original]) {
+    NSString *poolPrefix = [pool stringByAppendingString:@"/"];
+    if ([path isEqualToString:original] ||
+        ![path hasPrefix:poolPrefix] ||
+        [path hasPrefix:[pool stringByAppendingPathComponent:@".Trash"]]) {
         return NO;
     }
     NSData *candidate = [NSData dataWithContentsOfFile:path];
@@ -1972,8 +2019,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         stringByAppendingPathComponent:@"MachineIdentifier"]];
     if (!candidate.length || (active && [active isEqualToData:candidate]))
         return NO;
-    NSString *trash = [[self appleIdentityPoolDirectory]
-        stringByAppendingPathComponent:@".Trash"];
+    NSString *trash = [pool stringByAppendingPathComponent:@".Trash"];
     NSError *error = nil;
     if (![manager createDirectoryAtPath:trash withIntermediateDirectories:YES
                              attributes:nil error:&error]) {
@@ -2024,8 +2070,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 
 - (void)identityManagerDidRequestGenerate:(id)manager
 {
-    (void)manager;
-    [self generateNewAppleIdentity];
+    [self generateNewAppleIdentityPresenting:(UIViewController *)manager];
 }
 
 - (void)identityManagerDidRequestOriginal:(id)manager

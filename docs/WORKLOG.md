@@ -517,3 +517,12 @@
 ## 2026-10-05 — 100 package copied to iPad Files
 
 - [x] 100 已复制至飞牛与 iPad Files：`VirtualMac_1.2.3_c434121f6a.deb`。iPad 远端大小 20,862,912 bytes、SHA256 `5e8a2b2db86ca23ca14ebe37ff0885b9f761e6066d2b1708dd27573e0cd4351f` 与本机一致；仅上传，未安装/重启。
+
+
+## 2026-10-06 — identity audit crash fix
+
+- [x] 清理本机旧 `.diag/identity-diagnostics-20261005-new/` 到废纸篓，拉取新包 `.diag/identity-diagnostics-20261006-new/VirtualMac-Diagnostics-20261006-000002.zip`。
+- [x] 新 crash 逐字证据：`VirtualMac-2026-10-05-234413.ips` 的 `lastExceptionBacktrace` 指向 `VZAppleIdentityManagerViewController tableView:trailingSwipeActionsConfigurationForRowAtIndexPath:`，异常为 `NSArrayM objectAtIndexedSubscript: index 0 beyond bounds`；原因是删除/刷新后 UIKit 再次用旧 indexPath 请求 swipe actions。
+- [x] 修复所有身份列表回调的 section/row 边界检查；删除按 path 查找、更新 immutable data source 并显式 reload；当前/删除中的路径受保护；身份池保留真实 timestamp/suffix 文件名。
+- [x] 修复旧 Serial override 启动时改写 MachineIdentifier 的路径；损坏 HardwareModel/MachineIdentifier 现在转为配置错误，不抛异常崩溃。
+- [x] 新 VM 启动证据仍有 GuestTools ready、PVG frame 和 framebuffer ACK；本次 crash 属于管理 UI，不是 VM 黑屏。

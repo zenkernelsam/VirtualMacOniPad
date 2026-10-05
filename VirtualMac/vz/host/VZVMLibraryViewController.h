@@ -13,13 +13,6 @@ FOUNDATION_EXPORT NSString * const VZAppleSerialNumberKey;
 FOUNDATION_EXPORT NSString * const VZAppleBoardSerialNumberKey;
 FOUNDATION_EXPORT NSString * const VZAppleROMKey;
 
-// Generates a brand-new VZMacMachineIdentifier and writes it as the bundle's
-// canonical `MachineIdentifier`. On success, when the private serial getter is
-// available, *outSerial receives the derived serial number (otherwise nil).
-// Returns NO and fills *error on failure; the existing file is left intact.
-BOOL VZWriteFreshAppleIdentity(NSString *bundlePath,
-                               NSString *_Nullable *_Nullable outSerial,
-                               NSError *_Nullable *_Nullable error);
 BOOL VZGenerateFreshAppleIdentityData(
     NSString *bundlePath,
     NSData *_Nullable *_Nullable outData,

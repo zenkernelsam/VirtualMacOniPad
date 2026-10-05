@@ -5145,26 +5145,6 @@ BOOL VZGenerateFreshAppleIdentityData(NSString *bundlePath,
     return YES;
 }
 
-BOOL VZWriteFreshAppleIdentity(NSString *bundlePath, NSString **outSerial,
-                               NSError **error) {
-    NSData *representation = nil;
-    if (!VZGenerateFreshAppleIdentityData(bundlePath, &representation,
-                                          outSerial, error))
-        return NO;
-    NSString *identifierPath = [bundlePath
-        stringByAppendingPathComponent:@"MachineIdentifier"];
-    BOOL written = [representation writeToFile:identifierPath
-                                       options:NSDataWritingAtomic error:error];
-    if (written) {
-        printf("[VirtualMac] Apple identity regenerated; bytes=%lu identity=%s\n",
-               (unsigned long)representation.length,
-               outSerial && *outSerial ? (*outSerial).UTF8String :
-                   "(unavailable)");
-    }
-    [representation release];
-    return written;
-}
-
 static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
                             NSError **error) {
     BOOL guestToolsEnabled =
@@ -5193,48 +5173,62 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
 
     NSData *hardwareModelData = [NSData dataWithContentsOfFile:
         [bundlePath stringByAppendingPathComponent:@"HardwareModel"]];
-    id hardwareModel = ((id(*)(id, SEL, id))objc_msgSend)(
-        m0(CLS("VZMacHardwareModel"), "alloc"),
-        S("initWithDataRepresentation:"), hardwareModelData);
-    if (!hardwareModel ||
-        !((BOOL(*)(id, SEL))objc_msgSend)(hardwareModel, S("isSupported"))) {
+    id hardwareModel = nil;
+    @try {
+        hardwareModel = ((id(*)(id, SEL, id))objc_msgSend)(
+            m0(CLS("VZMacHardwareModel"), "alloc"),
+            S("initWithDataRepresentation:"), hardwareModelData);
+    } @catch (NSException *exception) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:8 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    exception.reason ?: @"HardwareModel is invalid"}];
+        [platform release];
+        return nil;
+    }
+    BOOL hardwareSupported = NO;
+    @try {
+        hardwareSupported = hardwareModel &&
+            ((BOOL(*)(id, SEL))objc_msgSend)(hardwareModel, S("isSupported"));
+    } @catch (NSException *exception) {
+        (void)exception;
+        hardwareSupported = NO;
+    }
+    if (!hardwareSupported) {
         printf("[VirtualMac] unsupported hardware model\n");
+        [platform release];
         return nil;
     }
     setObj(platform, "setHardwareModel:", hardwareModel);
 
     NSData *machineIdentifierData = [NSData dataWithContentsOfFile:
         [bundlePath stringByAppendingPathComponent:@"MachineIdentifier"]];
-    id machineIdentifier = ((id(*)(id, SEL, id))objc_msgSend)(
-        m0(CLS("VZMacMachineIdentifier"), "alloc"),
-        S("initWithDataRepresentation:"), machineIdentifierData);
+    id machineIdentifier = nil;
+    @try {
+        machineIdentifier = ((id(*)(id, SEL, id))objc_msgSend)(
+            m0(CLS("VZMacMachineIdentifier"), "alloc"),
+            S("initWithDataRepresentation:"), machineIdentifierData);
+    } @catch (NSException *exception) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:7 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    exception.reason ?: @"MachineIdentifier is invalid"}];
+        [platform release];
+        return nil;
+    }
+    if (!machineIdentifier) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:6 userInfo:@{
+                NSLocalizedDescriptionKey:
+                    @"MachineIdentifier is not accepted by this VZ payload"}];
+        [platform release];
+        return nil;
+    }
     NSString *configuredSerial = options[VZAppleSerialNumberKey];
     if ([options[VZAppleIdentityEnabledKey] boolValue] && configuredSerial.length) {
-        @try {
-            id serialObject = ((id(*)(id, SEL, id))objc_msgSend)(
-                m0(CLS("_VZMacSerialNumber"), "alloc"),
-                S("initWithString:"), configuredSerial);
-            SEL derive = S("_machineIdentifierWithSerialNumber:");
-            id derived = serialObject &&
-                [CLS("VZMacMachineIdentifier") respondsToSelector:derive]
-                ? ((id(*)(id, SEL, id))objc_msgSend)(
-                    CLS("VZMacMachineIdentifier"), derive, serialObject)
-                : nil;
-            if (derived) {
-                [machineIdentifier release];
-                machineIdentifier = [derived retain];
-                printf("[VirtualMac] Apple identity serial mapped to "
-                       "VZMacMachineIdentifier; MLB/ROM fields are stored "
-                       "for future mapping only\n");
-            } else {
-                printf("[VirtualMac] Apple identity serial mapping "
-                       "returned no machine identifier; using bundle value\n");
-            }
-            [serialObject release];
-        } @catch (NSException *exception) {
-            printf("[VirtualMac] Apple identity serial mapping failed: %s; "
-                   "using bundle value\n", exception.reason.UTF8String ?: "exception");
-        }
+        printf("[VirtualMac] Apple identity serial override ignored: "
+               "installed VM identity is bound to AuxiliaryStorage; "
+               "using bundle MachineIdentifier\n");
     }
     setObj(platform, "setMachineIdentifier:", machineIdentifier);
 

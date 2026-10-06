@@ -558,3 +558,9 @@
 - [x] Force Apply 会提示可能无法启动；Original Identity 用于回滚。105 编译、340串本地化、stage/package audit 通过。
 - [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_2385109077.deb`，版本 `2:1.2.3+105.forceidentity`，20,841,140 bytes，SHA256 `dc190aa29baeb376daedaff206ec7a27896d1a37c226546d0a99dd44d41ed607`。
 - [ ] 105 尚未安装/重启；设备验证需停机后进行，失败时使用 Original Identity 回滚。
+
+## 2026-10-06 — 106 force apply plus paired clone
+
+- [x] 106 同时提供两条明确路径：Force Apply 当前 VM（备份当前身份、原子替换、不清 NVRAM）与 Create Clone（新 AuxiliaryStorage + clone MachineIdentifier + Disk.img 复制）。
+- [x] Force Apply 只在用户二次确认后执行，明确可能黑屏和 Original 回滚；Create Clone 保留当前 VM 不变。
+- [x] App 编译与 340 串本地化审计通过；待完成 106 deb stage audit、上传和 Git 记录。

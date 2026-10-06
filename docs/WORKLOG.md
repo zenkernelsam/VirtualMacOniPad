@@ -564,3 +564,9 @@
 - [x] 106 同时提供两条明确路径：Force Apply 当前 VM（备份当前身份、原子替换、不清 NVRAM）与 Create Clone（新 AuxiliaryStorage + clone MachineIdentifier + Disk.img 复制）。
 - [x] Force Apply 只在用户二次确认后执行，明确可能黑屏和 Original 回滚；Create Clone 保留当前 VM 不变。
 - [x] App 编译与 340 串本地化审计通过；待完成 106 deb stage audit、上传和 Git 记录。
+
+## 2026-10-06 — 106 forceclone package delivery
+
+- [x] 106 完成 Force Apply + Create Clone 双路径，包 `VirtualMac/build/release/VirtualMac_1.2.3_9922c30bf4.deb`，版本 `2:1.2.3+106.forceclone`，20,843,144 bytes，SHA256 `83e8b93b3aaf73c20e8ed1cc534d0da5c66b62619c7319da9c6fe7a0ddcacfc0`。
+- [x] 包内核对 Force Apply、pre-force backup、NVRAM 不自动清理、clone selector、AuxiliaryStorage 创建 selector；stage audit 通过。
+- [x] 已复制到飞牛和 iPad Files，远端大小/SHA256 一致；未安装、未重启。

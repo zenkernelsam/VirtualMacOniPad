@@ -551,3 +551,10 @@
 - [x] 104 完成真正的 clone identity 路径：`_machineIdentifierForVirtualMachineClone` + `initCreatingStorageAtURL:hardwareModel:options:error:`；管理窗口 Create Clone 会复制 Disk.img/HardwareModel、创建新 AuxiliaryStorage、写入 clone identity、新 MAC 和新 bundle。
 - [x] 104 包 `VirtualMac/build/release/VirtualMac_1.2.3_f257d6584e.deb`，版本 `2:1.2.3+104.identityclone`，20,846,016 bytes，SHA256 `1049841737d5cb917c56282eefd6868b6963c7d54762c71ccd5697af332e90c4`；编译、335串本地化、stage/package audit 通过。
 - [x] 已复制至飞牛和 iPad Files，远端大小/SHA256 一致；未安装/重启。当前 VM 保留不动，clone 实机启动和 Apple 服务结果待用户安装后验证。
+
+## 2026-10-06 — 105 force apply identity option
+
+- [x] 按用户明确要求新增 Force Apply：身份管理窗口选中候选后，二次确认并原子写入当前 VM `MachineIdentifier`；当前文件先备份为 `Identities/pre-force-<timestamp>.mid`，Original 保留；不自动清 NVRAM。
+- [x] Force Apply 会提示可能无法启动；Original Identity 用于回滚。105 编译、340串本地化、stage/package audit 通过。
+- [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_2385109077.deb`，版本 `2:1.2.3+105.forceidentity`，20,841,140 bytes，SHA256 `dc190aa29baeb376daedaff206ec7a27896d1a37c226546d0a99dd44d41ed607`。
+- [ ] 105 尚未安装/重启；设备验证需停机后进行，失败时使用 Original Identity 回滚。

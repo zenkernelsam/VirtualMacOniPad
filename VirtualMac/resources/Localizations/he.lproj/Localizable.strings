@@ -116,6 +116,9 @@
 "Fix External Display Scroll Direction" = "תיקון כיוון הגלילה בצג חיצוני";
 "Fix Keyboard Crash" = "תיקון קריסת המקלדת";
 "Fix with Coding Agent" = "תיקון באמצעות סוכן תכנות";
+"Force Applied" = "Force Applied";
+"Force Apply" = "Force Apply";
+"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "אילוץ כיבוי";
 "Force Shut Down Virtual Mac?" = "לאלץ כיבוי של ה-Mac הווירטואלי?";
 "Full Screen" = "מסך מלא";
@@ -261,6 +264,7 @@
 "Switch to Running Virtual Mac" = "מעבר ל-Mac הווירטואלי שפועל";
 "Switch to the Official Version of Dopamine" = "מעבר לגרסה הרשמית של Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "יש לעבור ל-Mac הווירטואלי שפועל ולכבות אותו לפני הפעלת אחד אחר.";
+"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "לא ניתן ליצור את ארכיון האבחון.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "ערך ההתקדמות הראשון עשוי להופיע לאחר מספר דקות בזמן שה-Mac הווירטואלי עובר מ-DFU ל-RestoreOS. ה-iPad יישאר פעיל.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "ערך ההתקדמות הראשון עשוי להופיע לאחר מספר דקות בזמן שה-Mac הווירטואלי עובר מ-DFU ל-RestoreOS. ה-iPhone יישאר פעיל.";
@@ -278,6 +282,7 @@
 "This iPhone is incompatible with Virtual Mac" = "ה-iPhone הזה אינו תואם ל-Virtual Mac";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "פעולה זו מאפסת את כל הגדרות Mac וירטואלי לברירות המחדל. מחשבי Mac וירטואליים, תמונות שחזור וקובצי התקנה לא יוסרו.";
 "this Virtual Mac" = "Mac וירטואלי זה";
+"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "כדי להפעיל האצת OpenGL, יש לכבות את ה‑Virtual Mac הזה ולהפעיל אותה באפשרויות שלו.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "כדי להציג את הפקדים, יש לגעת ממושכות באייקון של Virtual Mac במסך הבית ואז לבחור בהצגת הפקדים של Virtual Mac.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "כדי להשתמש בלחץ ובהטיה של Apple Pencil, יש להוריד את pencil-probe אל ה-Mac הווירטואלי %@.";

@@ -116,6 +116,9 @@
 "Fix External Display Scroll Direction" = "Ret rulleretning på ekstern skærm";
 "Fix Keyboard Crash" = "Ret tastaturnedbrud";
 "Fix with Coding Agent" = "Løs det med en kodningsagent";
+"Force Applied" = "Force Applied";
+"Force Apply" = "Force Apply";
+"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "Gennemtving nedlukning";
 "Force Shut Down Virtual Mac?" = "Gennemtving nedlukning af Virtual Mac?";
 "Full Screen" = "Fuld skærm";
@@ -261,6 +264,7 @@
 "Switch to Running Virtual Mac" = "Skift til kørende Virtual Mac";
 "Switch to the Official Version of Dopamine" = "Skift til den officielle version af Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Skift til den kørende Virtual Mac, og luk den ned, før du starter en anden.";
+"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "Diagnosticeringsarkivet kunne ikke oprettes.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Den første statusværdi kan tage flere minutter, mens Virtual Mac skifter fra DFU til RestoreOS. Din iPad forbliver aktiv.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Den første statusværdi kan tage flere minutter, mens Virtual Mac skifter fra DFU til RestoreOS. Din iPhone forbliver aktiv.";
@@ -278,6 +282,7 @@
 "This iPhone is incompatible with Virtual Mac" = "Denne iPhone er ikke kompatibel med Virtual Mac";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "Dette nulstiller alle indstillinger i Virtual Mac til standardværdierne. Virtual Macs, gendannelsesbilleder og installationsfiler fjernes ikke.";
 "this Virtual Mac" = "denne Virtual Mac";
+"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "Sluk denne Virtual Mac, og slå derefter OpenGL-acceleration til i indstillingerne for at aktivere den.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "Du kan vise betjeningen ved at holde en finger på Virtual Mac-symbolet på hjemmeskærmen og derefter vælge Vis Virtual Mac-betjening.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Hvis du vil bruge tryk og hældning med Apple Pencil, skal du downloade pencil-probe i den virtuelle Mac %@.";

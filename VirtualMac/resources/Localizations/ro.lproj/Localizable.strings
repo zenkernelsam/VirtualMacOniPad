@@ -116,6 +116,9 @@
 "Fix External Display Scroll Direction" = "Remediați direcția derulării pe ecranul extern";
 "Fix Keyboard Crash" = "Remediați blocarea tastaturii";
 "Fix with Coding Agent" = "Remediați cu un agent de programare";
+"Force Applied" = "Force Applied";
+"Force Apply" = "Force Apply";
+"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "Forțați oprirea";
 "Force Shut Down Virtual Mac?" = "Forzare lo oprire di Mac virtual?";
 "Full Screen" = "Ecran complet";
@@ -261,6 +264,7 @@
 "Switch to Running Virtual Mac" = "Passa al Mac virtual rulează";
 "Switch to the Official Version of Dopamine" = "Treceți la versiunea oficială de Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Passa al Mac virtual rulează e spegnilo prima di avviarne un altro.";
+"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "Arhiva de diagnosticare nu a putut fi creată.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Prima valoare a progresului poate apărea după câteva minute, în timp ce Mac-ul virtual trece din DFU în RestoreOS. iPad-ul va rămâne activ.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Prima valoare a progresului poate apărea după câteva minute, în timp ce Mac-ul virtual trece din DFU în RestoreOS. iPhone-ul va rămâne activ.";
@@ -278,6 +282,7 @@
 "This iPhone is incompatible with Virtual Mac" = "Acest iPhone nu este compatibil cu Virtual Mac";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "Aceasta restabilește toate configurările Virtual Mac la valorile implicite. Mac-urile virtuale, imaginile de restaurare și fișierele de instalare nu vor fi eliminate.";
 "this Virtual Mac" = "acest Mac virtual";
+"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "Pentru a activa accelerarea OpenGL, opriți acest Virtual Mac, apoi activați-o în opțiunile sale.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "Pentru a afișa comenzile, țineți apăsată pictograma Virtual Mac pe ecranul principal, apoi alegeți Afișează comenzile Virtual Mac.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Pentru a utiliza presiunea și înclinarea Apple Pencil, descărcați pencil-probe pe Mac-ul virtual %@.";

@@ -116,6 +116,9 @@
 "Fix External Display Scroll Direction" = "修复外接显示器滚动方向";
 "Fix Keyboard Crash" = "修复键盘崩溃";
 "Fix with Coding Agent" = "使用编程智能体修复";
+"Force Applied" = "Force Applied";
+"Force Apply" = "Force Apply";
+"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "强制关机";
 "Force Shut Down Virtual Mac?" = "要强制关闭虚拟Mac吗？";
 "Full Screen" = "全屏";
@@ -261,6 +264,7 @@
 "Switch to Running Virtual Mac" = "切换到正在运行的虚拟Mac";
 "Switch to the Official Version of Dopamine" = "切换到官方版Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "请切换到正在运行的虚拟Mac并将其关机，然后再启动另一台。";
+"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "无法创建诊断归档。";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "虚拟Mac从DFU切换到RestoreOS时，首次显示进度可能需要几分钟。你的iPad将保持唤醒。";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "虚拟Mac从DFU切换到RestoreOS时，首次显示进度可能需要几分钟。你的iPhone将保持唤醒。";
@@ -278,6 +282,7 @@
 "This iPhone is incompatible with Virtual Mac" = "此iPhone与虚拟Mac不兼容";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "这会将虚拟Mac的所有设置还原为默认值，但不会删除虚拟Mac、恢复镜像或安装文件。";
 "this Virtual Mac" = "此虚拟Mac";
+"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "若要开启OpenGL加速，请将此虚拟Mac关机，然后在其选项中开启OpenGL加速。";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "若要显示控制项，请在主屏幕上触摸并按住虚拟Mac图标，然后选择“显示虚拟Mac控制项”。";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "要使用Apple Pencil压感与倾斜功能，请在%@虚拟Mac中下载pencil-probe。";

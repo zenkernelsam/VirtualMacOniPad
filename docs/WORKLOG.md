@@ -551,3 +551,10 @@
 - [x] 104 完成真正的 clone identity 路径：`_machineIdentifierForVirtualMachineClone` + `initCreatingStorageAtURL:hardwareModel:options:error:`；管理窗口 Create Clone 会复制 Disk.img/HardwareModel、创建新 AuxiliaryStorage、写入 clone identity、新 MAC 和新 bundle。
 - [x] 104 包 `VirtualMac/build/release/VirtualMac_1.2.3_f257d6584e.deb`，版本 `2:1.2.3+104.identityclone`，20,846,016 bytes，SHA256 `1049841737d5cb917c56282eefd6868b6963c7d54762c71ccd5697af332e90c4`；编译、335串本地化、stage/package audit 通过。
 - [x] 已复制至飞牛和 iPad Files，远端大小/SHA256 一致；未安装/重启。当前 VM 保留不动，clone 实机启动和 Apple 服务结果待用户安装后验证。
+
+## 2026-10-06 — MATLAB GPU/JIT crash diagnosis and shim fix
+
+- [x] MATLAB R2024a 三份 crash (`MATLAB_real-2026-10-06-192238/192239/192300.ips`) 均为 `SIGBUS/KERN_PROTECTION_FAILURE`，faulting threads 分别在 Java class loading、Java notification、AWT；进程加载 `/Library/VirtualMac/OpenGLPVGCompat.dylib`、AppleParavirt Metal、CEF 和 Metal，但栈未落在 GPU command/CEF renderer。
+- [x] 发现 `OpenGLPVGCompat` 对 MATLAB/CEF 默认 interpose `pthread_jit_write_protect_supported_np` 返回 YES；MATLAB_VM_Fix 的 CEF JIT patch 又对 CEF 做同方向修改。`launchctl print` 显示旧 MATLAB LaunchAgent not running 且仍指向 `~/Desktop/Patch/MATLAB`，当前 shim 由 inherited `DYLD_INSERT_LIBRARIES` 加载。
+- [x] 受控 A/B：仅设置 `VIRTUAL_MAC_JIT_CAPABILITY_COMPAT=0` 启动 MATLAB 45 秒，无新 crash report；stderr 仅 `GL pipe is running in software mode`。支持 shim 默认 JIT interpose 是触发因素。
+- [x] GPU 源码修复：JIT capability compat 默认关闭，仅精确环境值非 `0` 时启用；不改变其他 GPU family/GL profile。组件 `scripts/development/build-opengl-guest-compat.sh` 编译成功，未打 deb、未安装。

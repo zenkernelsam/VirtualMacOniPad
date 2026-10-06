@@ -38,9 +38,10 @@ static BOOL DebugEnabled(void) {
 
 // Guest compatibility: the guest's pthread getter reports false even though a
 // MAP_JIT allocation, write-protect toggle, and generated-code execution are
-// runtime-confirmed to work. Apply the correction only to MATLAB/CEF processes
-// by default; unrelated applications retain the native answer. An explicit
-// env=0 disables it, while env=1 enables it for a diagnostic helper.
+// runtime-confirmed to work. This is a diagnostic compatibility switch, not a
+// general GPU capability. Keep the native answer by default because changing
+// the process-wide JIT contract can fault MATLAB's Java/MCR threads. Enable it
+// only with the explicit environment value VIRTUAL_MAC_JIT_CAPABILITY_COMPAT=1.
 static BOOL PVGIsMATLABProcess(void) {
     NSString *name = NSProcessInfo.processInfo.processName.lowercaseString;
     if ([name containsString:@"matlab"] || [name containsString:@"cef"])
@@ -55,8 +56,7 @@ static int PVGJITCapability(void) {
     // The interpose table supplies the original symbol for this direct call.
     int supported = pthread_jit_write_protect_supported_np();
     const char *compat = getenv("VIRTUAL_MAC_JIT_CAPABILITY_COMPAT");
-    BOOL enabled = compat != NULL ? strcmp(compat, "0") != 0
-                                  : PVGIsMATLABProcess();
+    BOOL enabled = compat != NULL && strcmp(compat, "0") != 0;
     if (supported || !enabled)
         return supported;
     if (DebugEnabled())

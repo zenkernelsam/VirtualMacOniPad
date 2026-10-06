@@ -613,7 +613,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path;
 - (void)identityManagerDidRequestGenerate:(id)manager;
 - (void)identityManagerDidRequestClone:(id)manager;
-- (void)identityManager:(id)manager didRequestForceApplyPath:(NSString *)path;
 - (void)identityManagerDidRequestOriginal:(id)manager;
 @optional
 - (NSArray<NSString *> *)identityManagerPaths:(id)manager;
@@ -627,7 +626,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 @property(nonatomic, retain) NSData *activeData;
 @property(nonatomic, copy) NSString *selectedPath;
 @property(nonatomic, retain) UITableView *identityTableView;
-@property(nonatomic, retain) UIBarButtonItem *forceApplyButton;
 - (instancetype)initWithIdentityPaths:(NSArray<NSString *> *)paths
                             activeData:(NSData *)active;
 - (void)reloadIdentityData;
@@ -659,12 +657,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     UIBarButtonItem *clone = [[[UIBarButtonItem alloc]
         initWithTitle:VZL(@"Create Clone") style:UIBarButtonItemStylePlain
                target:self action:@selector(createClone)] autorelease];
-    self.forceApplyButton = [[[UIBarButtonItem alloc]
-        initWithTitle:VZL(@"Force Apply") style:UIBarButtonItemStylePlain
-               target:self action:@selector(forceApply)] autorelease];
-    self.forceApplyButton.enabled = NO;
-    self.navigationItem.rightBarButtonItems = @[self.forceApplyButton,
-        clone, add];
+    self.navigationItem.rightBarButtonItems = @[clone, add];
     self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
         initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                              target:self action:@selector(done)] autorelease];
@@ -697,7 +690,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     if (self.selectedPath &&
         ![self.identityPaths containsObject:self.selectedPath])
         self.selectedPath = nil;
-    self.forceApplyButton.enabled = self.selectedPath.length > 0;
     [self.identityTableView reloadData];
 }
 
@@ -715,26 +707,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)createClone
 {
     [self.delegate identityManagerDidRequestClone:self];
-}
-
-- (void)forceApply
-{
-    if (!self.selectedPath.length)
-        return;
-    UIAlertController *alert = [UIAlertController
-        alertControllerWithTitle:VZL(@"Force Apply Identity")
-                         message:VZL(@"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.")
-                  preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
-        style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Force Apply")
-        style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-        (void)action;
-        [self.delegate identityManager:self
-                didRequestForceApplyPath:self.selectedPath];
-        [self reloadIdentityData];
-    }]];
-    [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -785,7 +757,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         return;
     }
     self.selectedPath = self.identityPaths[indexPath.row];
-    self.forceApplyButton.enabled = YES;
     [tableView reloadData];
     [self.delegate identityManager:self didSelectPath:self.selectedPath];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
@@ -836,7 +807,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     [_activeData release];
     [_selectedPath release];
     [_identityTableView release];
-    [_forceApplyButton release];
     [super dealloc];
 }
 @end
@@ -2113,54 +2083,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)identityManagerDidRequestGenerate:(id)manager
 {
     [self generateNewAppleIdentityPresenting:(UIViewController *)manager];
-}
-
-- (void)identityManager:(id)manager
- didRequestForceApplyPath:(NSString *)path
-{
-    if (self.running || !self.bundlePath || !path.length)
-        return;
-    NSString *pool = [self appleIdentityPoolDirectory];
-    NSString *prefix = [pool stringByAppendingString:@"/"];
-    if (![path hasPrefix:prefix] ||
-        [path hasPrefix:[pool stringByAppendingPathComponent:@".Trash"]])
-        return;
-    NSData *candidate = [NSData dataWithContentsOfFile:path];
-    NSString *activePath = [self.bundlePath
-        stringByAppendingPathComponent:@"MachineIdentifier"];
-    NSData *active = [NSData dataWithContentsOfFile:activePath];
-    if (!candidate.length || !active.length)
-        return;
-    NSFileManager *files = NSFileManager.defaultManager;
-    NSError *error = nil;
-    NSString *original = [self appleIdentityOriginalPath];
-    if (![files fileExistsAtPath:original] &&
-        ![active writeToFile:original options:NSDataWritingAtomic error:&error]) {
-        VZPresentFailureReport((UIViewController *)manager,
-            VZL(@"Apple Services Identity"), error.localizedDescription,
-            error.debugDescription, VZFailureSupportOptionNone);
-        return;
-    }
-    NSString *backup = [pool stringByAppendingPathComponent:
-        [NSString stringWithFormat:@"pre-force-%lld.mid",
-            (long long)(NSDate.date.timeIntervalSince1970 * 1000.0)]];
-    if (![active writeToFile:backup options:NSDataWritingAtomic error:&error] ||
-        ![candidate writeToFile:activePath options:NSDataWritingAtomic
-                           error:&error]) {
-        VZPresentFailureReport((UIViewController *)manager,
-            VZL(@"Apple Services Identity"), error.localizedDescription,
-            error.debugDescription, VZFailureSupportOptionNone);
-        return;
-    }
-    [self.tableView reloadData];
-    UIAlertController *done = [UIAlertController
-        alertControllerWithTitle:VZL(@"Force Applied")
-                         message:VZL(@"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.")
-                  preferredStyle:UIAlertControllerStyleAlert];
-    [done addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
-        style:UIAlertActionStyleDefault handler:nil]];
-    [(UIViewController *)manager presentViewController:done animated:YES
-                                             completion:nil];
 }
 
 - (void)identityManagerDidRequestClone:(id)manager

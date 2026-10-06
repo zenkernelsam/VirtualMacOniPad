@@ -116,9 +116,6 @@
 "Fix External Display Scroll Direction" = "Külső kijelző görgetési irányának javítása";
 "Fix Keyboard Crash" = "Billentyűzet-összeomlás javítása";
 "Fix with Coding Agent" = "Javítás programozási ügynökkel";
-"Force Applied" = "Force Applied";
-"Force Apply" = "Force Apply";
-"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "Kényszerített leállítás";
 "Force Shut Down Virtual Mac?" = "Kényszeríti a virtuális Mac leállítását?";
 "Full Screen" = "Teljes képernyő";
@@ -264,7 +261,6 @@
 "Switch to Running Virtual Mac" = "Váltás a futó virtuális Macre";
 "Switch to the Official Version of Dopamine" = "Váltás a Dopamine hivatalos verziójára";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Váltson a futó virtuális Macre, és állítsa le, mielőtt másikat indít.";
-"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "A diagnosztikai archívum nem hozható létre.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Az első folyamatérték több percet is igénybe vehet, amíg a virtuális Mac DFU módból RestoreOS módba vált. Az iPad ébren marad.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Az első folyamatérték több percet is igénybe vehet, amíg a virtuális Mac DFU módból RestoreOS módba vált. Az iPhone ébren marad.";
@@ -282,7 +278,6 @@
 "This iPhone is incompatible with Virtual Mac" = "Ez az iPhone nem kompatibilis a Virtual Mac alkalmazással";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "Ez minden Virtual Mac-beállítást alapértékre állít. A virtuális Macek, a helyreállítási lemezképek és a telepítési fájlok nem törlődnek.";
 "this Virtual Mac" = "ez a virtuális Mac";
-"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "Az OpenGL-gyorsítás bekapcsolásához állítsa le ezt a Virtual Macet, majd kapcsolja be a beállításaiban.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "A vezérlők megjelenítéséhez tartsa megérintve a Virtual Mac ikonját a Főképernyőn, majd válassza a Virtual Mac vezérlőinek megjelenítése lehetőséget.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Az Apple Pencil nyomásának és dőlésének használatához töltse le a pencil-probe alkalmazást a(z) %@ virtuális Macre.";

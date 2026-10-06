@@ -116,9 +116,6 @@
 "Fix External Display Scroll Direction" = "외장 디스플레이 스크롤 방향 수정";
 "Fix Keyboard Crash" = "키보드 충돌 수정";
 "Fix with Coding Agent" = "코딩 에이전트로 해결";
-"Force Applied" = "Force Applied";
-"Force Apply" = "Force Apply";
-"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "강제 종료";
 "Force Shut Down Virtual Mac?" = "가상 Mac을 강제로 종료하시겠습니까?";
 "Full Screen" = "전체 화면";
@@ -264,7 +261,6 @@
 "Switch to Running Virtual Mac" = "실행 중인 가상 Mac으로 전환";
 "Switch to the Official Version of Dopamine" = "Dopamine 공식 버전으로 전환";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "실행 중인 가상 Mac으로 전환하여 종료한 후 다른 가상 Mac을 시작하십시오.";
-"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "진단 아카이브를 생성할 수 없습니다.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "가상 Mac이 DFU에서 RestoreOS로 전환되는 동안 첫 진행률이 표시되기까지 몇 분이 걸릴 수 있습니다. iPad가 깨어 있습니다.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "가상 Mac이 DFU에서 RestoreOS로 전환되는 동안 첫 진행률이 표시되기까지 몇 분이 걸릴 수 있습니다. iPhone가 깨어 있습니다.";
@@ -282,7 +278,6 @@
 "This iPhone is incompatible with Virtual Mac" = "이 iPhone은 Virtual Mac과 호환되지 않습니다";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "모든 가상 Mac 설정을 기본값으로 복원합니다. 가상 Mac, 복원 이미지 및 설치 파일은 삭제되지 않습니다.";
 "this Virtual Mac" = "이 가상 Mac";
-"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "OpenGL 가속을 켜려면 이 Virtual Mac을 종료한 다음 옵션에서 OpenGL 가속을 켜십시오.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "제어기를 표시하려면 홈 화면에서 Virtual Mac 아이콘을 길게 터치한 다음 ‘Virtual Mac 제어기 보기’를 선택하십시오.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Apple Pencil의 압력 및 기울기를 사용하려면 %@ 가상 Mac에 pencil-probe를 다운로드하십시오.";

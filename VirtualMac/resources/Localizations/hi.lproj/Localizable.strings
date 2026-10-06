@@ -116,9 +116,6 @@
 "Fix External Display Scroll Direction" = "बाहरी डिस्प्ले की स्क्रॉल दिशा ठीक करें";
 "Fix Keyboard Crash" = "कीबोर्ड क्रैश ठीक करें";
 "Fix with Coding Agent" = "कोडिंग एजेंट से ठीक करें";
-"Force Applied" = "Force Applied";
-"Force Apply" = "Force Apply";
-"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "ज़बरदस्ती बंद करें";
 "Force Shut Down Virtual Mac?" = "वर्चुअल Mac को ज़बरदस्ती बंद करें?";
 "Full Screen" = "पूर्ण स्क्रीन";
@@ -264,7 +261,6 @@
 "Switch to Running Virtual Mac" = "चल रहे वर्चुअल Mac पर जाएँ";
 "Switch to the Official Version of Dopamine" = "Dopamine के आधिकारिक संस्करण पर जाएँ";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "किसी अन्य को शुरू करने से पहले चल रहे वर्चुअल Mac पर जाएँ और उसे बंद करें।";
-"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "डायग्नोस्टिक्स आर्काइव नहीं बनाया जा सका।";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "वर्चुअल Mac के DFU से RestoreOS में बदलने के दौरान पहला प्रगति मान आने में कई मिनट लग सकते हैं। आपका iPad सक्रिय रहेगा।";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "वर्चुअल Mac के DFU से RestoreOS में बदलने के दौरान पहला प्रगति मान आने में कई मिनट लग सकते हैं। आपका iPhone सक्रिय रहेगा।";
@@ -282,7 +278,6 @@
 "This iPhone is incompatible with Virtual Mac" = "यह iPhone Virtual Mac के साथ संगत नहीं है";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "यह वर्चुअल Mac की सभी सेटिंग्स को उनके डिफ़ॉल्ट पर रीसेट करता है। वर्चुअल Mac, रीस्टोर इमेज और इंस्टॉलेशन फ़ाइलें नहीं हटाई जाएँगी।";
 "this Virtual Mac" = "यह वर्चुअल Mac";
-"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "OpenGL एक्सेलेरेशन चालू करने के लिए इस Virtual Mac को बंद करें, फिर इसके विकल्पों में OpenGL एक्सेलेरेशन चालू करें।";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "नियंत्रण दिखाने के लिए होम स्क्रीन पर Virtual Mac आइकन को दबाकर रखें, फिर Virtual Mac नियंत्रण दिखाएँ चुनें।";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Apple Pencil का दबाव और झुकाव इस्तेमाल करने के लिए, %@ वर्चुअल Mac में pencil-probe डाउनलोड करें।";

@@ -116,9 +116,6 @@
 "Fix External Display Scroll Direction" = "Harici ekran kaydırma yönünü düzelt";
 "Fix Keyboard Crash" = "Klavye çökmesini düzelt";
 "Fix with Coding Agent" = "Kodlama aracısıyla düzelt";
-"Force Applied" = "Force Applied";
-"Force Apply" = "Force Apply";
-"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "Kapatmaya Zorla";
 "Force Shut Down Virtual Mac?" = "Sanal Mac Kapatmaya Zorlansın mı?";
 "Full Screen" = "Tam Ekran";
@@ -264,7 +261,6 @@
 "Switch to Running Virtual Mac" = "Çalışan Sanal Mac’e Geç";
 "Switch to the Official Version of Dopamine" = "Dopamine’in resmi sürümüne geç";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Başka birini başlatmadan önce çalışan Sanal Mac’e geçip onu kapatın.";
-"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "Tanı arşivi oluşturulamadı.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Sanal Mac DFU’dan RestoreOS’e geçerken ilk ilerleme değeri birkaç dakika sürebilir. iPad’iniz uyanık kalacak.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Sanal Mac DFU’dan RestoreOS’e geçerken ilk ilerleme değeri birkaç dakika sürebilir. iPhone’unuz uyanık kalacak.";
@@ -282,7 +278,6 @@
 "This iPhone is incompatible with Virtual Mac" = "Bu iPhone, Virtual Mac ile uyumlu değil";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "Bu, tüm Virtual Mac ayarlarını saptanmış değerlere sıfırlar. Sanal Mac’ler, geri yükleme imajları ve kurulum dosyaları kaldırılmaz.";
 "this Virtual Mac" = "bu Sanal Mac";
-"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "OpenGL hızlandırmayı açmak için bu Virtual Mac’i kapatın, ardından seçeneklerinden OpenGL Hızlandırma’yı açın.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "Denetimleri göstermek için Ana Ekran’daki Virtual Mac simgesine dokunup basılı tutun, ardından Virtual Mac Denetimlerini Göster’i seçin.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Apple Pencil basıncını ve eğimini kullanmak için pencil-probe’u %@ Sanal Mac’e indirin.";

@@ -116,9 +116,6 @@
 "Fix External Display Scroll Direction" = "Corriger le sens de défilement sur l’écran externe";
 "Fix Keyboard Crash" = "Corriger le plantage du clavier";
 "Fix with Coding Agent" = "Résoudre avec un agent de programmation";
-"Force Applied" = "Force Applied";
-"Force Apply" = "Force Apply";
-"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "Forcer l’arrêt";
 "Force Shut Down Virtual Mac?" = "Forcer l’arrêt du Mac virtuel ?";
 "Full Screen" = "Plein écran";
@@ -264,7 +261,6 @@
 "Switch to Running Virtual Mac" = "Passer au Mac virtuel en cours d’exécution";
 "Switch to the Official Version of Dopamine" = "Passer à la version officielle de Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Passez au Mac virtuel en cours d’exécution et éteignez-le avant d’en démarrer un autre.";
-"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "L’archive de diagnostics n’a pas pu être créée.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "La première valeur de progression peut prendre plusieurs minutes pendant le passage du Mac virtuel de DFU à RestoreOS. Votre iPad restera actif.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "La première valeur de progression peut prendre plusieurs minutes pendant le passage du Mac virtuel de DFU à RestoreOS. Votre iPhone restera actif.";
@@ -282,7 +278,6 @@
 "This iPhone is incompatible with Virtual Mac" = "Cet iPhone n’est pas compatible avec Virtual Mac";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "Tous les réglages de Virtual Mac seront rétablis à leurs valeurs par défaut. Les Mac virtuels, images de restauration et fichiers d’installation ne seront pas supprimés.";
 "this Virtual Mac" = "ce Mac virtuel";
-"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "Pour activer l’accélération OpenGL, éteignez ce Virtual Mac, puis activez-la dans ses options.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "Pour afficher les commandes, touchez de façon prolongée l’icône Virtual Mac sur l’écran d’accueil, puis choisissez « Afficher les commandes Virtual Mac ».";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Pour utiliser la pression et l’inclinaison de l’Apple Pencil, téléchargez pencil-probe dans le Mac virtuel %@.";

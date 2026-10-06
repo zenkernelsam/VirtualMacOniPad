@@ -116,9 +116,6 @@
 "Fix External Display Scroll Direction" = "Perbaiki arah gulir layar eksternal";
 "Fix Keyboard Crash" = "Perbaiki crash keyboard";
 "Fix with Coding Agent" = "Perbaiki dengan agen pemrograman";
-"Force Applied" = "Force Applied";
-"Force Apply" = "Force Apply";
-"Force Apply Identity" = "Force Apply Identity";
 "Force Shut Down" = "Paksa Matikan";
 "Force Shut Down Virtual Mac?" = "Paksa Matikan Virtual Mac?";
 "Full Screen" = "Layar Penuh";
@@ -264,7 +261,6 @@
 "Switch to Running Virtual Mac" = "Beralih ke Virtual Mac yang Berjalan";
 "Switch to the Official Version of Dopamine" = "Beralih ke versi resmi Dopamine";
 "Switch to the running Virtual Mac and shut it down before starting another one." = "Beralihlah ke Virtual Mac yang berjalan dan matikan sebelum memulai yang lain.";
-"The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback." = "The current VM now uses the selected identity. Start it only after saving your work; Original Identity remains available for rollback.";
 "The diagnostics archive could not be created." = "Arsip diagnostik tidak dapat dibuat.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPad will remain awake." = "Nilai progres pertama dapat memerlukan beberapa menit saat Virtual Mac beralih dari DFU ke RestoreOS. iPad Anda akan tetap aktif.";
 "The first progress value can take several minutes while the Virtual Mac changes from DFU to RestoreOS. Your iPhone will remain awake." = "Nilai progres pertama dapat memerlukan beberapa menit saat Virtual Mac beralih dari DFU ke RestoreOS. iPhone Anda akan tetap aktif.";
@@ -282,7 +278,6 @@
 "This iPhone is incompatible with Virtual Mac" = "iPhone ini tidak kompatibel dengan Virtual Mac";
 "This restores all Virtual Mac settings to their defaults. Virtual Macs, restore images, and installation files won’t be removed." = "Ini mengembalikan semua pengaturan Virtual Mac ke nilai default. Virtual Mac, citra pemulihan, dan file instalasi tidak akan dihapus.";
 "this Virtual Mac" = "Virtual Mac ini";
-"This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically." = "This writes the selected identity into the current VM. The VM may fail to boot; use Original Identity to roll back. NVRAM will not be cleared automatically.";
 "To enable OpenGL acceleration, shut down this Virtual Mac, then in its options, enable OpenGL Acceleration." = "Untuk menyalakan akselerasi OpenGL, matikan Virtual Mac ini, lalu nyalakan Akselerasi OpenGL di pilihannya.";
 "To show the controls, touch and hold the Virtual Mac icon on the Home Screen, then choose Show Virtual Mac Controls." = "Untuk menampilkan kontrol, sentuh dan tahan ikon Virtual Mac di Layar Utama, lalu pilih Tampilkan Kontrol Virtual Mac.";
 "To use Apple Pencil pressure and tilt, download pencil-probe in %@ Virtual Mac." = "Untuk menggunakan tekanan dan kemiringan Apple Pencil, unduh pencil-probe di Mac Virtual %@.";

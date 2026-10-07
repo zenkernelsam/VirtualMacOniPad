@@ -558,3 +558,12 @@
 - [x] 发现 `OpenGLPVGCompat` 对 MATLAB/CEF 默认 interpose `pthread_jit_write_protect_supported_np` 返回 YES；MATLAB_VM_Fix 的 CEF JIT patch 又对 CEF 做同方向修改。`launchctl print` 显示旧 MATLAB LaunchAgent not running 且仍指向 `~/Desktop/Patch/MATLAB`，当前 shim 由 inherited `DYLD_INSERT_LIBRARIES` 加载。
 - [x] 受控 A/B：仅设置 `VIRTUAL_MAC_JIT_CAPABILITY_COMPAT=0` 启动 MATLAB 45 秒，无新 crash report；stderr 仅 `GL pipe is running in software mode`。支持 shim 默认 JIT interpose 是触发因素。
 - [x] GPU 源码修复：JIT capability compat 默认关闭，仅精确环境值非 `0` 时启用；不改变其他 GPU family/GL profile。组件 `scripts/development/build-opengl-guest-compat.sh` 编译成功，未打 deb、未安装。
+
+## 2026-10-07 — Personal Hotspot 越狱后失效：根因实锤 + 共存修复 handover
+
+- [x] 用户报告越狱后热点无法分享（手机关联成功但拿不到 IP），与 VM 是否运行无关；SSH 取证完成。
+- [x] 根因：`vzi.apple.bootpd`（项目 jb DHCP job）在越狱 bootstrap 即由 launchd 独占绑定 UDP `*.67`；misd 开热点时提交的 `com.apple.bootpd`（同为 bootps socket）`runs=0` 从未 spawn → 客户端 169.254 link-local。iPadOS15/16 postinst 无条件 enable+bootstrap 该 job，无按需释放机制。
+- [x] 热点侧其余链路完好：bridge101/ap1/172.20.10.1/28、hostapd、misd 写的 `/Library/Preferences/SystemConfiguration/bootpd.plist` 均正确。
+- [x] **共存 PoC 端到端通过**：VM 运行中向 `/tmp/bootpd.plist` 手工追加 bridge101/172.20.10.0/28 子网项，手机重连即获 `172.20.10.2`，关蜂窝后经 iPad 蜂窝上 ip.sb 成功（出口 104.28.83.101），VM 同时在线。jb bootpd inetd 逐包 spawn 每次重读配置，合并即生效。
+- [x] 产出 `docs/HOTSPOT-COEXIST-HANDOVER.md`：含逐字证据、已验证静态子网块、merge watcher 设计（user/501 + WatchPaths 双文件 + 幂等合并）、打包接线点、验收/回滚清单。交隔壁 Agent 施工打包。
+- [ ] 注意：iPad `/tmp/bootpd.plist` 当前含手工注入的 bridge101 条目（`_creator=vzi-hotspot-compat`），热点现在能用靠它；会被 InternetSharing 下次重写冲掉，属临时态，正式包落地前不要当永久修复。

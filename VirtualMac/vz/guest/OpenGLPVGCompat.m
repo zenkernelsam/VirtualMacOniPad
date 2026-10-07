@@ -683,8 +683,11 @@ INTERPOSE(pvg_metal_devices_observer, PVGCopyAllDevicesWithObserver,
 INTERPOSE(pvg_iogl_property, PVGCreateRegistryProperty,
           IORegistryEntryCreateCFProperty);
 INTERPOSE(pvg_particle_shader_source, PVGShaderSource, glShaderSource);
-INTERPOSE(pvg_jit_capability, PVGJITCapability,
-          pthread_jit_write_protect_supported_np);
+// Do not interpose the JIT capability query. HotSpot/Java may call this from
+// a generated-code path; even returning the native value through an interpose
+// can change the VM's JIT binding and trigger SIGBUS in MATLAB. The diagnostic
+// helper remains available for explicit probes, but production processes use
+// the platform implementation directly.
 #if EXPERIMENTAL_UNREAL_GAMES
 INTERPOSE(pvg_gpu_registry_properties, PVGCreateRegistryProperties,
           IORegistryEntryCreateCFProperties);

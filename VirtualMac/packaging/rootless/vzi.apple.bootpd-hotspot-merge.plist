@@ -18,8 +18,6 @@
     </array>
     <key>ProcessType</key>
     <string>Interactive</string>
-    <key>UserName</key>
-    <string>root</string>
     <key>StandardOutPath</key>
     <string>/tmp/bootpd-hotspot-merge.out</string>
     <key>StandardErrorPath</key>

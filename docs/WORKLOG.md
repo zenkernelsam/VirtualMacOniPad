@@ -599,3 +599,9 @@
 - [x] 根因验证：launchd user/501 直接执行 `/var/jb/usr/bin/python3 merge.py` exit 0；通过 `/bin/sh wrapper` 被 launchd 标记 EX_CONFIG。110 rootless plist 改为直接 Python；rootful 变体保留 shell wrapper。
 - [x] 110 包 `VirtualMac/build/release/VirtualMac_1.2.3_f1e3157f10.deb`，版本 `2:1.2.3+110.gpuhotspotmatlab`，20,855,772 bytes，SHA256 `ec6f690069f2e6dd0829925e7d7b74ad4fe37c7a58ece8a198d187c8cb5f5b1d`；已复制飞牛与 iPad Files，远端 hash 一致。
 - [ ] 110 尚未安装/重启；MATLAB 13:30 crash 仍为 Java Launch SSI SIGBUS，需安装后复测。
+
+## 2026-10-07 — MATLAB HotSpot JIT interpose removal
+
+- [x] 163/110 设备上的 MATLAB crash 仍为 Java Launch SSI `SIGBUS`; `/Library/VirtualMac/OpenGLPVGCompat.dylib` 已加载。无 shim A/B 45秒无 crash，JIT getter interpose 仍是风险变量。
+- [x] 移除生产 OpenGL shim 对 `pthread_jit_write_protect_supported_np` 的 `__interpose`；保留 GPU/GL compatibility paths 和显式诊断函数，避免 HotSpot/Java 生成代码路径受 shim 绑定影响。
+- [x] guest OpenGL component 编译通过；未安装/重启。

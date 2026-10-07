@@ -605,3 +605,9 @@
 - [x] 163/110 设备上的 MATLAB crash 仍为 Java Launch SSI `SIGBUS`; `/Library/VirtualMac/OpenGLPVGCompat.dylib` 已加载。无 shim A/B 45秒无 crash，JIT getter interpose 仍是风险变量。
 - [x] 移除生产 OpenGL shim 对 `pthread_jit_write_protect_supported_np` 的 `__interpose`；保留 GPU/GL compatibility paths 和显式诊断函数，避免 HotSpot/Java 生成代码路径受 shim 绑定影响。
 - [x] guest OpenGL component 编译通过；未安装/重启。
+
+## 2026-10-07 — 111 hotspot rootless launch fix delivery
+
+- [x] 111 基于 110 修复 rootless watcher plist：直接执行 `/var/jb/usr/bin/python3`，移除 rootless `UserName=root`，避免越狱后 launchd user/501 `EX_CONFIG`；保留 rootful shell wrapper。
+- [x] 111 合并 GPU JIT 默认关闭、MATLAB/CEF shim 隔离、hotspot DHCP watcher；包 `VirtualMac/build/release/VirtualMac_1.2.3_b3f07dd8a1.deb`，版本 `2:1.2.3+111.gpuhotspotmatlab`，20,844,220 bytes，SHA256 `c7372004f061042cf92ac77e337fd593c5953a71b3f21e16d4c41148c829d67c`。
+- [x] 已上传 iPad Files，远端大小/hash 一致；未安装、未重启。

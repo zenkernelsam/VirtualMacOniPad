@@ -574,3 +574,9 @@
 - [x] 最新 MATLAB crash `MATLAB_real-2026-10-07-133034.ips` 仍为 `SIGBUS/KERN_PROTECTION_FAILURE`，faulting thread 为 Java Launch SSI upgrade；加载 OpenGLPVGCompat。107 JIT-default-off 后仍有 crash，第二次无 shim A/B 45 秒无新 crash，说明 DYLD shim/旧 MATLAB CEF workaround 仍需隔离，未声称 MATLAB 已解决。
 - [x] 按 `HOTSPOT-COEXIST-HANDOVER.md` 新增 rootless/rootful `bootpd-hotspot-merge` watcher：Python plist 合并、bridge101 DHCP 子网、WatchPaths、幂等原子写入；接入 build-ipad-deb/postinst/prerm。
 - [x] watcher 本地回归通过：开启/关闭 bridge101 合并正确，重复运行字节不变；未在 iPad 上重启服务或安装。
+
+## 2026-10-07 — MATLAB/CEF process isolation from PVG OpenGL shim
+
+- [x] 107 后 MATLAB 仍有 `SIGBUS`（Java Launch SSI upgrade thread）；无 `DYLD_INSERT_LIBRARIES` A/B 45秒无新 crash，证明完整 OpenGLPVGCompat 注入仍是主要变量。
+- [x] OpenGL shim 新修复：MATLAB/CEF/Chromium 进程跳过 PVG Metal family、command queue、shader lowering、IOGLBundleName registry 注入；其他 GPU 应用保持原路径。JIT capability 默认关闭并保留显式 env diagnostic 开关。
+- [x] `scripts/development/build-opengl-guest-compat.sh` 组件编译通过；未单独安装/重启。

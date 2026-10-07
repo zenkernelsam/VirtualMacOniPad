@@ -30,6 +30,7 @@ static IMP gSetVertexBuffer;
 static IMP gSetVertexBuffers;
 static char gInlineVertexStorageKey;
 static void InstallRenderEncoderCompatibility(id encoder);
+static BOOL ProcessUsesUnsupportedOpenGLPath(void);
 
 static BOOL DebugEnabled(void) {
     const char *value = getenv("VIRTUAL_MAC_OPENGL_DEBUG");
@@ -176,6 +177,10 @@ static NSString *CompatibleParticleShaderSource(NSString *source) {
 static void PVGShaderSource(GLuint shader, GLsizei count,
                             const GLchar *const *strings,
                             const GLint *lengths) {
+    if (ProcessUsesUnsupportedOpenGLPath()) {
+        glShaderSource(shader, count, strings, lengths);
+        return;
+    }
     const char *flag = getenv("VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER");
     if (gSupportsFamily == NULL ||
         (flag != NULL && strcmp(flag, "0") == 0) ||
@@ -227,7 +232,11 @@ static BOOL ProcessUsesUnsupportedOpenGLPath(void) {
         // leave only these exact helper/Sublime executables on macOS's stock
         // renderer.
         NSString *executable = NSProcessInfo.processInfo.processName;
-        excluded = [executable isEqualToString:@"firefox"] ||
+        NSString *lowercase = executable.lowercaseString;
+        excluded = [lowercase containsString:@"matlab"] ||
+            [lowercase containsString:@"cef"] ||
+            [lowercase containsString:@"chromium"] ||
+            [executable isEqualToString:@"firefox"] ||
             [executable isEqualToString:@"Firefox GPU Helper"] ||
             [executable isEqualToString:
                 @"Firefox Developer Edition GPU Helper"] ||
@@ -397,15 +406,16 @@ static void InstallMetalFamilyCompatibility(id device) {
 
 static id<MTLDevice> PVGCreateSystemDefaultDevice(void) NS_RETURNS_RETAINED {
     id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-    if (device != nil)
+    if (device != nil && !ProcessUsesUnsupportedOpenGLPath())
         InstallMetalFamilyCompatibility(device);
     return device;
 }
 
 static NSArray<id<MTLDevice>> *PVGCopyAllDevices(void) NS_RETURNS_RETAINED {
     NSArray<id<MTLDevice>> *devices = MTLCopyAllDevices();
-    for (id<MTLDevice> device in devices)
-        InstallMetalFamilyCompatibility(device);
+    if (!ProcessUsesUnsupportedOpenGLPath())
+        for (id<MTLDevice> device in devices)
+            InstallMetalFamilyCompatibility(device);
     return devices;
 }
 
@@ -414,12 +424,14 @@ static NSArray<id<MTLDevice>> *PVGCopyAllDevicesWithObserver(
     MTLDeviceNotificationHandler handler) NS_RETURNS_RETAINED {
     MTLDeviceNotificationHandler wrapped = handler == nil ? nil :
         ^(id<MTLDevice> device, MTLDeviceNotificationName name) {
-            InstallMetalFamilyCompatibility(device);
+            if (!ProcessUsesUnsupportedOpenGLPath())
+                InstallMetalFamilyCompatibility(device);
             handler(device, name);
         };
     NSArray<id<MTLDevice>> *devices = MTLCopyAllDevicesWithObserver(observer, wrapped);
-    for (id<MTLDevice> device in devices)
-        InstallMetalFamilyCompatibility(device);
+    if (!ProcessUsesUnsupportedOpenGLPath())
+        for (id<MTLDevice> device in devices)
+            InstallMetalFamilyCompatibility(device);
     return devices;
 }
 

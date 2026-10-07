@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>vzi.apple.bootpd-hotspot-merge</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>/var/jb/usr/libexec/VirtualMac/bootpd-hotspot-merge.sh</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>WatchPaths</key>
+    <array>
+        <string>/tmp/bootpd.plist</string>
+        <string>/Library/Preferences/SystemConfiguration/bootpd.plist</string>
+    </array>
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    <key>UserName</key>
+    <string>root</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/bootpd-hotspot-merge.out</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/bootpd-hotspot-merge.err</string>
+</dict>
+</plist>

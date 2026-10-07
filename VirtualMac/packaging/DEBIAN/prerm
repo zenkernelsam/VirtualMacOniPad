@@ -23,6 +23,8 @@ for domain in system user/501; do
         2>/dev/null || true
     "$launchctl" bootout "$domain/vzi.apple.bootpd" \
         2>/dev/null || true
+    "$launchctl" bootout "$domain/vzi.apple.bootpd-hotspot-merge" \
+        2>/dev/null || true
     "$launchctl" bootout "$domain/com.apple.NetworkSharing" \
         2>/dev/null || true
 done

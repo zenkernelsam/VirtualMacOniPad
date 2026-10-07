@@ -67,6 +67,7 @@ mkdir -p \
     "$STAGE/var/jb/basebin/LaunchDaemons" \
     "$STAGE/var/jb/usr/lib" \
     "$STAGE/var/jb/usr/libexec" \
+    "$STAGE/var/jb/usr/libexec/VirtualMac" \
     "$STAGE/var/jb/usr/bin" \
     "$STAGE/var/jb/usr/sbin" \
     "$STAGE/var/jb/usr/share/VirtualMac" \
@@ -126,6 +127,17 @@ install -m 755 "$VZ_BUILD_ROOT/ipad-network-helpers/IOKit14Compat.dylib" \
     "$STAGE/var/jb/usr/lib/IOKit14Compat.dylib"
 install -m 644 "$VZ_BUILD_ROOT/ipad-network-helpers/com.apple.bootpd.plist" \
     "$STAGE/var/jb/Library/LaunchDaemons/com.apple.bootpd.plist"
+install -m 755 "$VZ_REPO_ROOT/packaging/rootless/bootpd-hotspot-merge.py" \
+    "$STAGE/var/jb/usr/libexec/VirtualMac/bootpd-hotspot-merge.py"
+install -m 755 "$VZ_REPO_ROOT/packaging/rootless/bootpd-hotspot-merge.sh" \
+    "$STAGE/var/jb/usr/libexec/VirtualMac/bootpd-hotspot-merge.sh"
+for destination in \
+    "$STAGE/var/jb/Library/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist" \
+    "$STAGE/var/jb/basebin/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist"; do
+    install -m 644 \
+        "$VZ_REPO_ROOT/packaging/rootless/vzi.apple.bootpd-hotspot-merge.plist" \
+        "$destination"
+done
 # This is an intentional mirror, not a second runtime payload: postinst uses
 # Library/LaunchDaemons for the immediate user-domain bootstrap, while
 # Dopamine's launchd hook discovers basebin/LaunchDaemons across a userspace
@@ -184,6 +196,14 @@ codesign --force --sign - \
     --generate-entitlement-der "$ROOTFUL/usr/libexec/VirtualMac/bootpd"
 install -m 755 "$VZ_REPO_ROOT/packaging/rootful/bootpd-controller.sh" \
     "$ROOTFUL/usr/libexec/VirtualMac/bootpd-controller.sh"
+install -m 755 "$VZ_REPO_ROOT/packaging/rootless/bootpd-hotspot-merge.py" \
+    "$ROOTFUL/usr/libexec/VirtualMac/bootpd-hotspot-merge.py"
+install -m 755 "$VZ_REPO_ROOT/packaging/rootless/bootpd-hotspot-merge.sh" \
+    "$ROOTFUL/usr/libexec/VirtualMac/bootpd-hotspot-merge.sh"
+sed 's#/var/jb/usr/libexec#/usr/libexec#g; s#/var/jb/usr/bin/python3#/var/jb/usr/bin/python3#g' \
+    "$VZ_REPO_ROOT/packaging/rootless/vzi.apple.bootpd-hotspot-merge.plist" \
+    > "$ROOTFUL_HELPERS/Library/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist"
+chmod 644 "$ROOTFUL_HELPERS/Library/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist"
 install -m 644 "$VZ_BUILD_ROOT/ipad-network-helpers/com.apple.bootpd.plist" \
     "$ROOTFUL_HELPERS/Library/LaunchDaemons/com.apple.bootpd.plist"
 install -m 644 "$VZ_BUILD_ROOT/ipad-network-sharing/com.apple.NetworkSharing.plist" \

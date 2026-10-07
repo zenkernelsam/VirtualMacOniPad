@@ -567,3 +567,10 @@
 - [x] **共存 PoC 端到端通过**：VM 运行中向 `/tmp/bootpd.plist` 手工追加 bridge101/172.20.10.0/28 子网项，手机重连即获 `172.20.10.2`，关蜂窝后经 iPad 蜂窝上 ip.sb 成功（出口 104.28.83.101），VM 同时在线。jb bootpd inetd 逐包 spawn 每次重读配置，合并即生效。
 - [x] 产出 `docs/HOTSPOT-COEXIST-HANDOVER.md`：含逐字证据、已验证静态子网块、merge watcher 设计（user/501 + WatchPaths 双文件 + 幂等合并）、打包接线点、验收/回滚清单。交隔壁 Agent 施工打包。
 - [ ] 注意：iPad `/tmp/bootpd.plist` 当前含手工注入的 bridge101 条目（`_creator=vzi-hotspot-compat`），热点现在能用靠它；会被 InternetSharing 下次重写冲掉，属临时态，正式包落地前不要当永久修复。
+
+## 2026-10-07 — hotspot coexistence merge watcher + MATLAB follow-up
+
+- [x] 核对 iPad 当前 app `CFBundleVersion=160`；`dpkg-query` 在当前 rootless shell 无有效输出，不能仅凭 dpkg 命令声称已安装哪个 deb。
+- [x] 最新 MATLAB crash `MATLAB_real-2026-10-07-133034.ips` 仍为 `SIGBUS/KERN_PROTECTION_FAILURE`，faulting thread 为 Java Launch SSI upgrade；加载 OpenGLPVGCompat。107 JIT-default-off 后仍有 crash，第二次无 shim A/B 45 秒无新 crash，说明 DYLD shim/旧 MATLAB CEF workaround 仍需隔离，未声称 MATLAB 已解决。
+- [x] 按 `HOTSPOT-COEXIST-HANDOVER.md` 新增 rootless/rootful `bootpd-hotspot-merge` watcher：Python plist 合并、bridge101 DHCP 子网、WatchPaths、幂等原子写入；接入 build-ipad-deb/postinst/prerm。
+- [x] watcher 本地回归通过：开启/关闭 bridge101 合并正确，重复运行字节不变；未在 iPad 上重启服务或安装。

@@ -319,6 +319,7 @@ fi
 for domain in system user/501; do
     "$launchctl" bootout "$domain/vzi.apple.bootpd-controller" 2>/dev/null || true
     "$launchctl" bootout "$domain/vzi.apple.bootpd" 2>/dev/null || true
+    "$launchctl" bootout "$domain/vzi.apple.bootpd-hotspot-merge" 2>/dev/null || true
     "$launchctl" bootout "$domain/com.apple.NetworkSharing" 2>/dev/null || true
 done
 # iPadOS 15 has no launchd user/501 domain.  Keep the established iPadOS 16
@@ -347,6 +348,8 @@ if test "$host_version" != "${host_version#14.}"; then
         "$launch_daemons/com.apple.NetworkSharing.plist"
     "$launchctl" kickstart -k \
         "$network_domain/com.apple.NetworkSharing"
+    "$launchctl" bootstrap "$network_domain" \
+        "$launch_daemons/vzi.apple.bootpd-hotspot-merge.plist"
 else
     "$launchctl" bootstrap "$network_domain" \
         "$launch_daemons/com.apple.NetworkSharing.plist"
@@ -356,6 +359,8 @@ else
     "$launchctl" enable "$network_domain/vzi.apple.bootpd"
     "$launchctl" bootstrap "$network_domain" \
         "$launch_daemons/com.apple.bootpd.plist"
+    "$launchctl" bootstrap "$network_domain" \
+        "$launch_daemons/vzi.apple.bootpd-hotspot-merge.plist"
 fi
 
 "$uicache" -p "$app"

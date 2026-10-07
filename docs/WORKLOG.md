@@ -580,3 +580,10 @@
 - [x] 107 后 MATLAB 仍有 `SIGBUS`（Java Launch SSI upgrade thread）；无 `DYLD_INSERT_LIBRARIES` A/B 45秒无新 crash，证明完整 OpenGLPVGCompat 注入仍是主要变量。
 - [x] OpenGL shim 新修复：MATLAB/CEF/Chromium 进程跳过 PVG Metal family、command queue、shader lowering、IOGLBundleName registry 注入；其他 GPU 应用保持原路径。JIT capability 默认关闭并保留显式 env diagnostic 开关。
 - [x] `scripts/development/build-opengl-guest-compat.sh` 组件编译通过；未单独安装/重启。
+
+## 2026-10-07 — 109 combined GPU/MATLAB/hotspot package delivery
+
+- [x] 109 合并包：GPU JIT capability 默认关闭；MATLAB/CEF/Chromium 进程跳过 PVG OpenGL/Metal family、queue、shader、registry shim；Personal Hotspot DHCP watcher 合并 bridge101 配置并接入 launchd WatchPaths。
+- [x] MATLAB A/B 证据：JIT compat=0 45秒无 crash；no-DYLD shim 45秒无 crash。新 crash 仍记录为 Java Launch SSI SIGBUS，未宣称 MATLAB 全部问题已解决，需设备安装后验证。
+- [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_ebb30d77d0.deb`，版本 `2:1.2.3+109.gpuhotspotmatlab`，20,850,296 bytes，SHA256 `fb8e9d9cdc1d0f649eeeb295e1eccca7e01c116faf9cc9cf34ff3bcfc4f2917f`；stage audit、335串本地化和 watcher 回归通过。
+- [x] 已复制到飞牛和 iPad Files，远端大小/SHA256 一致；未安装、未重启。

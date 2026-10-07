@@ -592,3 +592,10 @@
 
 - [x] 新安装 109 后 iPad bridge101 存在、手动运行 watcher 后手机获得 172.20.10.2；但 launchd watcher `last exit code=78 EX_CONFIG`，`/tmp/bootpd.plist` 未自动合并。
 - [x] 对照测试：launchd 直接执行 `/var/jb/usr/bin/python3 <merge.py>` 返回 exit 0；shell wrapper 形式被该 user/501 LaunchDaemon 标为 EX_CONFIG。rootless plist 已改为直接 Python；rootful 变体继续使用 shell wrapper并选择可用 Python 路径。
+
+## 2026-10-07 — 110 hotspot watcher deployment fix
+
+- [x] 109 安装后 hotspot watcher 已加载但 `last exit code=78 EX_CONFIG`；手动执行 watcher 可恢复 DHCP，手机实际获得 172.20.10.2。
+- [x] 根因验证：launchd user/501 直接执行 `/var/jb/usr/bin/python3 merge.py` exit 0；通过 `/bin/sh wrapper` 被 launchd 标记 EX_CONFIG。110 rootless plist 改为直接 Python；rootful 变体保留 shell wrapper。
+- [x] 110 包 `VirtualMac/build/release/VirtualMac_1.2.3_f1e3157f10.deb`，版本 `2:1.2.3+110.gpuhotspotmatlab`，20,855,772 bytes，SHA256 `ec6f690069f2e6dd0829925e7d7b74ad4fe37c7a58ece8a198d187c8cb5f5b1d`；已复制飞牛与 iPad Files，远端 hash 一致。
+- [ ] 110 尚未安装/重启；MATLAB 13:30 crash 仍为 Java Launch SSI SIGBUS，需安装后复测。

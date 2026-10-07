@@ -203,6 +203,13 @@ install -m 755 "$VZ_REPO_ROOT/packaging/rootless/bootpd-hotspot-merge.sh" \
 sed 's#/var/jb/usr/libexec#/usr/libexec#g; s#/var/jb/usr/bin/python3#/var/jb/usr/bin/python3#g' \
     "$VZ_REPO_ROOT/packaging/rootless/vzi.apple.bootpd-hotspot-merge.plist" \
     > "$ROOTFUL_HELPERS/Library/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist"
+# Rootful Taurine uses the shell wrapper, which selects the available Python
+# path at runtime; rootless uses the direct /var/jb Python executable so
+# launchd does not reject the shell wrapper as EX_CONFIG.
+sed -i '' \
+    -e 's#/var/jb/usr/bin/python3#/bin/sh#' \
+    -e 's#/usr/libexec/VirtualMac/bootpd-hotspot-merge.py#/usr/libexec/VirtualMac/bootpd-hotspot-merge.sh#' \
+    "$ROOTFUL_HELPERS/Library/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist"
 chmod 644 "$ROOTFUL_HELPERS/Library/LaunchDaemons/vzi.apple.bootpd-hotspot-merge.plist"
 install -m 644 "$VZ_BUILD_ROOT/ipad-network-helpers/com.apple.bootpd.plist" \
     "$ROOTFUL_HELPERS/Library/LaunchDaemons/com.apple.bootpd.plist"

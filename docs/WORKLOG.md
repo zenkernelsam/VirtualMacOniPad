@@ -587,3 +587,8 @@
 - [x] MATLAB A/B 证据：JIT compat=0 45秒无 crash；no-DYLD shim 45秒无 crash。新 crash 仍记录为 Java Launch SSI SIGBUS，未宣称 MATLAB 全部问题已解决，需设备安装后验证。
 - [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_ebb30d77d0.deb`，版本 `2:1.2.3+109.gpuhotspotmatlab`，20,850,296 bytes，SHA256 `fb8e9d9cdc1d0f649eeeb295e1eccca7e01c116faf9cc9cf34ff3bcfc4f2917f`；stage audit、335串本地化和 watcher 回归通过。
 - [x] 已复制到飞牛和 iPad Files，远端大小/SHA256 一致；未安装、未重启。
+
+## 2026-10-07 — hotspot launchd EX_CONFIG fix
+
+- [x] 新安装 109 后 iPad bridge101 存在、手动运行 watcher 后手机获得 172.20.10.2；但 launchd watcher `last exit code=78 EX_CONFIG`，`/tmp/bootpd.plist` 未自动合并。
+- [x] 对照测试：launchd 直接执行 `/var/jb/usr/bin/python3 <merge.py>` 返回 exit 0；shell wrapper 形式被该 user/501 LaunchDaemon 标为 EX_CONFIG。rootless plist 已改为直接 Python；rootful 变体继续使用 shell wrapper并选择可用 Python 路径。

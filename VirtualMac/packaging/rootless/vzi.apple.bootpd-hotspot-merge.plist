@@ -6,8 +6,8 @@
     <string>vzi.apple.bootpd-hotspot-merge</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/bin/sh</string>
-        <string>/var/jb/usr/libexec/VirtualMac/bootpd-hotspot-merge.sh</string>
+        <string>/var/jb/usr/bin/python3</string>
+        <string>/var/jb/usr/libexec/VirtualMac/bootpd-hotspot-merge.py</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

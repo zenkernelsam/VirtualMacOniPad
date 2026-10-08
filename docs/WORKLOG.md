@@ -629,3 +629,9 @@
 - [x] 用户重启越狱后当前 App 仍是 1.2.3(163)，VM NAT 为 bridge100/vmenet0/192.168.64.1；热点关闭时没有 bridge101，`/tmp/bootpd.plist` 仅含 bridge100。
 - [x] 确认旧 watcher 的动态识别在系统热点未激活时不改 VM bridge100；当前问题需要在热点打开后读取 misd 写入的 stock plist，再合并到 `/tmp`。
 - [x] 动态 watcher 改为以 stock plist 的 `172.20.10.0` 子网为权威、允许动态接口名、延迟重试6次并通过 StartInterval=2 收敛；不再要求 ap1 成员在首次检查时已出现。
+
+## 2026-10-08 — 113 retry-based hotspot convergence package delivery
+
+- [x] 113 改为完全以 stock `bootpd.plist` 的 `172.20.10.0/28` 子网为权威，不要求 ap1 在第一次检查时已经出现；watcher 启动时最多重试6次，并以 `StartInterval=2` 持续收敛。
+- [x] 不再删除/覆盖 VM NAT bridge100 条目；仅移除 watcher 自己的旧 creator/172.20.10 子网并追加系统当前热点子网。
+- [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_e7dd5034f4.deb`，版本 `2:1.2.3+113.gpuhotspotdynamic`，20,846,572 bytes，SHA256 `5b8d1d69c5ea7641133ecd5b091e8171ec888d71344cfd4513d4c837abe1cdf9`；已上传 iPad Files/飞牛，未安装/重启。

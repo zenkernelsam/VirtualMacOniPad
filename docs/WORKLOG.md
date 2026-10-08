@@ -617,3 +617,9 @@
 - [x] 用户反馈 111 安装后 VM NAT 与热点同时失效，回退 109 后 VM NAT 恢复；当前 163 build 网卡正常，热点 watcher 仍显示旧 EX_CONFIG。
 - [x] Wi-Fi/NAT 核对：bridge100=192.168.64.1 正常；bridge101 热点打开时=172.20.10.1；手动 watcher 后手机获得 172.20.10.2，证明 DHCP merge 本身可用。
 - [x] 发现 rootless launchd 仍不接受现有 watcher job 的 root ownership 组合；112 删除 rootless plist 的 `UserName=root`，直接由 `/var/jb/usr/bin/python3` 执行；rootful 变体保留 shell/root 路径。
+
+## 2026-10-08 — 112 dynamic hotspot bridge package delivery
+
+- [x] 修复热点接口写死 bug：实际观察到 `bridge100=192.168.64.1/vmenet0` 是 VM NAT，蜂窝热点动态使用 `bridge100=172.20.10.1/ap1`；旧 watcher 固定 bridge101 会误伤 VM NAT。
+- [x] watcher 现在从 stock `/Library/Preferences/SystemConfiguration/bootpd.plist` 和 `ifconfig -a` 动态识别含 `172.20.10.0`、`inet 172.20.10.1`、`member: ap1` 的热点接口，复制真实子网配置；不再写死 bridge101，保留 VM bridge 配置。
+- [x] 112 包 `VirtualMac/build/release/VirtualMac_1.2.3_9747f3d70e.deb`，版本 `2:1.2.3+112.gpuhotspotdynamic`，20,850,712 bytes，SHA256 `ff81e91f5c05c87ba437d2c7ca01bf77b0199d6010a0cb3713e74ff39200ac1f`；已上传 iPad Files/飞牛，未安装/重启。

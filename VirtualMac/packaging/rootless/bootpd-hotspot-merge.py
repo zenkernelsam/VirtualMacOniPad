@@ -42,9 +42,12 @@ def hotspot_config():
         if subnet.get("net_address") != "172.20.10.0":
             continue
         interface = subnet.get("interface")
-        lines = blocks.get(interface, [])
-        joined = "\n".join(lines)
-        if "inet 172.20.10.1" in joined and "member: ap1" in joined:
+        # The carrier bridge index is not stable across a reboot/jailbreak.
+        # The stock plist is written by misd only for an active hotspot; use
+        # its interface and subnet as the authority. Requiring a particular
+        # member (ap1) races bridge creation and misses the first WatchPaths
+        # event, leaving DHCP disabled until the user toggles the hotspot.
+        if interface:
             result = dict(subnet)
             result["_creator"] = CREATOR
             return interface, result
@@ -99,4 +102,11 @@ def merge():
             pass
 
 if __name__ == "__main__":
-    merge()
+    # misd may write the stock plist just before creating/configuring the
+    # bridge. Retry briefly so the first hotspot activation converges without
+    # requiring a second toggle, while each merge remains byte-idempotent.
+    for attempt in range(6):
+        merge()
+        if attempt != 5:
+            import time
+            time.sleep(1)

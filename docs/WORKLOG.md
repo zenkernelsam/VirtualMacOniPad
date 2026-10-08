@@ -623,3 +623,9 @@
 - [x] 修复热点接口写死 bug：实际观察到 `bridge100=192.168.64.1/vmenet0` 是 VM NAT，蜂窝热点动态使用 `bridge100=172.20.10.1/ap1`；旧 watcher 固定 bridge101 会误伤 VM NAT。
 - [x] watcher 现在从 stock `/Library/Preferences/SystemConfiguration/bootpd.plist` 和 `ifconfig -a` 动态识别含 `172.20.10.0`、`inet 172.20.10.1`、`member: ap1` 的热点接口，复制真实子网配置；不再写死 bridge101，保留 VM bridge 配置。
 - [x] 112 包 `VirtualMac/build/release/VirtualMac_1.2.3_9747f3d70e.deb`，版本 `2:1.2.3+112.gpuhotspotdynamic`，20,850,712 bytes，SHA256 `ff81e91f5c05c87ba437d2c7ca01bf77b0199d6010a0cb3713e74ff39200ac1f`；已上传 iPad Files/飞牛，未安装/重启。
+
+## 2026-10-08 — post-reboot hotspot watcher state
+
+- [x] 用户重启越狱后当前 App 仍是 1.2.3(163)，VM NAT 为 bridge100/vmenet0/192.168.64.1；热点关闭时没有 bridge101，`/tmp/bootpd.plist` 仅含 bridge100。
+- [x] 确认旧 watcher 的动态识别在系统热点未激活时不改 VM bridge100；当前问题需要在热点打开后读取 misd 写入的 stock plist，再合并到 `/tmp`。
+- [x] 动态 watcher 改为以 stock plist 的 `172.20.10.0` 子网为权威、允许动态接口名、延迟重试6次并通过 StartInterval=2 收敛；不再要求 ap1 成员在首次检查时已出现。

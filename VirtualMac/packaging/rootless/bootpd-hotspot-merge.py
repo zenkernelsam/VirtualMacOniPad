@@ -1,9 +1,9 @@
 #!/var/jb/usr/bin/python3
-import copy
 import os
 import plistlib
 import subprocess
 import tempfile
+import time
 
 CONFIG = "/tmp/bootpd.plist"
 CREATOR = "vzi-hotspot-compat"
@@ -39,15 +39,19 @@ def hotspot_config():
     for subnet in subnets:
         if not isinstance(subnet, dict):
             continue
-        if subnet.get("net_address") != "172.20.10.0":
-            continue
         interface = subnet.get("interface")
-        # The carrier bridge index is not stable across a reboot/jailbreak.
-        # The stock plist is written by misd only for an active hotspot; use
-        # its interface and subnet as the authority. Requiring a particular
-        # member (ap1) races bridge creation and misses the first WatchPaths
-        # event, leaving DHCP disabled until the user toggles the hotspot.
-        if interface:
+        if not isinstance(interface, str) or not interface:
+            continue
+        lines = blocks.get(interface, [])
+        joined = "\n".join(lines)
+        # Bridge indexes are assigned dynamically. The stock plist is written
+        # by misd only for an active hotspot; use its subnet and identify the
+        # corresponding interface by Apple's sharing description or AP member.
+        # A vmenet bridge therefore cannot be mistaken for the hotspot.
+        is_mobile_sharing = "desc: com.apple.MobileInternetSharing" in joined
+        has_ap_member = any(line.strip().startswith("member: ap")
+                            for line in lines)
+        if is_mobile_sharing or has_ap_member:
             result = dict(subnet)
             result["_creator"] = CREATOR
             return interface, result
@@ -65,18 +69,20 @@ def merge():
     old_subnets = data.get("Subnets", [])
     stale_interfaces = {x.get("interface") for x in old_subnets
                         if isinstance(x, dict) and
-                        (x.get("_creator") == CREATOR or
-                         x.get("net_address") == "172.20.10.0")}
+                        x.get("_creator") == CREATOR}
     data["Subnets"] = [x for x in old_subnets
                        if not (isinstance(x, dict) and
-                               (x.get("_creator") == CREATOR or
-                                x.get("net_address") == "172.20.10.0"))]
+                               x.get("_creator") == CREATOR)]
     for key in ("dhcp_enabled", "detect_other_dhcp_server", "ignore_allow_deny"):
-        data[key] = [x for x in data.get(key, []) if x not in stale_interfaces]
+        value = data.get(key, [])
+        values = value if isinstance(value, list) else []
+        values = [x for x in values if x not in stale_interfaces]
+        if interface and interface not in values:
+            values.append(interface)
+        if isinstance(value, list) or interface:
+            data[key] = values
     if interface and hotspot_subnet:
         data["Subnets"].append(hotspot_subnet)
-        for key in ("dhcp_enabled", "detect_other_dhcp_server", "ignore_allow_deny"):
-            data[key].append(interface)
     new_data = plistlib.dumps(data, fmt=plistlib.FMT_XML, sort_keys=False)
     old_data = None
     try:
@@ -108,5 +114,4 @@ if __name__ == "__main__":
     for attempt in range(6):
         merge()
         if attempt != 5:
-            import time
             time.sleep(1)

@@ -635,3 +635,8 @@
 - [x] 113 改为完全以 stock `bootpd.plist` 的 `172.20.10.0/28` 子网为权威，不要求 ap1 在第一次检查时已经出现；watcher 启动时最多重试6次，并以 `StartInterval=2` 持续收敛。
 - [x] 不再删除/覆盖 VM NAT bridge100 条目；仅移除 watcher 自己的旧 creator/172.20.10 子网并追加系统当前热点子网。
 - [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_e7dd5034f4.deb`，版本 `2:1.2.3+113.gpuhotspotdynamic`，20,846,572 bytes，SHA256 `5b8d1d69c5ea7641133ecd5b091e8171ec888d71344cfd4513d4c837abe1cdf9`；已上传 iPad Files/飞牛，未安装/重启。
+
+## 2026-10-08 — fully dynamic hotspot interface detection
+
+- [x] watcher 不再假设 bridge100/bridge101，也不假设固定 172.20.10.0 网段必须对应固定接口号；从 stock misd plist 读取热点子网，再从 `ifconfig -a` 通过 `com.apple.MobileInternetSharing` 描述或 `member: ap*` 识别实际接口。
+- [x] 仅删除 watcher 自己 `_creator=vzi-hotspot-compat` 的旧条目，保留 VM/Apple 原有所有 DHCP 子网和数组；动态接口切换、VM vmenet bridge、无热点状态本地回归通过。

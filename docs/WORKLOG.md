@@ -640,3 +640,10 @@
 
 - [x] watcher 不再假设 bridge100/bridge101，也不假设固定 172.20.10.0 网段必须对应固定接口号；从 stock misd plist 读取热点子网，再从 `ifconfig -a` 通过 `com.apple.MobileInternetSharing` 描述或 `member: ap*` 识别实际接口。
 - [x] 仅删除 watcher 自己 `_creator=vzi-hotspot-compat` 的旧条目，保留 VM/Apple 原有所有 DHCP 子网和数组；动态接口切换、VM vmenet bridge、无热点状态本地回归通过。
+
+## 2026-10-08 — 114 fully dynamic hotspot package
+
+- [x] 完成 App 组件编译并以 5 jobs 限流打包；未安装、未重启、未操作运行中的 VMM。
+- [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_9cf318940e.deb`，版本 `2:1.2.3+114.gpuhotspotdynamic`，20,853,248 bytes，SHA256 `6193ad788cd68f23f347e7e961310f77554a86e5e1a2c16b9025074e60084709`。
+- [x] stage audit、dpkg metadata、动态 watcher 入包检查通过；包内 watcher 使用 stock `bootpd.plist`、动态接口描述/`member: ap*` 识别、creator 隔离与重试 plist 均存在；旧 release/NAS 包按保留 3 个策略归档。
+- [x] 未跟踪的三个 Metal 探针未加入提交；本轮没有改 GPU、身份或 VM 磁盘逻辑。

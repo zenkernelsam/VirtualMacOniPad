@@ -611,3 +611,9 @@
 - [x] 111 基于 110 修复 rootless watcher plist：直接执行 `/var/jb/usr/bin/python3`，移除 rootless `UserName=root`，避免越狱后 launchd user/501 `EX_CONFIG`；保留 rootful shell wrapper。
 - [x] 111 合并 GPU JIT 默认关闭、MATLAB/CEF shim 隔离、hotspot DHCP watcher；包 `VirtualMac/build/release/VirtualMac_1.2.3_b3f07dd8a1.deb`，版本 `2:1.2.3+111.gpuhotspotmatlab`，20,844,220 bytes，SHA256 `c7372004f061042cf92ac77e337fd593c5953a71b3f21e16d4c41148c829d67c`。
 - [x] 已上传 iPad Files，远端大小/hash 一致；未安装、未重启。
+
+## 2026-10-08 — 112 hotspot rootless ownership follow-up
+
+- [x] 用户反馈 111 安装后 VM NAT 与热点同时失效，回退 109 后 VM NAT 恢复；当前 163 build 网卡正常，热点 watcher 仍显示旧 EX_CONFIG。
+- [x] Wi-Fi/NAT 核对：bridge100=192.168.64.1 正常；bridge101 热点打开时=172.20.10.1；手动 watcher 后手机获得 172.20.10.2，证明 DHCP merge 本身可用。
+- [x] 发现 rootless launchd 仍不接受现有 watcher job 的 root ownership 组合；112 删除 rootless plist 的 `UserName=root`，直接由 `/var/jb/usr/bin/python3` 执行；rootful 变体保留 shell/root 路径。

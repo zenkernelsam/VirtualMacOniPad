@@ -654,3 +654,9 @@
 - [x] 只读连通性检查通过：宿主可 ping `192.168.64.2`，可 ping `1.1.1.1`；连续计数器显示 `vmenet0` 与 `bridge100` 均持续收发，`InternetSharing`/`bootpd` 进程保持运行，客机 GuestTools 已连接。
 - [x] 本次没有发现 VM NAT 与热点地址冲突；当前证据更支持此前异常发生在热点开关切换期间的上游转发/NetworkSharing 状态，而非 DHCP 子网重叠。证据保存在 `.diag/hotspot-20261009-reboot/`。
 - [ ] 待用户后续复现：在 VM 已联网时仅打开/关闭手机热点，记录切换瞬间的 `ifconfig`、路由、接口计数和统一日志；在没有该时间点证据前不改网络代码、不重打包。
+
+## 2026-10-09 — post-jailbreak hotspot/VM coexistence observation
+
+- [x] 用户报告当前未重启系统、手机已连接热点且 VM 可联网；只读取证确认热点 `172.20.10.2`/手机 MAC 只在热点 bridge，VM `192.168.64.2`/固定 MAC 只在 NAT bridge，未见地址或 MAC 冲突。
+- [x] `/tmp/bootpd.plist` 同时包含 `192.168.64.0/24` 与 `172.20.10.0/28`，stock plist 仅包含热点子网；watcher 成功退出并未反复重写配置。证据 `.diag/hotspot-20261009-post-jb/`。
+- [ ] 待验证假设：越狱前已连接热点、越狱后复用同一手机连接，可能留下手机 DHCP/ARP/NAT 状态，使第一次切换出现“已连接但无网”；目前只是时序假设，不能作为根因。应以一次越狱后先关闭手机热点、确认 VM NAT，再单独开启热点并重新获取租约的对照结果验证。

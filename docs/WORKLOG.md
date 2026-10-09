@@ -647,3 +647,10 @@
 - [x] 包 `VirtualMac/build/release/VirtualMac_1.2.3_9cf318940e.deb`，版本 `2:1.2.3+114.gpuhotspotdynamic`，20,853,248 bytes，SHA256 `6193ad788cd68f23f347e7e961310f77554a86e5e1a2c16b9025074e60084709`。
 - [x] stage audit、dpkg metadata、动态 watcher 入包检查通过；包内 watcher 使用 stock `bootpd.plist`、动态接口描述/`member: ap*` 识别、creator 隔离与重试 plist 均存在；旧 release/NAS 包按保留 3 个策略归档。
 - [x] 未跟踪的三个 Metal 探针未加入提交；本轮没有改 GPU、身份或 VM 磁盘逻辑。
+
+## 2026-10-09 — rebooted host NAT read-only verification
+
+- [x] 用户关闭热点并重启 iPad/重新越狱后，手机未连接个人热点时启动的 VM 仍建立独立 NAT：`bridge100=192.168.64.1/24`，成员 `vmenet0`，客机租约 `192.168.64.2`；此时不存在蜂窝热点 bridge，属于正常动态状态。
+- [x] 只读连通性检查通过：宿主可 ping `192.168.64.2`，可 ping `1.1.1.1`；连续计数器显示 `vmenet0` 与 `bridge100` 均持续收发，`InternetSharing`/`bootpd` 进程保持运行，客机 GuestTools 已连接。
+- [x] 本次没有发现 VM NAT 与热点地址冲突；当前证据更支持此前异常发生在热点开关切换期间的上游转发/NetworkSharing 状态，而非 DHCP 子网重叠。证据保存在 `.diag/hotspot-20261009-reboot/`。
+- [ ] 待用户后续复现：在 VM 已联网时仅打开/关闭手机热点，记录切换瞬间的 `ifconfig`、路由、接口计数和统一日志；在没有该时间点证据前不改网络代码、不重打包。

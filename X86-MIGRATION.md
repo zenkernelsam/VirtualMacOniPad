@@ -2,6 +2,7 @@
 
 > 打包日期：2026-10-21。打包方式：`gtar | zstd`，排除了宿主 arm64-only 工具与可重下的 IPSW 大文件。
 > 本文档同时被复制到压缩包旁边（飞牛 VirtualMacOniPad_iOS），在 x86 上先读本文件再动手。
+> **迁移是否成功的判定标准**：见 `docs/X86-MIGRATION-ACCEPTANCE.md`(L0–L5 分级验收清单）。
 
 ## 1. 压缩包排除项（及原因）
 

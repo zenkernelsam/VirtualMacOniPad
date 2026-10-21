@@ -671,3 +671,13 @@
 - [ ] ⚠️ a2s 缓存缺失（重要遗留）：归档内无 `.a2s`，`vz/uncache.py` 走 direct a2sb lookup 并告警；`Virtualization` blob=16472（有缓存时为 16336 且 `__text` 与官方逐字节一致）。因此本次新 deb 属非忠实重建，可能安装后启动闪退；L4 仅按验收表做结构/签名/切片检查。历史 3 个 deb 未改动，仍可作回滚基线。需重建 `.a2s` 缓存后重打 payload 并做 iPad 真机验收。
 - [x] L5 协作面（部分）：`git fetch origin` 通过；WORKLOG 提交 `fc2629b` 已本地创建，但 `git push` 因本机无 GitHub 凭据失败（`fatal: could not read Username for 'https://github.com'`；SSH 无私钥、keychain 无记录）——**push 待用户认证后补做**；NAS 挂载点 `~/Library/CloudStorage/飞牛同步-Home-Nas` 存在；IDA Professional 9.3 为 x86_64（ida-pro-mcp 未验证，按需）。iPad 真实局域网 IP 与密码未知，SSH 连通性待用户提供后验证。
 - 证据：`.diag/x86-migration-20261021/`（archive-sha256、L0-L1-L3-evidence、L2-evidence、L4-evidence，以及下载/toolchain/bootstrap 日志）。
+
+## 2026-10-22 — netsflex/fixes 全量合并 + macPad PR#4 方法论移植
+
+- [x] `git merge netsflex/fixes`（merge-base 046abc6，对方 39 commits/+43638 行）：进入 Virtual Mac 2 线（modern_pvg macOS27 栈、独立打包脚本）及全部共享修补。合并提交 `d1b11d3`。
+- [x] 冲突 41 个文件全部解为并集：37 个 lproj（我们 "Manage Identities" + 对方两条 "Magic Trackpad*"，按 key 排序合并）、`vmmhook.m`（保双方：`VZModernRecordGuestMapping` + guest_policy_mapping）、`VZGuestTools.{h,m}`（保 `VZGuestToolsSyncGuestClock` + `VZGuestToolsEnableRemoteLogin`）、`uncache.py`（并 `VZ_A2S_CACHE` env/check=True/finally-unlink 与我们的 cache-missing fallback 告警）。
+- [x] 合并后挂钩审核：`btaudio_retry`（BTAudioHALPlugin 重连风暴，修上游 issue #71，指令签名单点匹配不则不动）、`videotoolbox_bridge/encoder_bridge`（disable-flag+bundled 框架在场+符号校验才激活）、`usb_trackpad_proto`（VMM UUID+HID 描述符签名门控）、`vmm_profiler`（哨兵文件按需）、`VZModernRecordGuestMapping`（`VZ_PVG_BACKEND_VERSION=27` 才生效）——对我们的 Ventura 线全部惰性。
+- [x] 验证：LaunchServicesCompat（vmmhook+全部新 inc+modern_pvg 对象）arm64e iOS 编译 exit0；OpenGLPVGCompat 三切片 arm64/arm64e/x86_64 macosx 编译 exit0；VirtualMacApp/VZGuestTools 语法编译过；uncache.py py_compile 过；本地化审计 37 语言/337 keys 过。
+- [x] macPad PR#4（DCMMC/macPad，kaidourei0，恢复 15.6.1 guest Apple 账户登录）逐件评估并移植：见 `docs/VM-APPLE-SIGNIN-ADAPTER.md`。落地 `vz/guest/AppleAccountSignInCompat.m`（web22 30→90s 定时器+WebHTMLView 重绘修复、LA/CTK/AIDA 纯观察器、`VMACCT` JSON stderr）；`build-account-signin-compat.sh` 三切片构建；build-guest-tools.sh 入 payload；VZGuestTools.m 条件式拷贝+严格验签；GuestToolsApp `AccountSignInAdapter` defaults key（默认关）组合 insert 列表。适配器三切片与 GuestToolsApp/VZGuestTools 语法编译均过。
+- [x] 结论：namespace/keybag 映射为 chroot 专属不需移植；VM 主阻断点仍是 guest 无 SEP 派生身份（ARM-APPLE-IDENTITY §5）；本适配器修 web 阶段 + 产出死亡位置证据，不承诺登录成功；半虚拟 SEP 桥列为后续候选战线。
+- [ ] push 仍待 GitHub 凭据（本机无 https 凭据/SSH key——此前 fc2629b、10f32d2 同挂起）。

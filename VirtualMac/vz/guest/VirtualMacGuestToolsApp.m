@@ -4,6 +4,7 @@
 
 static NSString * const VMOpenGLKey = @"OpenGLAcceleration";
 static NSString * const VMOpenGLAllowedKey = @"OpenGLAllowed";
+static NSString * const VMAccountSignInKey = @"AccountSignInAdapter";
 static NSString * const VMPencilSupportKey =
     @"ApplePencilPressureTiltEnabled";
 static NSString * const VMLibrary = @"/Library/VirtualMac";
@@ -302,6 +303,19 @@ static NSString *VML(NSString *key)
             stringByAppendingPathComponent:@"OpenGLPVGCompat.dylib"]];
 }
 
+- (BOOL)accountSignInAdapterAvailable
+{
+    // Opt-in Apple Account sign-in diagnostic adapter. Default off; the guest
+    // enables it with `defaults write com.mac.virtual.guest-tools
+    // AccountSignInAdapter -bool true`. It requires the same relaxed
+    // run-time security policy as the OpenGL dylib and is only injected into
+    // processes launched after the environment change.
+    return [self preferenceForKey:VMAccountSignInKey defaultValue:NO] &&
+        [self securityPolicySupportsOpenGL] &&
+        [NSFileManager.defaultManager fileExistsAtPath:[VMLibrary
+            stringByAppendingPathComponent:@"AppleAccountSignInCompat.dylib"]];
+}
+
 - (void)applyOpenGL
 {
     BOOL requested = [self preferenceForKey:VMOpenGLKey defaultValue:YES] &&
@@ -309,12 +323,18 @@ static NSString *VML(NSString *key)
     BOOL enabled = requested && [self securityPolicySupportsOpenGL] &&
         [NSFileManager.defaultManager fileExistsAtPath:[VMLibrary
             stringByAppendingPathComponent:@"OpenGLPVGCompat.dylib"]];
-    NSString *library = [VMLibrary
-        stringByAppendingPathComponent:@"OpenGLPVGCompat.dylib"];
+    NSMutableArray *libraries = [NSMutableArray array];
+    if (enabled)
+        [libraries addObject:[VMLibrary
+            stringByAppendingPathComponent:@"OpenGLPVGCompat.dylib"]];
+    if ([self accountSignInAdapterAvailable])
+        [libraries addObject:[VMLibrary
+            stringByAppendingPathComponent:@"AppleAccountSignInCompat.dylib"]];
     // This changes only the requested Aqua environment variable and leaves
     // unrelated values intact.
     [self setEnvironmentVariable:@"DYLD_INSERT_LIBRARIES"
-        value:enabled ? library : nil];
+        value:libraries.count
+            ? [libraries componentsJoinedByString:@":"] : nil];
     // loginwindow can restore applications before an ordinary LaunchAgent is
     // scheduled, so those processes cannot inherit a value published by this
     // menu extra. While acceleration is enabled, turn off saved-application

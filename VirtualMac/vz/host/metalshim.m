@@ -140,6 +140,49 @@ static BOOL iPadMetalDeviceIsFramebufferReadSupported(id self, SEL selector) {
     return YES;
 }
 
+static BOOL iPadMetalDeviceUnsupportedModernResourceFeature(
+    id self, SEL selector) {
+    (void)self;
+    (void)selector;
+    // macOS 27 PVG queries address-range and detach-backing properties during
+    // device construction. iPadOS 16's AGXG14GDevice can omit these queries.
+    // A similarly named private allocation method
+    // is not evidence that the newer address-range contract works. Keep the
+    // capability disabled until an actual allocation/readback test proves it;
+    // The detach-backing result only enables an optional resource path in the
+    // measured macOS 27 constructor. A missing driver query keeps that path
+    // disabled. AddMetalMethodIfMissing preserves native implementations.
+    return NO;
+}
+
+static void AuditModernNativeQueries(id device) {
+    const char *version = getenv("VZ_PVG_BACKEND_VERSION");
+    if (!version || strcmp(version, "27") != 0) return;
+    NSMutableDictionary *queries = [NSMutableDictionary dictionary];
+    NSArray *names = @[@"supportsBufferWithAddressRanges", @"supportsBufferWithIOSurface",
+        @"supportsCommandBufferJump", @"supportsComputeCompressedTextureWrite",
+        @"supportsConditionalLoadStore", @"supportsDiscard", @"supportsDynamicAttributeStride",
+        @"supportsExtendedXR10Formats", @"supportsFloat16BCubicFiltering", @"supportsHeapWithAddressRanges",
+        @"supportsImageBlocks", @"supportsMemoryOrderAtomics", @"supportsNativeHardwareFP16",
+        @"supportsNonSquareTileShaders", @"supportsProgrammableSamplePositions", @"supportsRangeBuffer",
+        @"supportsResourceDetachBacking", @"supportsSIMDReduction", @"supportsSIMDShuffleAndFill",
+        @"supportsSharedMemoryHeap", @"supportsSharedTextureHandles", @"supportsSharedTextures",
+        @"supportsTexture2DMultisampleArray", @"supportsTileShaders"];
+    for (NSString *name in names) {
+        SEL selector = NSSelectorFromString(name);
+        queries[name] = [device respondsToSelector:selector]
+            ? @(((BOOL (*)(id, SEL))objc_msgSend)(device, selector)) : [NSNull null];
+    }
+    NSMutableArray *classes = [NSMutableArray array];
+    for (Class cls = [device class]; cls; cls = class_getSuperclass(cls))
+        [classes addObject:NSStringFromClass(cls)];
+    NSDictionary *report = @{@"pid": @(getpid()), @"classes": classes,
+        @"context": @"native Metal queries before VirtualMac2 additions", @"queries": queries};
+    NSData *data = [NSJSONSerialization dataWithJSONObject:report
+        options:NSJSONWritingPrettyPrinted error:nil];
+    [data writeToFile:@"/tmp/virtualmac2-native-metal-query-audit.json" atomically:YES];
+}
+
 static BOOL iPadMetalDeviceReturnsYes(id self, SEL selector) {
     (void)self;
     (void)selector;
@@ -492,6 +535,7 @@ static void InstallMacMetalDeviceCompatibility(void) {
         if (device == nil) {
             return;
         }
+        AuditModernNativeQueries(device);
         const char *bcSupport = getenv("VZ_METAL_BC_SUPPORT");
         BOOL nativeBC = (!bcSupport || strcmp(bcSupport, "0")) &&
             VZInstallNativeBCTextureSupport();
@@ -556,6 +600,27 @@ static void InstallMacMetalDeviceCompatibility(void) {
         AddMetalMethodIfMissing(
             device, @"supportsNativeHardwareFP16",
             (IMP)iPadMetalDeviceReturnsYes, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsBufferWithAddressRanges",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsHeapWithAddressRanges",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsResourceDetachBacking",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsDynamicAttributeStride",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsMemoryOrderAtomics",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsConditionalLoadStore",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
+        AddMetalMethodIfMissing(
+            device, @"supportsDiscard",
+            (IMP)iPadMetalDeviceUnsupportedModernResourceFeature, "B@:");
         AddMetalMethodIfMissing(
             device, @"maxTextureWidth2D",
             (IMP)iPadMetalDeviceMaxTextureDimension, "Q@:");

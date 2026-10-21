@@ -1,0 +1,86 @@
+{
+  "repository": "https://github.com/llvm/llvm-project",
+  "tag": "llvmorg-21.1.3",
+  "files": [
+    {
+      "path": "src/charconv.cpp",
+      "sha256": "347b5c9eaa719e28554cb911be699afd2ff6dc40d5d0c12eaee9522e830a82d1",
+      "bytes": 3821
+    },
+    {
+      "path": "src/include/to_chars_floating_point.h",
+      "sha256": "16b3b4882654a6f0ef6a450bd158eb32720b8586f1cbcaafa06e84765bbda601",
+      "bytes": 53943
+    },
+    {
+      "path": "src/ryu/d2s.cpp",
+      "sha256": "a2c7c814c5a5d98a60643ba7b107084189f7181f66da45177f4e56c0f8ffe6af",
+      "bytes": 34979
+    },
+    {
+      "path": "src/ryu/f2s.cpp",
+      "sha256": "6b20f690d560361141cc99032e40bf6be39b3e46b11c169fc0a2f478135a119b",
+      "bytes": 31286
+    },
+    {
+      "path": "src/ryu/d2fixed.cpp",
+      "sha256": "e182d7b5a2cc2a59d25955cb41319ed8ec22ae43acc4434d04e82295a03d4fae",
+      "bytes": 24694
+    },
+    {
+      "path": "src/ryu/README.txt",
+      "sha256": "97e2ebbb73b855b1adc028f8904a671a9186f124ec6c1942a9d087a6adb82255",
+      "bytes": 429
+    },
+    {
+      "path": "LICENSE.TXT",
+      "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+      "bytes": 16703
+    },
+    {
+      "path": "src/include/ryu/common.h",
+      "sha256": "5d0df36eb16d08610f226cc206fe1dcabbfe23bde33a481068381312401baed3",
+      "bytes": 4492
+    },
+    {
+      "path": "src/include/ryu/d2fixed.h",
+      "sha256": "eb44884fccbbfc39e21d9744fae1edc7f2cd2f1a2c59dacf2ac81cf4d62f6a3f",
+      "bytes": 2712
+    },
+    {
+      "path": "src/include/ryu/d2fixed_full_table.h",
+      "sha256": "b68007164e979c0cca68b19f52057065b412395d819c9900810e1729f1991726",
+      "bytes": 330700
+    },
+    {
+      "path": "src/include/ryu/d2s.h",
+      "sha256": "46fad5fe88cd9a9986ed4a9c8bad0c302b4f3076cebd731bad14fa4a7714a566",
+      "bytes": 2648
+    },
+    {
+      "path": "src/include/ryu/d2s_full_table.h",
+      "sha256": "50206d8a5d1d9f05f0041a79f450490e88251961dd8c0df93106cbf67f4fae96",
+      "bytes": 32707
+    },
+    {
+      "path": "src/include/ryu/d2s_intrinsics.h",
+      "sha256": "5fdbfa56dfeb2fd5f445111bf6cb9cc5410e309220043fdc8c8f20450b27f3bb",
+      "bytes": 10765
+    },
+    {
+      "path": "src/include/ryu/digit_table.h",
+      "sha256": "b9e50c0b5506de9d104fbae85272bf9e3b1987df840d3ece5d566c5921e76ec2",
+      "bytes": 2622
+    },
+    {
+      "path": "src/include/ryu/f2s.h",
+      "sha256": "0685f0962c4121afa0f99603484d73dfccbadc54348fe8919d87f6242107471b",
+      "bytes": 2396
+    },
+    {
+      "path": "src/include/ryu/ryu.h",
+      "sha256": "f2ee014117048b62d243898821b75d37f65a59688d3c929734632a147f2dba6f",
+      "bytes": 5516
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+--- a/DyldExtractor/dyld/dyld_structs.py
++++ b/DyldExtractor/dyld/dyld_structs.py
+@@ -275,6 +275,16 @@
+ 	]
+ 
+ 
++class dyld_cache_slide_info5(Structure):
++	# The page_starts uint16 array follows this naturally aligned, 24-byte header.
++	_fields_ = [
++		("version", c_uint32),
++		("page_size", c_uint32),
++		("page_starts_count", c_uint32),
++		("value_add", c_uint64),
++	]
++
++
+ if sys.byteorder == "little":
+ 	class _plain(Structure):
+ 		pointerValue: int
+--- a/DyldExtractor/converter/slide_info.py
++++ b/DyldExtractor/converter/slide_info.py
+@@ -19,6 +19,7 @@
+ 	dyld_cache_mapping_info,
+ 	dyld_cache_slide_info2,
+ 	dyld_cache_slide_info3,
++	dyld_cache_slide_info5,
+ 	dyld_cache_slide_pointer3
+ )
+ 
+@@ -29,7 +30,8 @@
+ 
+ _SlideInfoMap = {
+ 	2: dyld_cache_slide_info2,
+-	3: dyld_cache_slide_info3
++	3: dyld_cache_slide_info3,
++	5: dyld_cache_slide_info5
+ }
+ 
+ 
+@@ -262,6 +264,36 @@
+ 	pass
+ 
+ 
++def decodeV5Pointer(raw: int, valueAdd: int):
++	"""Return (target, auth, key, diversity, addrDiv, byteDelta).
++
++	Layout: Apple's dyld_cache_format.h and fixup-chains.h, shared-cache
++	arm64e rebase. keyIsData maps to the USERLAND IA=0 / DA=2 key values.
++	"""
++	target = valueAdd + (raw & ((1 << 34) - 1))
++	auth = (raw >> 63) & 1
++	delta = ((raw >> 52) & 0x7ff) * 8
++	if auth:
++		return (target, 1, ((raw >> 51) & 1) * 2,
++		        (raw >> 34) & 0xffff, (raw >> 50) & 1, delta)
++	return (target | (((raw >> 34) & 0xff) << 56), 0, 0, 0, 0, delta)
++
++
++class _V5Rebaser(_V3Rebaser):
++	def _rebasePage(self, ctx, pageOffset: int, delta: int) -> None:
++		loc = pageOffset + delta
++		end = pageOffset + self.slideInfo.page_size
++		while True:
++			if loc < pageOffset or loc + 8 > end or (loc - pageOffset) % 8:
++				raise ValueError("Invalid slide-info-v5 page chain")
++			raw = self.dyldCtx.readFormat("<Q", loc)[0]
++			target, _, _, _, _, delta = decodeV5Pointer(raw, self.slideInfo.value_add)
++			ctx.writeBytes(loc, struct.pack("<Q", target))
++			if delta == 0:
++				break
++			loc += delta
++
++
+ def _getMappingInfo(
+ 	extractionCtx: ExtractionContext
+ ) -> List[_MappingInfo]:
+@@ -283,7 +315,7 @@
+ 		slideInfoVer = dyldCtx.readFormat("<I", slideInfoOff)[0]
+ 
+ 		if slideInfoVer not in _SlideInfoMap:
+-			logger.error("Unknown slide info version: " + slideInfoVer)
++			raise ValueError(f"Unsupported slide info version: {slideInfoVer}")
+ 			return None
+ 
+ 		# Assume that only the second mapping has slide info
+@@ -310,7 +342,7 @@
+ 				slideInfoVer = context.readFormat("<I", mapping.slideInfoFileOffset)[0]
+ 
+ 				if slideInfoVer not in _SlideInfoMap:
+-					logger.error("Unknown slide info version: " + slideInfoVer)
++					raise ValueError(f"Unsupported slide info version: {slideInfoVer}")
+ 					continue
+ 
+ 				slideInfo = _SlideInfoMap[slideInfoVer](
+@@ -385,6 +417,11 @@
+ 						bottom43Bits = value51 & 0x000007FFFFFFFFFF
+ 						return (top8Bits << 13) | bottom43Bits
+ 
++				elif slideInfo.version == 5:
++					raw = context.readFormat("<Q", offset)[0]
++					# Null structure fields are not chained cache-base pointers.
++					return decodeV5Pointer(raw, slideInfo.value_add)[0] if raw else 0
++
+ 				else:
+ 					return None
+ 
+@@ -467,5 +504,7 @@
+ 			_V2Rebaser(extractionCtx, info).run()
+ 		elif info.slideInfo.version == 3:
+ 			_V3Rebaser(extractionCtx, info).run()
++		elif info.slideInfo.version == 5:
++			_V5Rebaser(extractionCtx, info).run()
+ 		else:
+ 			logger.error("Unknown slide version.")

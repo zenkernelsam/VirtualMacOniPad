@@ -40,6 +40,7 @@
 #include <unistd.h>
 
 #include "usb_restore_bridge.h"
+#include "modern_pvg_memory.h"
 
 typedef void *xo_t; // xpc_object_t / xpc_connection_t (opaque pointers)
 extern void  xpc_main(void (*handler)(xo_t));
@@ -346,6 +347,12 @@ static void logf_(const char *fmt, ...) {
     va_list ap; va_start(ap, fmt); vfprintf(f, fmt, ap); va_end(ap);
     fputc('\n', f); fclose(f);
 }
+
+#include "btaudio_retry.inc"
+#include "vmm_profiler.inc"
+#include "videotoolbox_bridge.inc"
+#include "videotoolbox_encoder_bridge.inc"
+#include "usb_trackpad_proto.inc"
 
 static void log_address(const char *label, void *address) {
     Dl_info info = {0};
@@ -2958,6 +2965,11 @@ __attribute__((constructor)) static void hook_init(void) {
     if (runtime_debug_logging)
         start_health_timer();
     install_usb_hci_trace();
+    btaudio_retry_install();
+    videotoolbox_bridge_install();
+    videotoolbox_encoder_bridge_install();
+    usb_trackpad_proto_install();
+    vmm_profiler_install();
     // Optional debug delay: set VMMHOOK_DEBUG_SLEEP=N to give lldb time to attach
     // before the VMM accepts the host's connection (catch breakpoints in the open/hv path).
     const char *s = getenv("VMMHOOK_DEBUG_SLEEP");
@@ -3168,9 +3180,11 @@ _ip_hv_vm_create __attribute__((section("__DATA,__interpose"))) =
 extern int hv_vm_map(void *addr, uint64_t ipa, size_t size, uint64_t flags);
 static int vmm_hv_vm_map(void *addr, uint64_t ipa, size_t size, uint64_t flags) {
     int rc = hv_vm_map(addr, ipa, size, flags);
+    if (rc == 0)
+        VZModernRecordGuestMapping(addr, ipa, size, flags);
     // Recording is unconditional: hv_vm_map only runs during VM bring-up and
     // the inventory now also feeds the PVG device-info reply augmentation.
-    if (rc == 0) {
+    if (rc == 0 && guest_runtime_policy_enabled) {
         pthread_mutex_lock(&guest_policy_mapping_lock);
         if (guest_policy_mapping_count <
             sizeof(guest_policy_mappings) / sizeof(guest_policy_mappings[0])) {

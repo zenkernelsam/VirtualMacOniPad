@@ -18,6 +18,16 @@
 #import "VZGuestRuntimePolicy.h"
 #import "PVGDeviceInfoPolicy.h"
 #import "VZTrackpadScrollBridge.h"
+
+// Experimental Magic Trackpad pointing device (VZUSBTrackpadRelay.m).
+extern void VZUSBTrackpadRelayStart(id virtualMachine);
+extern void VZUSBTrackpadRelayStop(void);
+extern BOOL VZUSBTrackpadRelayActive(void);
+extern CFTimeInterval VZUSBTrackpadRelayLastTrackpadTime(void);
+extern CFTimeInterval VZUSBTrackpadRelayLastMouseTime(void);
+extern void VZUSBTrackpadRelayNote(NSString *message);
+extern void VZUSBTrackpadRelaySetMouseHandler(void (*moved)(double dx, double dy),
+                                              void (*buttons)(long buttons));
 #include <dlfcn.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -463,8 +473,18 @@ static NSUInteger activePointerButtons(void) {
     return gHardwareMouseButtons | gTouchButtons;
 }
 
+static CFTimeInterval gLastDirectTouchTime;
+// The guest cursor as last reported by the display, normalized; with the
+// Magic Trackpad the guest moves it without the app knowing where.
+static CGPoint gGuestCursorNormalized;
+static BOOL gGuestCursorKnown;
+static BOOL gPointerLocked;
+static CFTimeInterval gLastMouseDrive;
+
 static void notePointerInputSource(BOOL directTouch) {
     gLastInputWasDirectTouch = directTouch;
+    if (directTouch)
+        gLastDirectTouchTime = CACurrentMediaTime();
     BOOL suppress = directTouch && !gShowCursorWhenUsingTouch;
     if (gCursorSuppressedForDirectTouch == suppress)
         return;
@@ -477,6 +497,19 @@ static void notePointerInputSource(BOOL directTouch) {
         if (show)
             updateExternalCursorForNormalizedLocation(gLastPointerLocation);
     }
+}
+
+// With the Magic Trackpad pointing device, the iPad trackpad reaches macOS
+// as an emulated Magic Trackpad, so the pointer, scroll and gesture events
+// UIKit makes from it must not be sent too. The touch screen and mice still
+// use the Mac trackpad device. HID events reach the relay before UIKit turns
+// them into gestures, so the device that moved last is the one at work.
+static BOOL magicTrackpadOwnsInput(void) {
+    if (!VZUSBTrackpadRelayActive())
+        return NO;
+    CFTimeInterval trackpad = VZUSBTrackpadRelayLastTrackpadTime();
+    return trackpad > 0 && trackpad >= gLastDirectTouchTime &&
+        trackpad >= VZUSBTrackpadRelayLastMouseTime();
 }
 
 static BOOL shouldShowStatusLabel(void) {
@@ -623,7 +656,7 @@ static CGPoint clampPointerLocation(CGPoint point, CGRect bounds) {
 static void sendPointer(CGPoint point, CGRect bounds,
                         NSUInteger pressedButtons) {
     if (!gPointingDevice || bounds.size.width <= 0 ||
-        bounds.size.height <= 0)
+        bounds.size.height <= 0 || magicTrackpadOwnsInput())
         return;
     // gInputView covers the visible guest viewport normally, but expands to
     // the complete iPad window while mirroring. Mapping its complete bounds
@@ -683,7 +716,7 @@ static void sendIndirectPointerLocation(CGPoint hostPoint, CGRect bounds) {
 }
 
 static void sendMagnification(double magnification, NSUInteger phase) {
-    if (!gPointingDevice)
+    if (!gPointingDevice || magicTrackpadOwnsInput())
         return;
     id event = ((id(*)(id, SEL, double, NSUInteger))objc_msgSend)(
         m0(CLS("_VZMagnifyEvent"), "alloc"),
@@ -699,7 +732,7 @@ static void sendMagnification(double magnification, NSUInteger phase) {
 }
 
 static void sendRotation(double rotation, NSUInteger phase) {
-    if (!gPointingDevice)
+    if (!gPointingDevice || magicTrackpadOwnsInput())
         return;
     id event = ((id(*)(id, SEL, double, NSUInteger))objc_msgSend)(
         m0(CLS("_VZRotationEvent"), "alloc"),
@@ -715,7 +748,7 @@ static void sendRotation(double rotation, NSUInteger phase) {
 }
 
 static void sendSmartMagnification(void) {
-    if (!gPointingDevice)
+    if (!gPointingDevice || magicTrackpadOwnsInput())
         return;
     id event = NEW("_VZSmartMagnifyEvent");
     if (!event)
@@ -727,10 +760,31 @@ static void sendSmartMagnification(void) {
         printf("[VirtualMac] input smart magnify\n");
 }
 
+// A mouse is an absolute device here. After the Magic Trackpad moved the
+// guest pointer, continue from where the guest shows it instead of jumping
+// back to the mouse's last position.
+static void followGuestCursorWithMouse(void) {
+    if (VZUSBTrackpadRelayActive() && gGuestCursorKnown && gInputView &&
+        VZUSBTrackpadRelayLastTrackpadTime() > gLastMouseDrive) {
+        CGRect bounds = gInputView.bounds;
+        CGRect viewport = gExternalWindow
+            ? displayViewportRect(gDisplayPixelSize, bounds) : bounds;
+        gMouseLocation = CGPointMake(
+            viewport.origin.x + gGuestCursorNormalized.x * viewport.size.width,
+            viewport.origin.y + gGuestCursorNormalized.y * viewport.size.height);
+    }
+    gLastMouseDrive = CACurrentMediaTime();
+}
+
 static void sendMouseDelta(float deltaX, float deltaY) {
     dispatch_async(dispatch_get_main_queue(), ^{
+        // The iPad trackpad can also report through GCMouse; the emulated
+        // Magic Trackpad already moves the guest pointer for it.
+        if (magicTrackpadOwnsInput())
+            return;
         notePointerInputSource(NO);
         CGRect bounds = gInputView.bounds;
+        followGuestCursorWithMouse();
         gMouseLocation.x =
             fmin(CGRectGetMaxX(bounds), fmax(CGRectGetMinX(bounds),
                                              gMouseLocation.x + deltaX));
@@ -741,9 +795,32 @@ static void sendMouseDelta(float deltaX, float deltaY) {
     });
 }
 
+static void sendMouseButton(NSUInteger mask, BOOL pressed);
+
+// Mouse motion from HID is raw device counts. iPadOS accelerates the pointer
+// (slow motion moves less than a count, fast motion more), and the guest
+// sees an absolute device that macOS does not accelerate, so apply a
+// comparable curve here.
+static void relayMouseMoved(double dx, double dy) {
+    double size = hypot(dx, dy);
+    double gain = fmin(1.2, 0.35 + 0.08 * size);
+    // sendMouseDelta takes GameController's upward-positive y.
+    sendMouseDelta((float)(dx * gain), (float)(-dy * gain));
+}
+
+static void relayMouseButtons(long buttons) {
+    static long last;
+    for (long bit = 1; bit <= 4; bit <<= 1)
+        if ((buttons ^ last) & bit)
+            sendMouseButton((NSUInteger)bit, (buttons & bit) != 0);
+    last = buttons;
+}
+
 static void sendMouseButton(NSUInteger mask, BOOL pressed) {
     dispatch_async(dispatch_get_main_queue(), ^{
         notePointerInputSource(NO);
+        if (!magicTrackpadOwnsInput())
+            followGuestCursorWithMouse();
         if (pressed && CACurrentMediaTime() <= gSuppressSurfaceClickUntil) {
             gSuppressedHardwareMouseButtons |= mask;
             gHardwareMouseButtons &= ~mask;
@@ -787,7 +864,7 @@ static void sendScrollWheelEvent(CGVector rawDelta, CGVector acceleratedDelta,
                                  NSUInteger deviceCategory,
                                  NSUInteger phase,
                                  NSUInteger momentumPhase) {
-    if (!gPointingDevice)
+    if (!gPointingDevice || magicTrackpadOwnsInput())
         return;
     UIScreen *inputScreen = gInputView.window.screen;
     BOOL externalStageManager = inputScreen &&
@@ -1134,7 +1211,13 @@ static void installGCMouse(void) {
         // UIKit hover is the authoritative absolute path for a trackpad.
         // Some devices also appear as GCMouse; accepting both makes motion
         // jump or hit artificial edges after system UI steals the pointer.
-        if (gUIKitHoverActive)
+        // A locked pointer gets no hover events, so hover cannot be the
+        // authoritative path then.
+        if (gUIKitHoverActive && !gPointerLocked)
+            return;
+        // With the Magic Trackpad the relay reads every mouse's motion from
+        // HID, GCMouse or not.
+        if (VZUSBTrackpadRelayActive())
             return;
         sendMouseDelta(deltaX, deltaY);
     };
@@ -1142,19 +1225,22 @@ static void installGCMouse(void) {
         ^(GCControllerButtonInput *button, float value, BOOL pressed) {
         (void)button;
         (void)value;
-        sendMouseButton(1, pressed);
+        if (!VZUSBTrackpadRelayActive())
+            sendMouseButton(1, pressed);
     };
     mouse.mouseInput.rightButton.pressedChangedHandler =
         ^(GCControllerButtonInput *button, float value, BOOL pressed) {
         (void)button;
         (void)value;
-        sendMouseButton(2, pressed);
+        if (!VZUSBTrackpadRelayActive())
+            sendMouseButton(2, pressed);
     };
     mouse.mouseInput.middleButton.pressedChangedHandler =
         ^(GCControllerButtonInput *button, float value, BOOL pressed) {
         (void)button;
         (void)value;
-        sendMouseButton(4, pressed);
+        if (!VZUSBTrackpadRelayActive())
+            sendMouseButton(4, pressed);
     };
 }
 
@@ -1251,6 +1337,20 @@ static void pollInputCommand(void) {
             printf("[VirtualMac] input command smart magnify\n");
             sendSmartMagnification();
         } else if (tokens.count == 1 &&
+                   [tokens[0] isEqualToString:@"enable-guest-ssh"]) {
+            // Fixed development action for the modern test app. This does not
+            // accept an arbitrary shell command, path, or guest credential.
+            VZGuestToolsEnableRemoteLogin(^(BOOL success, NSData *output) {
+                NSString *text = [[[NSString alloc] initWithData:output
+                    encoding:NSUTF8StringEncoding] autorelease] ?: @"";
+                NSData *report = [NSJSONSerialization dataWithJSONObject:
+                    @{@"success": @(success), @"output": text}
+                    options:NSJSONWritingPrettyPrinted error:nil];
+                [report writeToFile:@"/tmp/virtualmac2-guest-ssh-status.json"
+                    atomically:YES];
+                printf("[VirtualMac] modern guest SSH enable success=%d\n", success);
+            });
+        } else if (tokens.count == 1 &&
                    [tokens[0] isEqualToString:@"screenshot"]) {
             // Development-only host-side capture. This captures the iPad
             // app's own view hierarchy rather than using macOS screencapture,
@@ -1274,6 +1374,15 @@ static void pollInputCommand(void) {
     }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC),
                    dispatch_get_main_queue(), ^{ pollInputCommand(); });
+}
+
+static void startInputCommandPolling(void) {
+    // VM restarts share one main-thread polling chain in this frontend.
+    static BOOL started = NO;
+    if (started)
+        return;
+    started = YES;
+    pollInputCommand();
 }
 
 static BOOL gForceStopPending;
@@ -2920,6 +3029,10 @@ static bool pencilVsockSend(uint8_t type, float pressure,
            withEvent:(UIEvent *)event
 {
     UITouch *touch = [touches anyObject];
+    // With the Magic Trackpad, trackpad clicks reach the guest as Magic
+    // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
+    if (touch.type == UITouchTypeIndirectPointer && VZUSBTrackpadRelayActive())
+        return;
     if (touch)
         notePointerInputSource(touch.type == UITouchTypeDirect);
     if (touch.type == UITouchTypeDirect && [self usesDeferredDirectTouchClicks]) {
@@ -3008,6 +3121,10 @@ static bool pencilVsockSend(uint8_t type, float pressure,
            withEvent:(UIEvent *)event
 {
     UITouch *touch = [touches anyObject];
+    // With the Magic Trackpad, trackpad clicks reach the guest as Magic
+    // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
+    if (touch.type == UITouchTypeIndirectPointer && VZUSBTrackpadRelayActive())
+        return;
     if (touch.type == UITouchTypeDirect && [self usesDeferredDirectTouchClicks]) {
         [self moveDeferredDirectTouches:touches withEvent:event];
         return;
@@ -3084,6 +3201,10 @@ static bool pencilVsockSend(uint8_t type, float pressure,
         }
     }
     UITouch *touch = [touches anyObject];
+    // With the Magic Trackpad, trackpad clicks reach the guest as Magic
+    // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
+    if (touch.type == UITouchTypeIndirectPointer && VZUSBTrackpadRelayActive())
+        return;
     if (touch.type == UITouchTypeDirect && [self usesDeferredDirectTouchClicks]) {
         [self endDeferredDirectTouches:touches withEvent:event];
         return;
@@ -3114,6 +3235,10 @@ static bool pencilVsockSend(uint8_t type, float pressure,
                withEvent:(UIEvent *)event
 {
     UITouch *touch = [touches anyObject];
+    // With the Magic Trackpad, trackpad clicks reach the guest as Magic
+    // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
+    if (touch.type == UITouchTypeIndirectPointer && VZUSBTrackpadRelayActive())
+        return;
     if (touch.type == UITouchTypeDirect && [self usesDeferredDirectTouchClicks]) {
         [self cancelDeferredDirectTouches:touches withEvent:event];
         return;
@@ -3659,6 +3784,26 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
         boolForKey:VZHomeIndicatorSuppressionKey];
 }
 
+// While the emulated Magic Trackpad drives the guest pointer, the iPad pointer
+// must not wander to screen edges or other windows. iPadOS only grants the
+// lock to a full-screen scene; touches on the screen are not affected.
+- (BOOL)prefersPointerLocked
+{
+    return self.isVMDisplayActive && VZUSBTrackpadRelayActive();
+}
+
+- (void)logPointerLockState:(NSNotification *)notification
+{
+    (void)notification;
+    UIPointerLockState *state = self.view.window.windowScene.pointerLockState;
+    gPointerLocked = state.isLocked;
+    if (gPointerLocked)
+        gUIKitHoverActive = NO;
+    VZUSBTrackpadRelayNote([NSString stringWithFormat:
+        @"pointer lock requested=%d locked=%d", self.prefersPointerLocked,
+        state ? state.isLocked : -1]);
+}
+
 - (UIRectEdge)preferredScreenEdgesDeferringSystemGestures
 {
     return self.isVMDisplayActive && [VZAppSettings.sharedSettings
@@ -3675,6 +3820,15 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
     [self setNeedsStatusBarAppearanceUpdate];
     [self setNeedsUpdateOfHomeIndicatorAutoHidden];
     [self setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+    [self setNeedsUpdateOfPrefersPointerLocked];
+    static BOOL observing;
+    if (!observing) {
+        observing = YES;
+        [NSNotificationCenter.defaultCenter addObserver:self
+            selector:@selector(logPointerLockState:)
+            name:UIPointerLockStateDidChangeNotification object:nil];
+    }
+    [self logPointerLockState:nil];
 }
 
 - (void)activateVMDisplay:(BOOL)active
@@ -3929,7 +4083,7 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
     NSString *memory = [@(restoreMemorySize) stringValue];
     NSString *storage = [options[@"StorageSize"] stringValue];
     const char *launcher =
-        "/var/root/VirtualMac/install/install-launcher";
+        VZRuntimePath(@"install/install-launcher").fileSystemRepresentation;
     char *arguments[] = {
         (char *)launcher,
         (char *)url.path.fileSystemRepresentation,
@@ -4031,7 +4185,8 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
             [self.installationTimer invalidate];
             self.installationTimer = nil;
             NSString *pid = [NSString stringWithFormat:@"%d", self.installationProcess];
-            const char *cancelLauncher = "/var/root/VirtualMac/install/install-launcher";
+            const char *cancelLauncher =
+                VZRuntimePath(@"install/install-launcher").fileSystemRepresentation;
             char *cancelArguments[] = {(char *)cancelLauncher, "--cancel-install",
                 (char *)pid.UTF8String,
                 (char *)self.installationAttemptPath.fileSystemRepresentation, NULL};
@@ -4277,6 +4432,9 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
     gShiftPressedMask = 0;
     gGlobeDown = NO;
     gPointingDevice = nil;
+    VZUSBTrackpadRelayStop();
+    gGuestCursorKnown = NO;
+    gLastMouseDrive = 0;
     resetScrollCoalescing();
     VZTrackpadScrollBridgeReset();
     gTouchButtons = 0;
@@ -4510,9 +4668,13 @@ static void updateCursorOverlay(VZFrameUpdateSharedPtr update) {
         // update reconciles it without the cursor jumping one frame backward.
         if (CACurrentMediaTime() - gLastPredictedCursorTime >= 0.05)
             gCursorView.frame = (CGRect){origin, size};
-        updateExternalCursorForNormalizedLocation(CGPointMake(
+        CGPoint guestNormalized = CGPointMake(
             gDisplayPixelSize.width > 0 ? guestX / gDisplayPixelSize.width : 0,
-            gDisplayPixelSize.height > 0 ? guestY / gDisplayPixelSize.height : 0));
+            gDisplayPixelSize.height > 0 ? guestY / gDisplayPixelSize.height : 0);
+        updateExternalCursorForNormalizedLocation(guestNormalized);
+        gGuestCursorNormalized = guestNormalized;
+        gGuestCursorKnown = gDisplayPixelSize.width > 0 &&
+            gDisplayPixelSize.height > 0;
         [image release];
     });
 }
@@ -4639,6 +4801,11 @@ static void dumpRPCHandlers(id virtualMachine, const char *phase) {
     }
 }
 
+static BOOL VZUsesModernPVG(void) {
+    return [[NSBundle.mainBundle objectForInfoDictionaryKey:@"VirtualMacPVGBackendVersion"]
+        integerValue] >= 27;
+}
+
 static BOOL loadExtractedFrameworks(void) {
     NSString *hookPath =
         [NSBundle.mainBundle pathForResource:@"VZHostCompat"
@@ -4653,15 +4820,21 @@ static BOOL loadExtractedFrameworks(void) {
     printf("[VirtualMac] loaded host hook: %s\n",
            [hookPath fileSystemRepresentation]);
 
-    const char *images[] = {
-        "/var/root/VirtualMac/payload/Frameworks/vmnet.framework/vmnet",
-        "/var/root/VirtualMac/payload/Frameworks/Hypervisor.framework/Hypervisor",
-        "/var/root/VirtualMac/payload/Frameworks/ParavirtualizedGraphics.framework/ParavirtualizedGraphics",
-        "/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Virtualization",
-    };
-    for (NSUInteger i = 0; i < sizeof(images) / sizeof(images[0]); i++) {
-        if (!dlopen(images[i], RTLD_NOW | RTLD_GLOBAL)) {
-            printf("[VirtualMac] dlopen %s FAILED: %s\n", images[i], dlerror());
+    NSMutableArray<NSString *> *images = [NSMutableArray array];
+    if (VZUsesModernPVG()) {
+        [images addObject:@"payload/Frameworks/ModernRuntimeCompat.dylib"];
+        [images addObject:@"payload/Frameworks/MetalSerializer.framework/MetalSerializer"];
+    }
+    [images addObjectsFromArray:@[
+        @"payload/Frameworks/vmnet.framework/vmnet",
+        @"payload/Frameworks/Hypervisor.framework/Hypervisor",
+        @"payload/Frameworks/ParavirtualizedGraphics.framework/ParavirtualizedGraphics",
+        @"payload/Frameworks/Virtualization.framework/Virtualization",
+    ]];
+    for (NSString *relativeImage in images) {
+        const char *path = VZRuntimePath(relativeImage).fileSystemRepresentation;
+        if (!dlopen(path, RTLD_NOW | RTLD_GLOBAL)) {
+            printf("[VirtualMac] dlopen %s FAILED: %s\n", path, dlerror());
             return NO;
         }
     }
@@ -4776,15 +4949,9 @@ static void configureVideoToolbox(id configuration, NSDictionary *options) {
     [device release];
 }
 
-// The iOS 18 SDK removed AVAudioSessionCategoryOptionAllowBluetoothHFP from
-// the public headers, but the option bit (0x80) remains valid on the iPadOS
-// 14-16 targets this app runs on, where the audio session still accepts it.
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 180000
-#define VZAVSessionOptionAllowBluetoothHFP 0x80
-#else
-#define VZAVSessionOptionAllowBluetoothHFP \
-    AVAudioSessionCategoryOptionAllowBluetoothHFP
-#endif
+// HFP uses the stable 0x4 option bit. Its SDK spelling changed from
+// AllowBluetooth to AllowBluetoothHFP; use the bit across both SDK versions.
+#define VZAVSessionOptionAllowBluetoothHFP ((AVAudioSessionCategoryOptions)0x4)
 
 static void requestMicrophoneAccess(dispatch_block_t continuation) {
     AVAudioSession *session = AVAudioSession.sharedInstance;
@@ -5432,6 +5599,9 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
         : NEW("_VZMacKeyboardConfiguration");
     NSString *pointingChoice = options[@"PointingDevice"];
     BOOL useUSBMouse = [pointingChoice isEqualToString:@"USBMouse"];
+    // The Magic Trackpad choice keeps the Mac trackpad for the touch screen
+    // and mice, and adds the iPad trackpad as an emulated USB Magic Trackpad.
+    BOOL useMagicTrackpad = [pointingChoice isEqualToString:@"MagicTrackpad"];
     id pointing = useUSBMouse
         ? NEW("VZUSBScreenCoordinatePointingDeviceConfiguration")
         : NEW("VZMacTrackpadConfiguration");
@@ -5443,8 +5613,20 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
            useUSBKeyboard ? "USB Keyboard" : "Mac Keyboard",
            keyboard ? object_getClassName(keyboard) : "(unavailable)");
     printf("[VirtualMac] configured pointing device=%s class=%s\n",
-           useUSBMouse ? "USB Mouse" : "Mac Trackpad",
+           useUSBMouse ? "USB Mouse" : useMagicTrackpad
+               ? "Mac Trackpad + Magic Trackpad" : "Mac Trackpad",
            pointing ? object_getClassName(pointing) : "(unavailable)");
+    // The VMM hook presents the framework's USB touch screen as a USB Magic
+    // Trackpad 2 (usb_trackpad_proto.inc).
+    if (useMagicTrackpad &&
+        [configuration respondsToSelector:S("_setMultiTouchDevices:")]) {
+        id touchScreen = NEW("_VZUSBTouchScreenConfiguration");
+        if (touchScreen)
+            setObj(configuration, "_setMultiTouchDevices:", @[touchScreen]);
+        printf("[VirtualMac] configured Magic Trackpad touch device=%s\n",
+               touchScreen ? object_getClassName(touchScreen) : "(unavailable)");
+        [touchScreen release];
+    }
     configureAudio(configuration, options);
     configureVideoToolbox(configuration, options);
     configureNetwork(configuration, options);
@@ -5586,7 +5768,7 @@ static void activateFramebuffer(void) {
     printf("[VirtualMac] input focus after-start requested=%d active=%d window=%p\n",
            inputFocused, [gInputView isFirstResponder], gInputView.window);
     scheduleInputSelfTest();
-    pollInputCommand();
+    startInputCommandPolling();
     logFramebufferState(view, framebuffer, "activated");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC),
                    dispatch_get_main_queue(), ^{
@@ -5635,11 +5817,12 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
     unlink("/tmp/vmmhook.log");
     unlink("/tmp/vmm.stderr.log");
     setenv("VZ_VMM_BIN",
-           "/var/root/VirtualMac/payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine",
+           VZRuntimePath(@"payload/VirtualMachine.xpc/Contents/MacOS/com.apple.Virtualization.VirtualMachine").fileSystemRepresentation,
            1);
     setenv("VZ_AVP_BOOTER",
-           "/var/root/VirtualMac/payload/Frameworks/Virtualization.framework/Resources/AVPBooter.vmapple2.bin",
+           VZRuntimePath(@"payload/Frameworks/Virtualization.framework/Resources/AVPBooter.vmapple2.bin").fileSystemRepresentation,
            1);
+    setenv("VZ_PVG_BACKEND_VERSION", VZUsesModernPVG() ? "27" : "13", 1);
     // Consume the one-shot mode at the actual boot boundary. The current boot
     // keeps the captured value while Settings immediately returns to Off.
     gDebugLogging = VZConsumeDebugLoggingForBoot();
@@ -5766,6 +5949,8 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
            [[pointingDevices description] UTF8String]);
     gKeyboard = [keyboards firstObject];
     gPointingDevice = [pointingDevices firstObject];
+    VZUSBTrackpadRelaySetMouseHandler(relayMouseMoved, relayMouseButtons);
+    VZUSBTrackpadRelayStart(gVirtualMachine);
     dumpRPCHandlers(gVirtualMachine, "after-init");
     // setFramebuffer: installs the process_frame_update handler needed by the
     // VMM. The host hook holds its set_frame_rate message until start succeeds.

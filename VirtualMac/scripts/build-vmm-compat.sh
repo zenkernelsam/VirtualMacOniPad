@@ -15,6 +15,12 @@ need_file "$ENTITLEMENTS"
 need_file "$VZ_REPO_ROOT/vz/host/lsshim.m"
 need_file "$VZ_REPO_ROOT/vz/host/vmmhook.m"
 need_file "$VZ_REPO_ROOT/vz/host/pvg_trace.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_memory.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_task.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_fault_observation.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_linear_alignment.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_texture_buffer_alignment.h"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_texture_buffer_alignment.m"
 
 mkdir -p "$(dirname "$OUTPUT")"
 xcrun --sdk iphoneos clang \
@@ -27,7 +33,27 @@ xcrun --sdk iphoneos clang \
     "$VZ_REPO_ROOT/vz/host/lsshim.m" \
     "$VZ_REPO_ROOT/vz/host/vmmhook.m" \
     "$VZ_REPO_ROOT/vz/host/pvg_trace.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_memory.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_task.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_fault_observation.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_linear_alignment.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_texture_buffer_alignment.m" \
     -o "$OUTPUT"
+# These project entries must be local definitions before signing.
+nm -gU "$OUTPUT" | awk '    BEGIN {
+        required["_VZModernInstallTaskTransport"]=1
+        required["_VZModernInstallFaultObservation"]=1
+        required["_VZModernInstallGuestLinearAlignmentAdvertisement"]=1
+        required["_VZModernInstallGuestTextureBufferAlignmentAdvertisement"]=1
+    }
+    { if ($NF in required) delete required[$NF] }
+    END {
+        for (symbol in required) {
+            print "Missing required local definition: " symbol > "/dev/stderr"
+            missing=1
+        }
+        exit missing
+    }'
 ldid -S"$ENTITLEMENTS" "$OUTPUT"
 
 echo "VMM compatibility library built: $OUTPUT"

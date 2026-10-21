@@ -1,0 +1,82 @@
+#!/bin/sh
+set -eu
+export PATH=/var/jb/usr/bin:/var/jb/usr/sbin:/var/jb/bin:/var/jb/sbin:/usr/bin:/bin:/usr/sbin:/sbin
+test "${1:-}" = configure || exit 0
+runtime=/var/root/VirtualMac2
+app=/var/jb/Applications/VirtualMac2.app
+compiler="$runtime/compiler27"
+source="$runtime/package-source/compiler27"
+processes=$(ps -A -o command=)
+if printf '%s\n' "$processes" | awk '
+    /\/Contents\/MacOS\/com\.apple\.Virtualization\.VirtualMachine([[:space:]]|$)/ ||
+    /\/Contents\/MacOS\/com\.apple\.Virtualization\.Installation([[:space:]]|$)/ ||
+    /\/Contents\/MacOS\/com\.apple\.gpusw\.ParavirtualizedGraphicsGPUTask([[:space:]]|$)/ ||
+    /\/VirtualMac2\/compiler27\/metal-library-convert([[:space:]]|$)/ ||
+    /\/VirtualMac2\.app\/VirtualMac([[:space:]]|$)/ { found=1 }
+    END { exit !found }'; then
+    echo "Shut down virtual machines normally and close Virtual Mac 2 before configuring." >&2
+    exit 1
+fi
+
+for directory in "$runtime" "$runtime/payload" "$runtime/package-source" \
+    "$source" "$compiler" "$compiler/work" "$runtime/testing" "$runtime/release" \
+    "$runtime/shader-cache" "$runtime/shader-cache/air25" "$app"; do
+    test ! -L "$directory" || { echo "Refusing a symlinked runtime directory: $directory" >&2; exit 1; }
+done
+mkdir -p "$compiler/work"
+chown 0:0 "$runtime" "$compiler"
+chmod 755 "$runtime" "$compiler"
+chown 501:501 "$compiler/work"
+chmod 700 "$compiler/work"
+
+# Do not overwrite matching compiler binaries. An existing, verified cache
+# receipt binds inode and nanosecond stat fields as well as their SHA256.
+# Reusing exact existing files preserves that device's optional warm cache.
+while read -r expected filename; do
+    case "$filename" in
+        VM27CompilerCompat.dylib|VM27GPUCompiler.dylib|VM27GPUCompilerImpl.dylib|VM27LLVM.dylib|VM27llvm-flatbuffers.dylib|VM27llvm-lmdb.dylib|metal-library-convert) mode=755 ;;
+        compiler-profile.json) mode=644 ;;
+        *) echo "Unexpected private compiler component." >&2; exit 1 ;;
+    esac
+    test ! -L "$source/$filename"
+    test -f "$source/$filename"
+    actual=$(sha256sum "$source/$filename" | cut -d ' ' -f1)
+    test "$actual" = "$expected"
+    destination="$compiler/$filename"
+    test ! -L "$destination"
+    if test -f "$destination" && cmp -s "$source/$filename" "$destination" &&
+       test "$(stat -c '%u:%g:%a:%h' "$destination")" = "0:0:$mode:1"; then
+        continue
+    fi
+    temporary="$compiler/.release-$filename-$$"
+    test ! -e "$temporary" && test ! -L "$temporary"
+    install -m "$mode" "$source/$filename" "$temporary"
+    chown 0:0 "$temporary"
+    mv "$temporary" "$destination"
+done <"$runtime/package-source/compiler27.sha256"
+
+chown -R 501:20 "$app"
+chown 0:0 "$app/VirtualMac"
+chmod 755 "$app" "$app/VirtualMac" "$app/VZHostCompat.dylib"
+# The static AIR cache and compiler work directory are the only package data
+# the mobile GPU task needs to write. Do not touch converter-cache-v1 or the
+# device's persistent-cache-identity-v1.json.
+chown -R 501:501 "$runtime/shader-cache"
+chmod 700 "$runtime/shader-cache" "$runtime/shader-cache/air25"
+find "$runtime/shader-cache/air25" -type f -exec chmod 600 {} +
+sha256sum --quiet -c "$runtime/release/files.sha256"
+
+jbctl=/var/jb/usr/bin/jbctl
+test -x "$jbctl" || jbctl=/var/jb/basebin/jbctl
+while read -r hash path; do
+    case "$hash" in ''|*[!0-9a-f]*) echo "Invalid package trust hash." >&2; exit 1 ;; esac
+    test "${#hash}" -eq 40
+    case "$path" in /var/root/VirtualMac2/*|/var/jb/Applications/VirtualMac2.app/*) ;; *) exit 1 ;; esac
+    test -f "$path" && test ! -L "$path"
+    actual=$(ldid -h "$path" 2>&1 | sed -n 's/^CDHash=//p')
+    test "$actual" = "$hash"
+    "$jbctl" trustcache add "$hash"
+done <"$runtime/release/trustcache.txt"
+uicache -p "$app"
+echo "Virtual Mac 2 is installed. Virtual machine bundles and existing caches were retained."
+exit 0

@@ -1,0 +1,58 @@
+{
+  "scope": "App-written two-entry PAC/provider adaptation based on exact Apple ABI evidence and fixed official Swift source; not a copy of the modern parser",
+  "officialSwiftCommit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+  "officialLicenseSHA256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55",
+  "frozenCandidate": {
+    "path": "DeviceDiagnostics/2026-10-02-virtualmac-2.0/Tahoe3/modern-swift-lookup-wrapper-native-candidate-v1",
+    "manifestSHA256": "8ba3a4ea418e73a34384e38b5d709de47752974ac972ca304008e30a1f0234b2",
+    "librarySHA256": "d9b1f6d932a035a68de125c0523b902c5248680899b83576c77fdc3f12180914",
+    "libraryCDHash": "29d9b0c32a2e143115af99ec38da20f22736e6a4"
+  },
+  "actualProof": {
+    "path": "DeviceDiagnostics/2026-10-02-virtualmac-2.0/Tahoe3/modern-swift-lookup-wrapper-native-v1",
+    "nativePID": 72397,
+    "parentWaitExit": 0,
+    "stdoutSHA256": "3025de9fa12fa5b8ebfcebef885e027d64d44408aefc68273d853b1da8d04220",
+    "explicitDriverCalls": 324,
+    "delegatedOldCalls": {
+      "count": 162,
+      "proof": "frozen compiled source one-real-old-delegation per successful private entry; not global instrumentation"
+    },
+    "genuinePublicTypes": 6,
+    "nongenericIntDescriptorOnly": true
+  },
+  "projectAdaptations": [
+    "Renamed host source/header paths and includes; updated former source-only header labels",
+    "Preserved namespace/function bodies/external SwiftCC ABI/PAC/provider guards/old byte pins exactly",
+    "Manual isolated developer builder only; no production/global registration"
+  ],
+  "oldPins": {
+    "path": "old_entry_pins.h",
+    "sha256": "c9c3ee7d337d4f4953a23135131f51775a44e835415f9f4935b902b42377a19f"
+  },
+  "originalAdapterFiles": [
+    {
+      "path": "frozen-proven-sources/exports.list",
+      "sha256": "c2b663071563ea2937fe53bb5a36ddf528b4e1752a63e7d75f33bc9666cfe048"
+    },
+    {
+      "path": "frozen-proven-sources/lookup_compat.cpp",
+      "sha256": "96ed567cab762801be1110d9ec1434b023aca3f39c86dcbfa95740708968be91"
+    },
+    {
+      "path": "frozen-proven-sources/lookup_compat.h",
+      "sha256": "c8e73c6c564ec75643b6b46f12fd9da6cbbc9409cc0592428524bb039e8c5f25"
+    },
+    {
+      "path": "frozen-proven-sources/old_entry_pins.h",
+      "sha256": "c9c3ee7d337d4f4953a23135131f51775a44e835415f9f4935b902b42377a19f"
+    },
+    {
+      "path": "frozen-proven-sources/stock_old_provider.cpp",
+      "sha256": "19c20ad700d08004d719bf04a9dca4b4115736fb543a935c8e3e88f847c9ef40"
+    }
+  ],
+  "fullModernParserEquivalent": false,
+  "fullSwiftRuntimeImplemented": false,
+  "fullVZCPUVMImplemented": false
+}

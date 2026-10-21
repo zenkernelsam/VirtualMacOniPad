@@ -1,0 +1,50 @@
+--- a/DyldExtractor/converter/objc_fixer.py
++++ b/DyldExtractor/converter/objc_fixer.py
+@@ -519,7 +519,7 @@
+ 			# First the version number and then pointers
+ 			verOff, ctx = self._dyldCtx.convertAddr(objcScoffs.addr)
+ 			version = ctx.readFormat("<Q", verOff)[0]
+-			if version != 2 and version != 3:
++			if version not in (2, 3, 4):
+ 				self._logger.warning(
+ 					f"Unknown objc opt version: {version}, but continuing on."
+ 				)
+@@ -1037,7 +1037,22 @@
+ 		self._ivarListCache[ivarListAddr] = newIvarListAddr
+ 		return newIvarListAddr
+ 
++	def _originalBaseList(self, address: int) -> int:
++		if not (address & 1):
++			return address
++		listAddress = address & ~1
++		offset, context = self._dyldCtx.convertAddr(listAddress)
++		entrySize, count = context.readFormat("<II", offset)
++		if entrySize != 8 or not 0 < count <= 65536:
++			raise _ObjCFixerError("Invalid relative list-of-lists header")
++		entryAddress = listAddress + 8 + (count - 1) * 8
++		offset, context = self._dyldCtx.convertAddr(entryAddress)
++		# Low 16 bits are an image index; high 48 bits a signed byte offset.
++		relative = context.readFormat("<q", offset)[0] >> 16
++		return entryAddress + relative
++
+ 	def _processProtocolList(self, protoListAddr: int) -> int:
++		protoListAddr = self._originalBaseList(protoListAddr)
+ 		if protoListAddr in self._protocolListCache:
+ 			return self._protocolListCache[protoListAddr]
+ 
+@@ -1214,6 +1229,7 @@
+ 		return newProtoAddr
+ 
+ 	def _processPropertyList(self, propertyListAddr: int) -> int:
++		propertyListAddr = self._originalBaseList(propertyListAddr)
+ 		if propertyListAddr in self._propertyListCache:
+ 			return self._propertyListCache[propertyListAddr]
+ 
+@@ -1265,6 +1281,7 @@
+ 		return newPropertyListAddr
+ 
+ 	def _processMethodList(self, methodListAddr: int, noImp=False) -> int:
++		methodListAddr = self._originalBaseList(methodListAddr)
+ 		if methodListAddr in self._methodListCache:
+ 			return self._methodListCache[methodListAddr]
+ 

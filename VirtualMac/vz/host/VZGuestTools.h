@@ -18,6 +18,10 @@ void VZGuestToolsReset(void);
 // AppleQEMUGuestAgent virtio socket; it is a no-op until that agent is ready.
 void VZGuestToolsSyncGuestClock(void);
 
+// Narrow development action for the isolated modern-backend test app.
+// Uses the existing guest agent; no arbitrary guest command or password input.
+void VZGuestToolsEnableRemoteLogin(void (^completion)(BOOL success, NSData *output));
+
 // Updates the virtual Mac's NVRAM before its platform configuration is used.
 BOOL VZGuestToolsConfigureBootArguments(id auxiliaryStorage,
                                         BOOL guestAgentEnabled,

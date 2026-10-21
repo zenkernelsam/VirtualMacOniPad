@@ -1,0 +1,20 @@
+Package: com.mac.virtual.v2
+Name: Virtual Mac @RELEASE@
+Version: @VERSION@
+Architecture: all
+Description: Separate Virtual Mac 2 beta with the macOS 27 graphics backend.
+ Uses macOS 27 PVG, MetalSerializer, GPU task and private shader compiler with
+ the verified Ventura CPU, VMM and Virtualization runtime. Installs alongside
+ Virtual Mac 1.2.3 and shares its installation and networking helpers.
+ Shut down virtual machines before installing, upgrading or removing.
+ Virtual machine bundles, device cache identity receipts and existing
+ converter caches are preserved. Supports the tested rootless iPadOS 16
+ jailbreak; a complete macOS 27 CPU/VMM/VZ port is still under development.
+Maintainer: liukaixiang817
+Author: Virtual Mac contributors
+Homepage: https://github.com/liukaixiang817/VirtualMacOniPad
+Section: Utilities
+Priority: optional
+Installed-Size: @INSTALLED_SIZE@
+Depends: firmware (>= 16.1), firmware (<< 16.4), com.mac.virtual (>= 1.2.3)
+Tag: role::enduser

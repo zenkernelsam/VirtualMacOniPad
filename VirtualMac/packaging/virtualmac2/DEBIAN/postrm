@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+# dpkg removes only this package's files. Leave the original app, shared
+# services, VM bundles, private compiler identity, backups and caches intact.
+exit 0

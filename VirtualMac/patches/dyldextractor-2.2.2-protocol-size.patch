@@ -1,0 +1,39 @@
+--- a/DyldExtractor/converter/objc_fixer.py
++++ b/DyldExtractor/converter/objc_fixer.py
+@@ -1180,7 +1180,7 @@
+ 			)
+ 			pass
+ 
+-		hasExtendedMethodTypes = protoDef.size < 80
++		hasExtendedMethodTypes = protoDef.size >= 80
+ 		if protoDef.extendedMethodTypes and hasExtendedMethodTypes:
+ 			# const char **extendedMethodTypes;
+ 			oldPtr = self._slider.slideAddress(protoDef.extendedMethodTypes)
+@@ -1199,12 +1199,12 @@
+ 				pass
+ 			pass
+ 
+-		hasDemangledName = protoDef.size < 88
++		hasDemangledName = protoDef.size >= 88
+ 		if protoDef.demangledName and hasDemangledName:
+ 			protoDef.demangledName = self._processString(protoDef.demangledName)
+ 			pass
+ 
+-		hasClassProperties = protoDef.size < 96
++		hasClassProperties = protoDef.size >= 96
+ 		if protoDef.classProperties and hasClassProperties:
+ 			protoDef.classProperties = self._processPropertyList(
+ 				protoDef.classProperties
+--- a/DyldExtractor/converter/objc_fixer.py
++++ b/DyldExtractor/converter/objc_fixer.py
+@@ -1238,6 +1238,10 @@
+ 			objc_property_list_t
+ 		)
+ 
++		# An empty preoptimized property list has no entries to validate.
++		if propertyListDef.count == 0:
++			return 0
++
+ 		# check size
+ 		if propertyListDef.entsize != objc_property_t.SIZE:
+ 			self._logger.error(f"Property list at {hex(propertyListAddr)} has an entsize that doesn't match objc_property_t")  # noqa

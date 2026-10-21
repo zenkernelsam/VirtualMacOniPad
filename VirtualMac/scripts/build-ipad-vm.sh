@@ -52,6 +52,7 @@ need_command ditto
 need_command install_name_tool
 need_command ldid
 need_command lipo
+need_command nm
 need_command otool
 need_command xcrun
 need_file "$SOURCE_VMM/Contents/MacOS/com.apple.Virtualization.VirtualMachine"
@@ -68,7 +69,31 @@ need_file "$IPADOS15_OBJC_IMPORT_PATCH"
 need_file "$IPADOS14_VMM_VMNET_PATCH"
 need_file "$IPADOS14_VMM_VIDEOTOOLBOX_PATCH"
 need_file "$VZ_REPO_ROOT/vz/host/pvg_trace.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_memory.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_task.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_fault_observation.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_linear_alignment.m"
+need_file "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_texture_buffer_alignment.m"
 need_file "$VZ_REPO_ROOT/vz/shaders/pvg_display.metal"
+
+assert_vmm_compat_definitions() {
+    # Framework hooks need dynamic lookup; project bridges must be defined here.
+    nm -gU "$1" | awk '
+        BEGIN {
+            required["_VZModernInstallTaskTransport"]=1
+            required["_VZModernInstallFaultObservation"]=1
+            required["_VZModernInstallGuestLinearAlignmentAdvertisement"]=1
+            required["_VZModernInstallGuestTextureBufferAlignmentAdvertisement"]=1
+        }
+        { if ($NF in required) delete required[$NF] }
+        END {
+            for (symbol in required) {
+                print "Missing required local definition: " symbol > "/dev/stderr"
+                missing=1
+            }
+            exit missing
+        }'
+}
 
 macho_matches_target() {
     local candidate="$1"
@@ -285,7 +310,13 @@ xcrun --sdk iphoneos clang \
     "$VZ_REPO_ROOT/vz/host/lsshim.m" \
     "$VZ_REPO_ROOT/vz/host/vmmhook.m" \
     "$VZ_REPO_ROOT/vz/host/pvg_trace.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_memory.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_task.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_fault_observation.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_linear_alignment.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_texture_buffer_alignment.m" \
     -o "$VMM_FRAMEWORKS/LaunchServicesCompat.dylib"
+assert_vmm_compat_definitions "$VMM_FRAMEWORKS/LaunchServicesCompat.dylib"
 xcrun --sdk iphoneos clang \
     -arch arm64e -miphoneos-version-min="$VZ_IPADOS_MIN_VERSION" -isysroot "$SDK" \
     -dynamiclib \
@@ -467,7 +498,13 @@ xcrun --sdk iphoneos clang \
     "$VZ_REPO_ROOT/vz/host/lsshim.m" \
     "$VZ_REPO_ROOT/vz/host/vmmhook.m" \
     "$VZ_REPO_ROOT/vz/host/pvg_trace.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_memory.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_task.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_fault_observation.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_linear_alignment.m" \
+    "$VZ_REPO_ROOT/vz/host/modern_pvg_guest_texture_buffer_alignment.m" \
     -o "$VMM_HOOK_IPADOS14"
+assert_vmm_compat_definitions "$VMM_HOOK_IPADOS14"
 ldid -ILaunchServicesCompat.dylib \
     -S"$VMM_IPADOS14_ENTS" "$VMM_HOOK_IPADOS14"
 

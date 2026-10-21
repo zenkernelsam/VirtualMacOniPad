@@ -1,0 +1,44 @@
+{
+  "scope": "exact original source evidence for a source-only adapter candidate",
+  "oldProvider": {
+    "dyldPath": "/usr/lib/swift/libswiftCore.dylib",
+    "uuid": "f896d145e02539d6afd3bc0a2ad4f839",
+    "minos": "0xf0400",
+    "sdk": "0x100100",
+    "cpuSubtype": "0x80000002",
+    "sourceNativeIdentityPID": 71997,
+    "unslidTEXTbase": "0x180bd5000",
+    "cacheTEXTBytes": 5672960,
+    "cacheTEXTSHA256": "19df8dc8d493e82de8e5fe5fb4fc9b91a00693733674d469d52d1ee994211a1e",
+    "contextRVA": "0x400e24",
+    "context128SHA256": "36eca91e8484fb8acdcb74ad8759eb82d39deeca4acb28c1fac513f2505f4015",
+    "stateRVA": "0x400fe8",
+    "state128SHA256": "4a74a9d22589ae1790a5a71f45678ee5d0eb1180a7f43fe6970984f9754511aa",
+    "contextCompleteInstructionRVA": "0x400ebc",
+    "contextToCommonCallRVA": "0x400ec4",
+    "stateBlockingInstructionRVA": "0x401028",
+    "stateToCommonCallRVA": "0x401084",
+    "commonRVA": "0x400878",
+    "commonParserCallRVA": "0x400bb4",
+    "parserRVA": "0x405234"
+  },
+  "modernOriginal": {
+    "originalPath": "DeviceDiagnostics/2026-10-02-virtualmac-2.0/Tahoe3/modern-cpu-next-dependency-contract-audit-v1/libswiftCore27.raw",
+    "uuid": "c9b36da7bb3435afbc5d91ecbcaa9ed0",
+    "sha256": "8bbfc04ebebcad18447d0de5d41f091c56a019453febf11c7c273bd7d1c67e19",
+    "Context2RVA": "0x9c814",
+    "State2RVA": "0x9cac0",
+    "externalContextPAC": {
+      "key": "DA/process-independent data",
+      "addressDiversity": false,
+      "discriminator": "0xb5e3",
+      "invalidAuthTrap": "0xc472"
+    },
+    "internalTypedContextPAC": "DB/process-dependent data/b5e3; not passed to old raw context ABI",
+    "StateBlockingInstructionRVA": "0x9cbac"
+  },
+  "officialSourceCommit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+  "fullOfficialSourceProvenance": "DeviceDiagnostics/2026-10-02-virtualmac-2.0/Tahoe3/modern-swift-lookup-version-compatibility-audit-v1/upstream/source-provenance.json",
+  "sourceOnly": true,
+  "completeModernParserProven": false
+}

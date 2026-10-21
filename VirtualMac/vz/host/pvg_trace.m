@@ -8,6 +8,10 @@
 #import <errno.h>
 #import <fcntl.h>
 #import <ptrauth.h>
+#include "modern_pvg_memory.h"
+#include "modern_pvg_task.h"
+#include "modern_pvg_guest_linear_alignment.h"
+#include "modern_pvg_guest_texture_buffer_alignment.h"
 #import <pthread.h>
 #import <notify.h>
 #import <stdint.h>
@@ -1136,6 +1140,8 @@ static id TracePipelineCacheInit(id self, SEL selector, id device) {
 }
 
 static id TracePGNewDeviceWithDescriptor(id descriptor) {
+    if (VZModernPVGEnabled())
+        return VZModernNewDeviceWithDescriptor(descriptor);
     id device = nil;
     id mapper = nil;
     id mmioLength = nil;
@@ -1692,6 +1698,24 @@ static void InstallPVGTrace(void) {
         Class cls = NSClassFromString(@"_PGDevice");
         Trace(@"CLASS\t_PGDevice=%@", cls);
         if (cls == Nil) {
+            return;
+        }
+        if (VZModernPVGEnabled()) {
+            // Keep PGDevice getDeviceInfo and the native alignment getters intact.
+            // The GPUTask's separately verified callsite bridge handles its
+            // newer preflight; guest queries and internal layouts use native info.
+            int alignmentPolicyErrno = errno;
+            fprintf(stderr, "[ModernGuestLinearAlignment] policy=native-forward overrideInstalled=0\n");
+            bool textureBufferInfoInstalled = VZModernInstallGuestTextureBufferAlignmentAdvertisement(cls);
+            fprintf(stderr, "[ModernGuestTextureBufferAlignment] installationResult=%u key13NativeForward=1\n", textureBufferInfoInstalled);
+            errno = alignmentPolicyErrno;
+        }
+        if (VZModernPVGEnabled() && !VZModernInstallIOSurfaceDescriptorBridge()) {
+            fprintf(stderr, "[ModernPVG] IOSurface descriptor bridge unavailable\n");
+            return;
+        }
+        if (VZModernPVGEnabled() && !VZModernInstallTaskTransport()) {
+            fprintf(stderr, "[ModernPVG] GPU task transport unavailable\n");
             return;
         }
         if (requiresIPadOS14Fallback && !tracing) {

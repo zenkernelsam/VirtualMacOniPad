@@ -1,0 +1,33 @@
+--- a/DyldExtractor/converter/objc_fixer.py
++++ b/DyldExtractor/converter/objc_fixer.py
+@@ -1293,12 +1293,15 @@
+ 
+ 		usesRelativeMethods = methodListDef.usesRelativeMethods()
+ 		entsize = methodListDef.getEntsize()
++		# v4 selector offsets also share their base with type encodings when
++		# the cache sets bit 29. Restore ordinary entry-relative types below.
++		sharedTypes = bool(methodListDef.entsizeAndFlags & 0x20000000)
+ 
+ 		# Remove RELATIVE_METHODS_SELECTORS_ARE_DIRECT_FLAG Flag
+ 		if usesRelativeMethods:
+ 			methodListDef.entsizeAndFlags = (
+ 				methodListDef.entsizeAndFlags
+-				& ~objc_method_list_t.RELATIVE_METHODS_SELECTORS_ARE_DIRECT_FLAG
++				& ~(objc_method_list_t.RELATIVE_METHODS_SELECTORS_ARE_DIRECT_FLAG | 0x20000000)
+ 			)
+ 			pass
+ 
+@@ -1343,7 +1346,12 @@
+ 					pass
+ 
+ 				if methodDef.types:
+-					typesAddr = methodAddr + 4 + methodDef.types
++					if sharedTypes:
++						if self._optMethodNamesAddr is None:
++							raise _ObjCFixerError("Missing shared method type base")
++						typesAddr = self._optMethodNamesAddr + methodDef.types
++					else:
++						typesAddr = methodAddr + 4 + methodDef.types
+ 					newTypesAddr = self._processString(typesAddr)
+ 					methodDef.types = newTypesAddr - (methodAddr + 4)
+ 

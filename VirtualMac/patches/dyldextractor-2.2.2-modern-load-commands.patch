@@ -1,0 +1,16 @@
+--- a/DyldExtractor/macho/macho_structs.py
++++ b/DyldExtractor/macho/macho_structs.py
+@@ -783,6 +783,13 @@
+ 	LoadCommands.LC_DYLD_EXPORTS_TRIE: linkedit_data_command,
+ 	LoadCommands.LC_DYLD_CHAINED_FIXUPS: linkedit_data_command,
+ 	LoadCommands.LC_FILESET_ENTRY: fileset_entry_command,
++	# Modern cache dependencies can contain these even when the extracted image
++	# does not. Their layouts are specified by the macOS 27 SDK's loader.h.
++	0x36: linkedit_data_command,  # LC_ATOM_INFO
++	0x37: linkedit_data_command,  # LC_FUNCTION_VARIANTS
++	0x38: linkedit_data_command,  # LC_FUNCTION_VARIANT_FIXUPS
++	0x39: dylinker_command,      # LC_TARGET_TRIPLE (uint32 string offset)
++	0x3a: linkedit_data_command, # LC_LAZY_LOAD_DYLIB_INFO
+ }
+ 
+ 

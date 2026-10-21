@@ -1,0 +1,95 @@
+{
+  "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+  "publicOfficialSourceOnly": true,
+  "files": [
+    {
+      "sourcePath": "stdlib/public/runtime/MetadataLookup.cpp",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/stdlib/public/runtime/MetadataLookup.cpp",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/stdlib--public--runtime--MetadataLookup.cpp",
+      "bytes": 149012,
+      "sha256": "4a8fa03c1e00ac781052388a42675770382469591c45c5c2e950c0a3f3afd831"
+    },
+    {
+      "sourcePath": "include/swift/ABI/MetadataValues.h",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/ABI/MetadataValues.h",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/include--swift--ABI--MetadataValues.h",
+      "bytes": 114040,
+      "sha256": "2025026bef44939328913cc6cd4ddcda54a6df932a525a356500a25094a7342a"
+    },
+    {
+      "sourcePath": "include/swift/Runtime/Metadata.h",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/Runtime/Metadata.h",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/include--swift--Runtime--Metadata.h",
+      "bytes": 47543,
+      "sha256": "ad47623592cc9fa79ae2840621bb9f46ddd370d6c4f29f333e1314fadf3c5992"
+    },
+    {
+      "sourcePath": "include/swift/ABI/Metadata.h",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/ABI/Metadata.h",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/include--swift--ABI--Metadata.h",
+      "bytes": 209419,
+      "sha256": "20b811194818b113109d3ce0351ad53f05d12b6e94e6c0414a12a309c1dc5540"
+    },
+    {
+      "sourcePath": "LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/LICENSE.txt",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/LICENSE.txt",
+      "bytes": 11751,
+      "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55"
+    },
+    {
+      "sourcePath": "include/swift/Runtime/Config.h",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/Runtime/Config.h",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/include--swift--Runtime--Config.h",
+      "bytes": 28928,
+      "sha256": "dfe147d182aef7bc81770686639757fa2b03dd19dbe66ce4da93d4b02ab062e7"
+    },
+    {
+      "sourcePath": "include/swift/ABI/TargetLayout.h",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/ABI/TargetLayout.h",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/include--swift--ABI--TargetLayout.h",
+      "bytes": 7466,
+      "sha256": "5068c1c6e3299cc8f828fa349afb861ae3333b0d460d3f09755458bc4a22f650"
+    },
+    {
+      "sourcePath": "include/swift/Demangling/Demangler.h",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/Demangling/Demangler.h",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/include--swift--Demangling--Demangler.h",
+      "bytes": 26907,
+      "sha256": "4be3da49d7eebbf7486abbf605c1c261e60013d3ef77db5895394e2ba46c4863"
+    },
+    {
+      "sourcePath": "lib/Demangling/Demangler.cpp",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/lib/Demangling/Demangler.cpp",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/lib--Demangling--Demangler.cpp",
+      "bytes": 161482,
+      "sha256": "a0b32fcb5b793b2dc85ce2f30f2ca8f9e3dfe6e063d88663775261fd6e28d592"
+    },
+    {
+      "sourcePath": "docs/ABI/Mangling.rst",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/docs/ABI/Mangling.rst",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "localPath": "upstream/docs--ABI--Mangling.rst",
+      "bytes": 78868,
+      "sha256": "72d5fd7ed1252bbc45a39c63075de5c3f71d88f19aacf57510bd32245dcdd48b"
+    },
+    {
+      "sourcePath": "include/swift/IRGen/RuntimeFunctions.def",
+      "commit": "5ea0a2a5d8e126628da27747739e8d017c1d4882",
+      "url": "https://raw.githubusercontent.com/swiftlang/swift/5ea0a2a5d8e126628da27747739e8d017c1d4882/include/swift/IRGen/RuntimeFunctions.def",
+      "localPath": "upstream/Swift-RuntimeFunctions.def",
+      "bytes": 143220,
+      "sha256": "1655af65b8bcbe305199ee15ca5b41461da68d2fe4803b90ec04b5fef368e65f",
+      "reusedFromPriorExactCommitAudit": "DeviceDiagnostics/2026-10-02-virtualmac-2.0/Tahoe3/modern-cpu-next-dependency-contract-audit-v1/upstream/Swift-RuntimeFunctions.def"
+    }
+  ]
+}

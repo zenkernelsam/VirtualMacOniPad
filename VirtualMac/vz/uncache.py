@@ -2,7 +2,7 @@
 """uncache: regenerate loadable arm64e LC_DYLD_CHAINED_FIXUPS for a cache image.
 
 Takes DyldExtractor's (RE-only) output and makes it loadable:
-  - collect the image's own slide-info-v3 fixups (location-filtered)
+  - collect the image's own slide-info-v3/v5 fixups (location-filtered)
   - classify rebase (in-image) vs bind (cross-image); resolve binds via `ipsw dyld a2s`
   - emit DYLD_CHAINED_PTR_ARM64E_USERLAND chains (auth-preserving), weave into __DATA*
   - add LC_DYLD_CHAINED_FIXUPS, clear MH_DYLIB_IN_CACHE
@@ -47,10 +47,11 @@ def a2s_batch(targets):
     tf.close()
     # The cached resolver reproduces the shipped frameworks byte-for-byte; the
     # direct resolver does not. Only the huge one-time .a2s cache makes them
-    # differ, so reuse an existing cache and fall back to a direct lookup when
-    # there is none instead of spending hours building a fresh cache (the
-    # macOS 22D68 cache is the one that matters for the shipping payload).
-    cache = DSC + ".a2s"
+    # differ, so reuse an existing cache (VZ_A2S_CACHE overrides the default
+    # location) and fall back to a direct lookup when there is none instead of
+    # spending hours building a fresh cache (the macOS 22D68 cache is the one
+    # that matters for the shipping payload).
+    cache = os.environ.get("VZ_A2S_CACHE", DSC + ".a2s")
     args = [IPSW, "--no-color", "dyld", "a2sb"]
     if os.path.exists(cache):
         args += ["--cache", cache]
@@ -67,9 +68,11 @@ def a2s_batch(targets):
             file=sys.stderr,
         )
     args += [DSC, tf.name]
-    out = subprocess.run(args, capture_output=True, text=True).stdout
-    out = re.sub(r"\x1b\[[0-9;]*m", "", out)
-    os.unlink(tf.name)
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, check=True)
+    finally:
+        os.unlink(tf.name)
+    out = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
     m = {}
     for line in out.splitlines():
         p = line.split("\t")
@@ -78,7 +81,7 @@ def a2s_batch(targets):
     return m
 
 
-def build_local_str_va(buf):
+def build_local_str_va(buf, amap=lambda a: a, method_strings=()):
     """{cstring_bytes: vmaddr} for every CstringLiterals section in buf (selectors,
     class names, method types, __cstring). Used to localize objc selref pointers that
     the cache uniqued into libobjc's shared __OBJC_RO pool."""
@@ -105,10 +108,35 @@ def build_local_str_va(buf):
                         p = e + 1
                 so += 80
         off += sz
+    # DyldExtractor copies cache-uniqued selector strings into __EXTRA_OBJC,
+    # which has no sections. Index only strings referenced by selector slots
+    # or parsed method records, instead of scanning arbitrary metadata bytes.
+    segments, _, _ = parse_segments(buf)
+    targets = set(method_strings)
+    for nm, va, vs, fo, fs, lc in segments:
+        for k in range(struct.unpack_from("<I", buf, lc + 64)[0]):
+            so = lc + 72 + k * 80
+            if buf[so:so + 16].split(b"\0")[0] != b"__objc_selrefs":
+                continue
+            size = struct.unpack_from("<Q", buf, so + 40)[0]
+            offset = struct.unpack_from("<I", buf, so + 48)[0]
+            targets.update(struct.unpack_from("<Q", buf, slot)[0]
+                           for slot in range(offset, offset + size, 8))
+    for target in targets:
+        address = amap(target)
+        if address is None:
+            continue
+        for nm, va, vs, fo, fs, lc in segments:
+            if va <= address < va + fs:
+                offset = fo + address - va
+                value = bytes(buf[offset:offset + min(256, va + fs - address)]).split(b"\0")[0]
+                if value and all(32 <= byte < 127 for byte in value):
+                    smap.setdefault(value, address)
+                break
     return smap
 
 
-def read_cache_cstrs(dsc, targets):
+def read_cache_cstrs(dsc, targets, limit=256):
     """{target_addr: cstring_bytes} read from the cache (reopens it; handles subcaches)."""
     import pathlib
     out = {}
@@ -119,7 +147,8 @@ def read_cache_cstrs(dsc, targets):
             for t in targets:
                 try:
                     o, ctx = dc.convertAddr(t)
-                    out[t] = bytes(ctx.getBytes(o, 256)).split(b"\x00")[0]
+                    data = bytes(ctx.getBytes(o, limit))
+                    out[t] = data.split(b"\x00", 1)[0] if b"\x00" in data else None
                 except Exception:
                     out[t] = None
         finally:
@@ -328,7 +357,8 @@ def _section_segment(buf, sectname):
     return None
 
 
-def relayout_compact(buf, newbase=0x100000000, insert=None):
+def relayout_compact(buf, newbase=0x100000000, insert=None, normalize_empty=False,
+                     text_tail=0):
     """COMPACT: relocate segments to small 16KB-page-aligned slots (fileoffset==
     vmaddr-newbase, the mach header stays at file 0). Cache segments are >=4KB-aligned
     so each segment delta is a 4KB-multiple, which preserves ADD immediates (12-bit);
@@ -338,6 +368,9 @@ def relayout_compact(buf, newbase=0x100000000, insert=None):
     16KB) and open a `shift`-byte gap right after sect_name's content, extending sect_name's
     size by nbytes (used to append objc selref-slot pool into __objc_selrefs so objc uniques
     them). The gap shifts the rest of that segment; its delta is split into two ranges.
+    text_tail reserves additional executable space after the original __TEXT
+    content for reconstructed cache branch islands. It does not move existing
+    text or extend the ranges accepted by the original-address map.
     Returns (new_buf, deltas, pool_va) -- pool_va is the new vmaddr of the gap start."""
     ncmds, scmds = struct.unpack_from("<II", buf, 16)
     segs, off = [], 32
@@ -360,16 +393,17 @@ def relayout_compact(buf, newbase=0x100000000, insert=None):
     for lc, nm, va, vs, fo, fs, ns in segs:
         nf = cur
         place.append(nf)
+        tail = text_tail if nm == "__TEXT" else 0
         if nm == ins_seg:
             _, sa_sr, sz_sr = _find_section(buf, lc, ns, nm, ins_sect.encode())
             split_va = sa_sr + sz_sr                          # gap opens right after the section
             deltas.append((va, split_va, nf - va))
             deltas.append((split_va, va + max(vs, fs), nf - va + shift))
             pool_va = split_va + (nf - va)                    # new vmaddr of the gap (pool) start
-            cur = nf + ((max(vs, fs) + shift + 0x3FFF) & ~0x3FFF)
+            cur = nf + ((max(vs, fs) + shift + tail + 0x3FFF) & ~0x3FFF)
         else:
             deltas.append((va, va + max(vs, fs), nf - va))
-            cur = nf + ((max(vs, fs) + 0x3FFF) & ~0x3FFF)
+            cur = nf + ((max(vs, fs) + tail + 0x3FFF) & ~0x3FFF)
     new = bytearray(cur - newbase)
     for (lc, nm, va, vs, fo, fs, ns), nf in zip(segs, place):
         if nm == ins_seg:
@@ -382,7 +416,7 @@ def relayout_compact(buf, newbase=0x100000000, insert=None):
     ld = 0
     for (lc, nm, va, vs, fo, fs, ns), nf in zip(segs, place):
         delta = nf - va
-        extra = shift if nm == ins_seg else 0
+        extra = (shift if nm == ins_seg else 0) + (text_tail if nm == "__TEXT" else 0)
         split_va = (struct.unpack_from("<Q", buf, _find_section(buf, lc, ns, nm, ins_sect.encode())[0]+32)[0]
                     + _find_section(buf, lc, ns, nm, ins_sect.encode())[2]) if nm == ins_seg else None
         struct.pack_into("<Q", new, lc+24, nf)                       # vmaddr (16KB-aligned)
@@ -390,16 +424,25 @@ def relayout_compact(buf, newbase=0x100000000, insert=None):
         struct.pack_into("<Q", new, lc+40, nf-newbase)               # fileoff
         fsz = fs+extra if nm == "__LINKEDIT" else ((fs+extra+0x3FFF) & ~0x3FFF)
         struct.pack_into("<Q", new, lc+48, fsz)                      # filesize
+        if normalize_empty and nm in ("__DATA_CONST", "__AUTH_CONST"):
+            flags = struct.unpack_from("<I", new, lc + 68)[0]
+            struct.pack_into("<I", new, lc + 68, flags | 0x10)  # SG_READ_ONLY
         for k in range(ns):
             so = lc+72+k*80
             sa = struct.unpack_from("<Q", new, so+32)[0]
+            ssize = struct.unpack_from("<Q", new, so+40)[0]
             if sa == 0:                  # zerofill / no-address section: nothing to relocate
                 continue
-            if not (va <= sa < va+vs):   # real section out of range would be a bug -> surface it
+            if not (va <= sa < va+vs or (ssize == 0 and sa == va+vs)):
                 print(f"  WARN: section addr {sa:#x} outside {nm} [{va:#x},{va+vs:#x}] (relocating anyway)")
             sd = delta + (shift if (split_va is not None and sa >= split_va) else 0)
             struct.pack_into("<Q", new, so+32, sa+sd)               # sect.addr += (split-aware) delta
-            if struct.unpack_from("<I", new, so+48)[0]:
+            if normalize_empty and ssize == 0:
+                # The shared-cache builder empties stub sections and leaves
+                # offset=0 / stale alignment. Standalone dyld validates these
+                # even though they contain no instructions.
+                struct.pack_into("<II", new, so+48, (sa+sd)-newbase, 0)
+            elif struct.unpack_from("<I", new, so+48)[0]:
                 struct.pack_into("<I", new, so+48, (sa+sd)-newbase)  # sect.offset = addr-base
             if nm == ins_seg and buf[so:so+16].split(b"\0")[0] == ins_sect.encode():
                 struct.pack_into("<Q", new, so+40, sz_sr + ins_grow)  # extend section over selref pool only
@@ -470,6 +513,93 @@ def collect_got_refs(buf, dsc):
         if nm and nm.startswith("_ptr."): nm = nm[5:]
         if nm: out[a] = (nm, is_auth)
     return out
+
+
+def collect_external_branches(buf):
+    """Cache branch islands are outside the Mach-O, even after dyldex runs."""
+    segments, _, _ = parse_segments(buf)
+    calls = {}
+    for nm, va, vs, fo, fs, lc in segments:
+        if nm != "__TEXT":
+            continue
+        for k in range(struct.unpack_from("<I", buf, lc + 64)[0]):
+            so = lc + 72 + k * 80
+            if buf[so:so + 16].split(b"\0")[0] != b"__text":
+                continue
+            address, size = struct.unpack_from("<QQ", buf, so + 32)
+            offset = struct.unpack_from("<I", buf, so + 48)[0]
+            for delta in range(0, size, 4):
+                word = struct.unpack_from("<I", buf, offset + delta)[0]
+                if word & 0x7C000000 != 0x14000000:
+                    continue
+                displacement = word & 0x3FFFFFF
+                if displacement & 0x2000000:
+                    displacement -= 0x4000000
+                pc = address + delta
+                target = pc + displacement * 4
+                if not any(sva <= target < sva + svs for _, sva, svs, *_ in segments):
+                    calls[pc] = target
+    symbols = a2s_batch(set(calls.values()))
+    result = {}
+    for pc, target in calls.items():
+        name = symbols.get(target, (None,))[0]
+        if not name or name == "?":
+            raise SystemExit(f"Unresolved cache branch island {target:#x} at {pc:#x}")
+        result[pc] = name
+    return result
+
+
+def rebuild_external_branches(buf, segments, branches, amap, got_slots, nbase, selector_slots):
+    if not branches:
+        return
+    names = sorted(set(branches.values()))
+    text = next(segment for segment in segments if segment[0] == "__TEXT")
+    section, start, size = _find_section(buf, text[5],
+        struct.unpack_from("<I", buf, text[5] + 64)[0], "__TEXT", b"__auth_stubs")
+    if section is None or size:
+        raise SystemExit("Modern branch rebuild requires an empty __auth_stubs section")
+    start = (start + 15) & ~15
+    if start + len(names) * 32 > text[1] + text[4]:
+        raise SystemExit("Insufficient __TEXT padding for modern branch islands")
+    stubs = {name: start + index * 32 for index, name in enumerate(names)}
+    for name, address in stubs.items():
+        slot = got_slots["__branch." + name]
+        prefix = ()
+        if name.startswith("_objc_msgSend$"):
+            selector = selector_slots[name.split("$", 1)[1]]
+            prefix = (_set_adrp(0x90000001, address, selector),
+                      0xF9400021 | (((selector & 0xFFF) // 8) << 10))
+        pc = address + len(prefix) * 4
+        words = prefix + (_set_adrp(0x90000010, pc, slot),
+                 _set_add_imm(0x91000210, slot & 0xFFF),
+                 0xF9400211, 0xD71F0A30)  # ldr x17,[x16]; braa x17,x16
+        words += (0xD503201F,) * (8 - len(words))
+        struct.pack_into("<8I", buf, address - nbase, *words)
+    for original, name in branches.items():
+        pc = amap(original)
+        displacement = (stubs[name] - pc) // 4
+        if not -(1 << 25) <= displacement < (1 << 25):
+            raise SystemExit("Rebuilt branch island exceeds B/BL range")
+        offset = pc - nbase
+        word = struct.unpack_from("<I", buf, offset)[0]
+        struct.pack_into("<I", buf, offset, (word & 0xFC000000) | (displacement & 0x3FFFFFF))
+    struct.pack_into("<QQII", buf, section + 32, start, len(names) * 32, start - nbase, 4)
+    end = start + len(names) * 32
+    # Several optimized-away ObjC sections follow __auth_stubs at the same
+    # original address. Keep their zero-length ranges ordered after our code.
+    for k in range(struct.unpack_from("<I", buf, text[5] + 64)[0]):
+        so = text[5] + 72 + k * 80
+        address, size = struct.unpack_from("<QQ", buf, so + 32)
+        if so > section and address < end:
+            if size:
+                raise SystemExit("Rebuilt branch islands would overlap live text data")
+            struct.pack_into("<Q", buf, so + 32, end)
+            struct.pack_into("<II", buf, so + 48, end - nbase, 0)
+    flags = struct.unpack_from("<I", buf, section + 64)[0]
+    # These stubs bind through explicit chained GOT entries, with no lazy or
+    # indirect-symbol-table lookup. Mark them as ordinary instructions.
+    struct.pack_into("<III", buf, section + 64, flags & ~0xFF, 0, 0)
+    print(f"rebuilt {len(branches)} calls through {len(names)} local authenticated branch islands")
 
 
 def _find_sect(buf, name):
@@ -1270,6 +1400,39 @@ def parse_segments(buf):
     return segs, ncmds, scmds
 
 
+def append_fixups_command(buf, dataoff, datasize):
+    """Add fixups without occupying code bytes, including a later codesign LC."""
+    segments, ncmds, scmds = parse_segments(buf)
+    section_offsets = []
+    commands, offset = [], 32
+    for _ in range(ncmds):
+        cmd, size = struct.unpack_from("<II", buf, offset)
+        commands.append((cmd, bytes(buf[offset:offset + size])))
+        offset += size
+    for nm, va, vs, fo, fs, lc in segments:
+        for k in range(struct.unpack_from("<I", buf, lc + 64)[0]):
+            so = lc + 72 + k * 80
+            size = struct.unpack_from("<Q", buf, so + 40)[0]
+            file_offset = struct.unpack_from("<I", buf, so + 48)[0]
+            if size and file_offset:
+                section_offsets.append(file_offset)
+    first_section = min(section_offsets, default=0x4000)
+    # codesign adds LC_CODE_SIGNATURE when the cache image had none. A native
+    # loader may tolerate the resulting header overlap, while the iOS signing
+    # verifier rejects it and the first function's instructions are destroyed.
+    signing_room = 0 if any(cmd == 0x1D for cmd, _ in commands) else 16
+    old_size = scmds
+    if 32 + scmds + 16 + signing_room > first_section:
+        commands = [(cmd, data) for cmd, data in commands
+                    if cmd not in (LC_FUNCTION_STARTS, LC_DATA_IN_CODE)]
+    header = b"".join(data for _, data in commands)
+    if 32 + len(header) + 16 + signing_room > first_section:
+        raise SystemExit(f"no header room including codesign: first_sec={first_section:#x}")
+    header += struct.pack("<IIII", LC_DYLD_CHAINED_FIXUPS, 16, dataoff, datasize)
+    buf[32:32 + max(old_size, len(header))] = header + bytes(max(0, old_size - len(header)))
+    struct.pack_into("<II", buf, 16, len(commands) + 1, len(header))
+
+
 def main(dsc, image_substr, dex_out, final_out, mode="compact"):
     global DSC; DSC = dsc
     logging.basicConfig(level=100)
@@ -1304,6 +1467,7 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
                 o += sz
 
             fx = []  # (addr, target, auth, key, div, addrdiv)
+            modern_cache = False
             class C(slide_info._V3Rebaser):
                 def _rebasePage(self, ctx, pageOffset, delta):
                     loc = pageOffset
@@ -1326,6 +1490,31 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
             for info in slide_info._getMappingInfo(ectx):
                 if info.slideInfo.version == 3:
                     C(ectx, info).run()
+                elif info.slideInfo.version == 5:
+                    modern_cache = True
+                    if not hasattr(slide_info, "_V5Rebaser"):
+                        raise SystemExit("Apply dyldextractor-2.2.2-slide-v5.patch first")
+                    class C5(slide_info._V5Rebaser):
+                        def _rebasePage(self, ctx, pageOffset, delta):
+                            loc = pageOffset + delta
+                            end = pageOffset + self.slideInfo.page_size
+                            while True:
+                                if loc + 8 > end or (loc - pageOffset) % 8:
+                                    raise ValueError("Invalid slide-info-v5 page chain")
+                                raw = self.dyldCtx.readFormat("<Q", loc)[0]
+                                t, auth, key, div, ad, delta = slide_info.decodeV5Pointer(
+                                    raw, self.slideInfo.value_add)
+                                a = self.mapping.address + loc - self.mapping.fileOffset
+                                if in_img(a):
+                                    fx.append([a, t, auth, key, div, ad])
+                                if delta == 0:
+                                    break
+                                loc += delta
+                    C5(ectx, info).run()
+                elif any(lo < info.mapping.address + info.mapping.size
+                         and info.mapping.address < hi for lo, hi in segs):
+                    raise SystemExit(
+                        f"Unsupported arm64e fixup version {info.slideInfo.version}")
         finally:
             for sf in subs:
                 sf.close()
@@ -1348,6 +1537,9 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
         if s: got_auth[s] = True
     for _field, _target, symbol, _width in lsda_type_refs:
         if symbol: got_auth[symbol] = got_auth.get(symbol, False)
+    branches = collect_external_branches(buf) if modern_cache and mode == "compact" else {}
+    for name in branches.values():
+        got_auth["__branch." + name] = True
     got_syms = sorted(got_auth)
     if got_syms: print(f"out-of-image GOT: {len(got_targets)} slots -> {len(got_syms)} symbols "
                        f"({sum(got_auth.values())} auth fn, {len(got_syms)-sum(got_auth.values())} data)")
@@ -1358,13 +1550,41 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
     # objc selref pool: one slot per unique selector used by relative method lists, appended
     # into __objc_selrefs so objc uniques them at load (small lists are assumed pre-uniqued).
     uniq_sel = sorted({s for _, s in objc_names})
+    branch_selectors = sorted({name.split("$", 1)[1] for name in branches.values()
+                               if name.startswith("_objc_msgSend$")})
+    selector_count = len(uniq_sel) + len(branch_selectors)
+    # New caches also move Objective-C type/ivar/protocol strings out of the
+    # image. Reserve explicit, NUL-terminated copies alongside the rebuilt GOT.
+    # The old v3 pipeline keeps its layout and string-localization behavior.
+    cache_strings = {}
+    if modern_cache and mode == "compact":
+        external = {t & 0x00FFFFFFFFFFFFFF for _, t, au, *_ in fx
+                    if not in_img(t & 0x00FFFFFFFFFFFFFF)}
+        for target, value in read_cache_cstrs(dsc, external, 65536).items():
+            if value and all(32 <= b < 127 for b in value):
+                cache_strings[target] = value
+    string_blob = bytearray()
+    string_offsets = {}
+    offsets_by_value = {}
+    for target, value in sorted(cache_strings.items()):
+        if value not in offsets_by_value:
+            offsets_by_value[value] = len(string_blob)
+            string_blob += value + b"\0"
+        string_offsets[target] = offsets_by_value[value]
+    branch_string_offsets = {}
+    for selector in branch_selectors:
+        value = selector.encode()
+        if value not in offsets_by_value:
+            offsets_by_value[value] = len(string_blob)
+            string_blob += value + b"\0"
+        branch_string_offsets[selector] = offsets_by_value[value]
     pool_sect = None
     pool_seg = None
-    if mode == "compact" and (uniq_sel or got_syms):
+    if mode == "compact" and (selector_count or got_syms or string_blob):
         # ObjC images need selector slots inside __objc_selrefs so objc uniques
         # them. Plain C dylibs such as vmnet have no ObjC section; append their
         # rebuilt external-data GOT pool to the existing __got instead.
-        candidates = (["__objc_selrefs"] if uniq_sel else []) + [
+        candidates = (["__objc_selrefs"] if selector_count else []) + [
             "__got", "__data"]
         for candidate in candidates:
             pool_seg = _section_segment(buf, candidate.encode())
@@ -1372,16 +1592,20 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
                 pool_sect = candidate
                 break
     if mode == "compact":
+        branch_space = len(set(branches.values())) * 32 + 15 if branches else 0
         if pool_seg:
-            pool_size = (len(uniq_sel) + len(got_syms)) * 8
+            slots_size = (selector_count + len(got_syms)) * 8
+            pool_size = slots_size + (len(string_blob) + 7) // 8 * 8
             # With selector slots, only that prefix belongs to the ObjC
             # section. A C dylib's whole pool is ordinary GOT data.
-            section_growth = len(uniq_sel) * 8 if uniq_sel else pool_size
+            section_growth = selector_count * 8 if selector_count else pool_size
             buf, deltas, pool_va = relayout_compact(
                 buf, insert=(pool_seg, pool_sect, pool_size,
-                             section_growth))
+                             section_growth), normalize_empty=modern_cache,
+                text_tail=branch_space)
         else:
-            buf, deltas = relayout_compact(buf); pool_va = None
+            buf, deltas = relayout_compact(buf, normalize_empty=modern_cache,
+                                          text_tail=branch_space); pool_va = None
         amap = make_amap(deltas); nbase = 0x100000000
     elif mode == "pad":
         reorder_segments(buf); buf = relayout_pad(buf); amap = lambda a: a; nbase = base
@@ -1391,9 +1615,14 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
     objc_slot_reb = []        # (new_slot_addr, new_string_addr) objc selref-pool rebases
     auth_stub_binds = []      # (slot_addr, symbol) rebuilt __auth_got auth-binds
     got_slot = {}             # {symbol: new_slot_addr} rebuilt in-image GOT pool
+    branch_selector_slots = {}
     if mode == "compact" and pool_va is not None and got_syms:
-        got_pool_va = pool_va + len(uniq_sel) * 8                 # GOT pool sits right after the selref pool
+        got_pool_va = pool_va + selector_count * 8               # GOT pool sits right after the selref pool
         got_slot = {s: got_pool_va + i * 8 for i, s in enumerate(got_syms)}
+        branch_selector_slots = {selector: pool_va + (len(uniq_sel) + i) * 8
+                                 for i, selector in enumerate(branch_selectors)}
+        for selector, slot in branch_selector_slots.items():
+            objc_slot_reb.append((slot, pool_va + slots_size + branch_string_offsets[selector]))
     got_ref_slot = {t: got_slot[s] for t, (s, au) in got_targets.items() if s in got_slot}
     if mode == "compact" and unwind_pers and got_slot:           # repoint __unwind_info personalities
         npr = rewrite_unwind_personalities(buf, unwind_pers, got_slot, nbase)
@@ -1407,6 +1636,7 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
         rewrite_adrp(buf, osegs, deltas, got_ref_slot)
         text_delta = next(d for lo, hi, d in deltas if lo + d == nbase)
         auth_stub_binds = fix_auth_stubs(buf, osegs, text_delta, dsc, amap)
+        rebuild_external_branches(buf, osegs, branches, amap, got_slot, nbase, branch_selector_slots)
         nfix = 0                                   # fix objc relative method-list types/imp offsets
         for fa, tgt in objc_recs:
             na, nt = amap(fa), amap(tgt)
@@ -1448,6 +1678,14 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
             if va <= a < va+vs: return fo + (a-va)
         raise KeyError(hex(a))
 
+    copied_cache_strings = {}
+    if mode == "compact" and pool_va is not None and string_blob:
+        string_base = pool_va + slots_size
+        string_offset = addr2off(string_base)
+        buf[string_offset:string_offset + len(string_blob)] = string_blob
+        copied_cache_strings = {target: string_base + offset
+                                for target, offset in string_offsets.items()}
+
     # ---- classify + resolve binds; emit in NEW (relocated) addr space ----
     # a2s sometimes returns an objc-class alias not exported on iOS; map to the
     # concrete-block symbol that IS exported (same address, libSystem).
@@ -1484,6 +1722,10 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
             name = name[len("__got."):]
         if name and name.startswith("_ptr."):
             name = name[len("_ptr."):]
+        if name and name.startswith("__branch."):
+            name = name[len("__branch."):]
+            if name.startswith("_objc_msgSend$"):
+                name = "_objc_msgSend"
         return ALIAS.get(name, name)
     # PLAIN pointers carry a TBI/high8 byte in bits 56-63 (arm64e plain-rebase has a
     # dedicated high8 field). Strip it for in-image classification + target math, then
@@ -1501,14 +1743,30 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
     # already copied the strings into our local CstringLiterals sections, so repoint these
     # pointers at the local copy (in-image rebase) instead of an (impossible) named bind.
     unnamed = [rt for rt in bind_tgts if not sym_map.get(rt, (None,))[0] or sym_map[rt][0] == "?"]
-    localize = {}
+    localize = dict(copied_cache_strings)
     if unnamed:
-        local_str_va = build_local_str_va(buf)
+        local_str_va = build_local_str_va(buf, amap, uniq_sel)
         cstrs = read_cache_cstrs(dsc, unnamed)
         for rt in unnamed:
             s = cstrs.get(rt)
             if s and s in local_str_va:
                 localize[rt] = local_str_va[s]
+        # Ivar types/names and protocol names also live in the synthetic
+        # segment. Preserve the pointer already localized by DyldExtractor
+        # only when its copied bytes exactly match the original cache string.
+        for addr, target, auth, *_ in fx:
+            rt = real_t(target, auth)
+            value = cstrs.get(rt)
+            if rt in localize or not value or not all(32 <= b < 127 for b in value):
+                continue
+            nloc = amap(addr)
+            pointer = struct.unpack_from("<Q", buf, addr2off(nloc))[0]
+            address = amap(pointer)
+            if address is None:
+                continue
+            offset = addr2off(address)
+            if bytes(buf[offset:offset + len(value) + 1]) == value + b"\0":
+                localize[rt] = address
         miss = [rt for rt in unnamed if rt not in localize]
         print(f"localized {len(localize)}/{len(unnamed)} unnamed objc string targets")
         if miss:
@@ -1679,18 +1937,7 @@ def main(dsc, image_substr, dex_out, final_out, mode="compact"):
     struct.pack_into("<Q", buf, li[5]+32, vmsize)           # vmsize
     struct.pack_into("<Q", buf, li[5]+48, li[4])            # filesize (fileoff @+40 intact)
 
-    # find space for new LC: drop LC_FUNCTION_STARTS + LC_DATA_IN_CODE if needed, then append our LC
-    # simplest: append after last LC; ensure header region has room before first section data.
-    first_sec_off = min((s[3] for s in osegs if s[3] > 0), default=0x4000)
-    lc_end = 32 + scmds
-    newlc = struct.pack("<IIII", LC_DYLD_CHAINED_FIXUPS, 16, dataoff, len(blob))
-    if lc_end + 16 <= first_sec_off:
-        buf[lc_end:lc_end] = b""        # write in place
-        buf[lc_end:lc_end+16] = newlc
-        struct.pack_into("<I", buf, 16, ncmds+1)     # ncmds
-        struct.pack_into("<I", buf, 20, scmds+16)    # sizeofcmds
-    else:
-        raise SystemExit(f"no header room: lc_end={lc_end:#x} first_sec={first_sec_off:#x}")
+    append_fixups_command(buf, dataoff, len(blob))
 
     # clear MH_DYLIB_IN_CACHE (correct metadata: the dylib is no longer in the cache;
     # tolerated-if-set on 13.2/16.3.1 dyld, but cleared for correctness, as dsce does)

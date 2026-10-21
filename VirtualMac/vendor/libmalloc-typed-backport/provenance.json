@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "license": "APSL-2.0",
+  "licenseSourceURL": "https://opensource.apple.com/apsl/",
+  "licenseSavedHTMLSHA256": "2378c7e7157652c8eb5d6f8311abbb240fb52e41a2bce5459c92ffa258acdfdd",
+  "upstreamCommit": "c49dafa25f1efe8607701ae6014a663ad2ee437f",
+  "upstreamPublicSourceURL": "https://github.com/apple-oss-distributions/libmalloc/blob/c49dafa25f1efe8607701ae6014a663ad2ee437f/src/malloc.c",
+  "upstreamRanges": [
+    {
+      "start": 3034,
+      "end": 3112,
+      "purpose": "actual old-zone CLEAR/aligned allocation/unknown-options trap/non-MTE fallback"
+    },
+    {
+      "start": 3135,
+      "end": 3160,
+      "purpose": "actual public default8/nonmultiple/align0 validation"
+    }
+  ],
+  "sourceAdaptationDate": "2026-10-04",
+  "adaptation": "Scoped LP64 symbol aliases and non-MTE old-zone fallback; exact original41 implementation body preserved, with source/license notices added.",
+  "sourceBodyByteIdenticalToFrozen41": true,
+  "typedMemoryRewriteDisabledRequired": true,
+  "twoExportBuildDefine": "VZ_TYPED_ALLOCATOR_INCREMENTAL_ONLY=1",
+  "actualNativeEvidence": {
+    "path": "DeviceDiagnostics/2026-10-02-virtualmac-2.0/Tahoe3/modern-typed-allocator-native-v2",
+    "pid": 72688,
+    "exit": 0,
+    "stdoutSHA256": "b09aa274bd95f765110fa2eca503b09450aad73d67c7103bcc741cc1753216a3",
+    "cases": 25,
+    "checks": 137,
+    "allocations": 20,
+    "ownerFrees": 20,
+    "elapsedMilliseconds": 3.777
+  },
+  "thisProjectOutputDeviceInstalledOrRun": false,
+  "fullFiveAPIsNativePassed": false,
+  "SwiftCore27OrVMM27Passed": false,
+  "stockAllocatorReplaced": false,
+  "typedTelemetryMTEOrSegregationImplemented": false,
+  "upstreamFiles": [
+    {
+      "relativePath": "upstream/SDK27.1-_malloc.h",
+      "bytes": 7220,
+      "sha256": "582378b3f3074aa1aa831dd0c378d4dc71cfdd77d1840ca6291fca5a85f95abe"
+    },
+    {
+      "relativePath": "upstream/SDK27.1-_malloc_type.h",
+      "bytes": 9933,
+      "sha256": "637f4e32fed7f9005738b465b124f388458270855001d68ec3ce92e643171cae"
+    },
+    {
+      "relativePath": "upstream/SDK27.1-malloc.h",
+      "bytes": 34283,
+      "sha256": "30b32f3e32fb6769eadb9f0a93005513950980365b8a8882706b9a309ef6d460"
+    },
+    {
+      "relativePath": "upstream/libmalloc-commit.json",
+      "bytes": 728826,
+      "sha256": "5b500e5b53071366687e65aac8c8895c8a10901ceedebc912dc4776620eb28c4"
+    },
+    {
+      "relativePath": "upstream/malloc.c",
+      "bytes": 120200,
+      "sha256": "756266669e8251f475d8939a3770f4d430b644104b9f3cb65460c71edea94ec6"
+    }
+  ]
+}

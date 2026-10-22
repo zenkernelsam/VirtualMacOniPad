@@ -259,6 +259,24 @@ __attribute__((constructor)) static void boot(void) {
     objc_registerClassPair(mk);
     void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
     if (xt) xt();
+    // Pin akd for real: an open client connection to its own listener
+    // keeps launchd's idle accounting satisfied where transaction_begin
+    // alone proved insufficient (still idle-exited ~30s).
+    void *(*xc)(const char *, void *, uint64_t) =
+        dlsym(RTLD_DEFAULT, "xpc_connection_create_mach_service");
+    if (xc) {
+        static void *keepConn;
+        keepConn = xc("com.apple.ak.anisette.xpc",
+            (__bridge void *)dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), 0);
+        if (keepConn) {
+            void (*seth)(void *, void *) = dlsym(RTLD_DEFAULT,
+                "xpc_connection_set_event_handler");
+            void (*resume)(void *) = dlsym(RTLD_DEFAULT,
+                "xpc_connection_resume");
+            if (seth) seth(keepConn, (__bridge void *)^(void *e){ (void)e; });
+            if (resume) resume(keepConn);
+        }
+    }
     pthread_t t;
     pthread_create(&t, NULL, (void *(*)(void *))serve, NULL);
     pthread_detach(t);

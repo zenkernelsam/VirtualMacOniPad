@@ -781,3 +781,9 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - `signaturesForData:options:completion:` → **无论 dict 形态还是 NSArray+NSData 形态，一调用 iPad akd 立即 clean-exit 重生**（无 crash report=exit() 非 abort）→ 链路易断 → 客机 4097/吞字段
 - 排除：selector 存在于 iOS `AKAnisetteProvisioningService`@0x100059348；参数形态两种都试过；非传输层问题
 - 下次候选：①反汇编 ipad-akd@0x59348 看前置断言/exit 条件；②试同服务其他签名方法（`signatureForData:`单数/`absintheSignatureForData:`）隔离是否该路径整体如此；③iPad `log show` 在该环境无数据，换 Console 流或断点日志
+
+### 20:2x fanout 路径实测
+- `signaturesForData:options:` 已改拆解转发：逐 NSData 调 `absintheSignatureForData:`（iOS leaf 原语不查 XPC context，实测返回真签名）
+- iPad pin 修复：`xpc_transaction_begin` 无效 → 改用自连 `com.apple.ak.anisette.xpc` 客户端连接保活（akd 存活 >90s）
+- 结果：absinthe 真实执行 ~8.5s/条返回 err:true——iPad 对真 payload 拒绝。**待拿**：errDomain/errCode（guest 端 err 详情仍未上浮；下一步在 sepForward 打印 resp["error"] 原始 k/v）
+- 待办：getenv 检查 `MACWS_...`/swift 侧 logging；iPad akd 仍可能因 entitlement 校验失败拒绝签名（用真 audit_token 的 AKClient 也许缺 apple-specific entitlement）

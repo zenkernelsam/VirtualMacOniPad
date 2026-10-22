@@ -353,6 +353,56 @@ static void sepFwdB1(id self, SEL _cmd, BOOL x, id a, id completion) {
     sepForward(_cmd, @[@(x), a ?: NSNull.null], completion);
 }
 
+// iOS's signaturesForData:options: daemon entry performs a peer-context
+// check that exits the process for injected callers. The leaf primitive
+// absintheSignatureForData: does not — it signs raw bytes and returns.
+// Decompose the batch call into per-item absinthe forwards and rebuild
+// the response shape (dict->dict, array->array).
+static void sepFwdAbsintheBatch(id self, SEL _cmd, id datas, id options,
+                              id completion) {
+    SEL leaf = sel_registerName("absintheSignatureForData:completion:");
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    __block id rebuilt = nil;
+    __block id firstErr = nil;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        id (^signOne)(id) = ^id(id item) {
+            if (![item isKindOfClass:NSData.class]) return item;
+            dispatch_semaphore_t s1 = dispatch_semaphore_create(0);
+            __block id out = nil, err = nil;
+            sepForward(leaf, @[item], ^(NSArray *a, id e) {
+                out = a.count ? a[0] : nil;
+                err = e;
+                dispatch_semaphore_signal(s1);
+            });
+            dispatch_semaphore_wait(s1,
+                dispatch_time(DISPATCH_TIME_NOW, 30ull * NSEC_PER_SEC));
+            if (err && !firstErr) firstErr = err;
+            return out;
+        };
+        if ([datas isKindOfClass:NSDictionary.class]) {
+            NSMutableDictionary *r = [NSMutableDictionary dictionary];
+            for (id k in datas) r[k] = signOne(datas[k]) ?: NSNull.null;
+            rebuilt = r;
+        } else if ([datas isKindOfClass:NSArray.class]) {
+            NSMutableArray *r = [NSMutableArray array];
+            for (id item in datas)
+                [r addObject:signOne(item) ?: NSNull.null];
+            rebuilt = r;
+        } else {
+            rebuilt = signOne(datas);
+        }
+        dispatch_semaphore_signal(sem);
+    });
+    dispatch_semaphore_wait(sem,
+        dispatch_time(DISPATCH_TIME_NOW, 120ull * NSEC_PER_SEC));
+    // The wrapped-results path expects the remote's wire format; rebuild
+    // one item as a keyed archive so unwrap reproduces the object.
+    NSData *arch = [NSKeyedArchiver archivedDataWithRootObject:
+        rebuilt ?: [NSNull null] requiringSecureCoding:NO error:nil];
+    NSArray *wrapped = arch ? @[@{@"k": @"keyed", @"v": arch}] : @[];
+    sepInvokeCompletion(completion, wrapped, firstErr);
+}
+
 #pragma mark - Swizzle installation
 
 static CFMutableSetRef swizzled;
@@ -380,8 +430,8 @@ static const struct { const char *sel; IMP impl; } kDaemonOps[] = {
     // but the macOS implementation decomposes into the leaf ops below,
     // which all exist on the iOS daemon service and are forwarded.
     {"absintheSignatureForData:completion:", (IMP)sepFwd1},
-    {"signaturesForData:options:completion:", (IMP)sepFwd2},
-    {"signatureForData:options:completion:", (IMP)sepFwd2},
+    {"signaturesForData:options:completion:", (IMP)sepFwdAbsintheBatch},
+    {"signatureForData:options:completion:", (IMP)sepFwdAbsintheBatch},
 };
 
 static unsigned sepSwizzleDaemonClass(Class c) {

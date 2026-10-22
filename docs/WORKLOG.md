@@ -681,3 +681,12 @@
 - [x] macPad PR#4（DCMMC/macPad，kaidourei0，恢复 15.6.1 guest Apple 账户登录）逐件评估并移植：见 `docs/VM-APPLE-SIGNIN-ADAPTER.md`。落地 `vz/guest/AppleAccountSignInCompat.m`（web22 30→90s 定时器+WebHTMLView 重绘修复、LA/CTK/AIDA 纯观察器、`VMACCT` JSON stderr）；`build-account-signin-compat.sh` 三切片构建；build-guest-tools.sh 入 payload；VZGuestTools.m 条件式拷贝+严格验签；GuestToolsApp `AccountSignInAdapter` defaults key（默认关）组合 insert 列表。适配器三切片与 GuestToolsApp/VZGuestTools 语法编译均过。
 - [x] 结论：namespace/keybag 映射为 chroot 专属不需移植；VM 主阻断点仍是 guest 无 SEP 派生身份（ARM-APPLE-IDENTITY §5）；本适配器修 web 阶段 + 产出死亡位置证据，不承诺登录成功；半虚拟 SEP 桥列为后续候选战线。
 - [ ] push 仍待 GitHub 凭据（本机无 https 凭据/SSH key——此前 fc2629b、10f32d2 同挂起）。
+
+## 2026-10-22 — merge 无损审计 + sign-in 适配器宿主烟测
+
+- [x] **merge 无损证明**（回答"会不会把我们的修复弄丢"）：我们改过而 netsflex 未碰的 60 个文件（热点 bootpd-hotspot-merge.py/sh/plist、PVGDeviceInfo*、metalshim、native_bc_texture_support 等）合并后逐字节一致（`git diff 10f32d2..d1b11d3` 为空）；8 个共享代码文件的特征标记全数在位（GL `VIRTUAL_MAC_OPENGL_PARTICLE_SWITCH_LOWER`/`VIRTUAL_MAC_METAL_FAMILY_COMPAT`/Apple7 profile 计数与合并前相同=5，identity/caps 标记 6，VZVMLibraryViewController 身份 UI 标记 5，SyncGuestClock 保留）；全删行逐条核对均为 merge-base 原始代码被对方重构，0 行我们的代码丢失（唯一例外是冲突解决时主动改写的 6 行：uncache.py 注释合并、vmmhook 双保留组合）。
+- [x] **适配器宿主烟测**（本机 15.8.1 x86_64，DYLD_INSERT 注入 dlopen AuthKitUI/LA/CTK/AIDA 的测试进程）：`web-installed wait_seconds=90 original_callbacks=true`、`la-installed 3/3`、`ctk-installed 3/3`、`owner-installed registered_cloud=1`（并真实观察到 4 个 ServiceOwner bundle 回调含 AACloudServiceOwner）。
+- [x] **发现并修复全局注入时序差异**：add-image 回调时 ObjC 类未注册（`objc_getClass` nil）→ 改 pending+全局队列重试（250ms×60）待 anchor 类可解析后安装，installed/pending 双掩码保证幂等。提交 `813c78f`。
+- [x] guest-tools payload 端到端构建通过：`AppleAccountSignInCompat.dylib` 三切片（x86_64/arm64/arm64e）入 tar 包 `/Library/VirtualMac/`。
+- [ ] `.a2s` 缓存后台重建中（ipsw-a2sb `dyld a2s --cache`，22D68 DSC；完成后 uncache 才产出忠实 payload——决定正式测试 deb 的构建时点）。
+- [ ] push 待 GitHub 凭据；iPad SSH 凭据本会话不可用，安装/重启/取证均需用户执行。

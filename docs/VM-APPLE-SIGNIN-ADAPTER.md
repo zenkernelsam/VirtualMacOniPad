@@ -42,6 +42,23 @@ macPad 是 chroot 路线：guest 与 iPadOS 共享内核，账户/钥匙串 daem
 - **`VirtualMac/vz/host/VZGuestTools.m`**：provisioning 脚本段新增条件式拷贝 + `codesign --verify --strict`（payload 没有该文件时静默跳过，旧 payload 兼容）
 - **`VirtualMac/vz/guest/VirtualMacGuestToolsApp.m`**：`DYLD_INSERT_LIBRARIES` 改为列表组合——GL（原有逻辑不变）+ account 适配器（仅当 defaults key 开且文件在且运行时安全策略允许）。两者都关时照旧 unsetenv
 
+## 3. 宿主烟测结果（2026-10-22，本机 macOS 15.8.1 x86_64）
+
+用 `DYLD_INSERT_LIBRARIES` 注入普通测试进程（dlopen AuthKitUI/LA/CTK/AIDA）：
+
+```
+VMACCT {"event":"loaded", ...}
+VMACCT {"event":"web-installed","wait_seconds":90,"original_callbacks":true}
+VMACCT {"event":"la-installed","external":1,"connection":1,"sync":1}
+VMACCT {"event":"ctk-installed","bag":1,"auth":1,"aks":1}
+VMACCT {"event":"owner-bundles","count":4,"paths":[...,AACloudServiceOwner.bundle,...]}
+VMACCT {"event":"owner-installed","registered_cloud":true}
+```
+
+期间发现并修复一个真实差异：add-image 回调触发时目标框架的 ObjC 类**尚未注册**（`objc_getClass` 返回 nil）——macPad 在固定 daemon 进程里 constructor 晚于此阶段，VM 全局注入则更早。已改为 pending+重试（250ms×60）等类可解析再装，安装幂等。
+
+注意：宿主 15.8.1 ≠ guest 15.6.1，只是 ABI 烟测；guest 上的真实行为以 VMACCT 日志为准。
+
 ## 3. 启用与取证协议
 
 ```sh

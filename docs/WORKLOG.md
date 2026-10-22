@@ -787,3 +787,8 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - iPad pin 修复：`xpc_transaction_begin` 无效 → 改用自连 `com.apple.ak.anisette.xpc` 客户端连接保活（akd 存活 >90s）
 - 结果：absinthe 真实执行 ~8.5s/条返回 err:true——iPad 对真 payload 拒绝。**待拿**：errDomain/errCode（guest 端 err 详情仍未上浮；下一步在 sepForward 打印 resp["error"] 原始 k/v）
 - 待办：getenv 检查 `MACWS_...`/swift 侧 logging；iPad akd 仍可能因 entitlement 校验失败拒绝签名（用真 audit_token 的 AKClient 也许缺 apple-specific entitlement）
+
+### 关键更正：err:true 是假警报
+- `resp["error"]` = `{"k":"nil"}` dict 永真 → 之前所有 forward-ok err:true 实为**成功返回**（absinthe 真签名已拿到）
+- 真失败只剩 forward-fail（link 断）。email 被吞的真实原因在**更下游**：返回值形状或后续步骤，不是签名失败
+- 下次：把 forward-ok 的 args[0] 类名+长度打进日志，对照 macOS 原生 signaturesForData: 期望返回的形状（NSArray of NSData? dict?），修 fanout 的 reassembly

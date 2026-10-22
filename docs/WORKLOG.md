@@ -775,3 +775,9 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - nserr 可移植错误格式实测：`AKAnisetteError -8004` 完整回传客机，不再 silently 变 nil
 - **新阻塞**：iPad akd 又开始 idle-exit（`xpc_transaction_begin` pin 失效，~30s 退）→ 请求到达时链路常刚断 → helper wake→kickstart→重注(~10s) → 对端 socket 已 reset → `forward-fail`。下一步要么修好 pin（查 dlsym 返回值/换 mach 保活），要么把 helper 重试拉长到覆盖冷启动（已重试 1 次仍不够）
 - 待取证据：`forward-ok` 的 errDomain/errCode 字段已就位，下次真到桥即可见
+
+### 19:4x 卡点收窄（决定性）
+- `legacyAnisetteDataForDSID:` → iPad akd 正常返回真错误（方法可用）
+- `signaturesForData:options:completion:` → **无论 dict 形态还是 NSArray+NSData 形态，一调用 iPad akd 立即 clean-exit 重生**（无 crash report=exit() 非 abort）→ 链路易断 → 客机 4097/吞字段
+- 排除：selector 存在于 iOS `AKAnisetteProvisioningService`@0x100059348；参数形态两种都试过；非传输层问题
+- 下次候选：①反汇编 ipad-akd@0x59348 看前置断言/exit 条件；②试同服务其他签名方法（`signatureForData:`单数/`absintheSignatureForData:`）隔离是否该路径整体如此；③iPad `log show` 在该环境无数据，换 Console 流或断点日志

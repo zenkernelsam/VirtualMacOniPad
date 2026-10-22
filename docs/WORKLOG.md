@@ -690,3 +690,11 @@
 - [x] guest-tools payload 端到端构建通过：`AppleAccountSignInCompat.dylib` 三切片（x86_64/arm64/arm64e）入 tar 包 `/Library/VirtualMac/`。
 - [ ] `.a2s` 缓存后台重建中（ipsw-a2sb `dyld a2s --cache`，22D68 DSC；完成后 uncache 才产出忠实 payload——决定正式测试 deb 的构建时点）。
 - [ ] push 待 GitHub 凭据；iPad SSH 凭据本会话不可用，安装/重启/取证均需用户执行。
+
+## 2026-10-22 08:4x — .a2s 缓存落地后的忠实重建 + deb 交付
+
+- [x] `ipsw dyld a2s --cache` 完成：`22D68__MacOS/dyld_shared_cache_arm64e.a2s`（713MB，08:21 落盘）。
+- [x] `build-frameworks.sh` EXIT=0：日志无 missing-cache WARNING → `--cache` 忠实路径；manifest 四个框架 UUID 全部匹配期望值（HV `1B1E116F`、PVG `732073AB`、VZ `DCFC0A79`、MS `9C249FB4`）；VZ ios 1884080B / `a226ef03…`。
+- [x] `build-ipad-deb.sh` EXIT=0 → **`VirtualMac_1.2.3_317567bbc7.deb`**（20,846,104 B，build/release/）。payload VZ SHA `1b0daef0…` 与 `ipad-vm/payload` 中间件逐字节一致（restamp_bundle 二段 stamp+minos 校验通过）。
+- [x] deb 内 GuestTools tar 含 `AppleAccountSignInCompat.dylib`；热点栈（bootpd/rtadvd+NetworkMemoryPolicy）正常构建。
+- [ ] NAS 镜像目录未挂载（飞牛同步 skipped）；push 仍无凭据（5 commit 待推）；装机/启用 pref/取 VMACCT 日志待用户。

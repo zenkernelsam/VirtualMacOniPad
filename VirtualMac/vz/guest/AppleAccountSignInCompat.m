@@ -343,25 +343,91 @@ static void installOwnerObserver(void) {
 
 #pragma mark - Image watchers
 
-static unsigned acctInstalledMask;
-static void acctInstallForImage(const char *name) {
-    if (!name) return;
-    if (strstr(name, "/AuthKitUI.framework/") && !(acctInstalledMask & 1)) {
-        acctInstalledMask |= 1;
+// On this route the dylib enters every process via DYLD_INSERT_LIBRARIES, so
+// framework appearance is observed with _dyld_register_func_for_add_image.
+// Measured on macOS 15: inside the add-image callback the image is mapped but
+// its ObjC classes are not yet resolvable (objc_getClass returns nil). Defer
+// each framework's install until its anchor class resolves, retrying on a
+// global-queue chain for a bounded window; never install twice.
+enum {
+    kAcctBitAuthKitUI = 1, kAcctBitLocalAuth = 2,
+    kAcctBitCryptoTokenKit = 4, kAcctBitAIDA = 8,
+    kAcctRetryLimit = 60,      // 60 x 250 ms = 15 s window
+    kAcctRetryUSec = 250000,
+};
+static unsigned acctInstalledMask, acctPendingMask, acctRetryCount;
+
+static void acctRetryStep(void);
+
+static void acctScheduleRetry(void) {
+    dispatch_after_f(dispatch_time(0, kAcctRetryUSec * NSEC_PER_USEC),
+        dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), NULL,
+        (void (*)(void *))acctRetryStep);
+}
+
+static BOOL acctClassReady(const char *name) {
+    return name == NULL || objc_getClass(name) != NULL;
+}
+
+static void acctRetryStep(void) {
+    ++acctRetryCount;
+    if ((acctPendingMask & kAcctBitAuthKitUI) &&
+        !(acctInstalledMask & kAcctBitAuthKitUI) &&
+        acctClassReady("AKAuthWebTabView") &&
+        acctClassReady("AKWebKitController")) {
+        acctPendingMask &= ~kAcctBitAuthKitUI;
+        acctInstalledMask |= kAcctBitAuthKitUI;
         installAuthKitWeb();
-    } else if (strstr(name, "/LocalAuthentication.framework/") &&
-               !(acctInstalledMask & 2)) {
-        acctInstalledMask |= 2;
+    }
+    if ((acctPendingMask & kAcctBitLocalAuth) &&
+        !(acctInstalledMask & kAcctBitLocalAuth) &&
+        acctClassReady("LAContext")) {
+        acctPendingMask &= ~kAcctBitLocalAuth;
+        acctInstalledMask |= kAcctBitLocalAuth;
         installLocalAuthObservers();
-    } else if (strstr(name, "/CryptoTokenKit.framework/") &&
-               !(acctInstalledMask & 4)) {
-        acctInstalledMask |= 4;
+    }
+    if ((acctPendingMask & kAcctBitCryptoTokenKit) &&
+        !(acctInstalledMask & kAcctBitCryptoTokenKit) &&
+        acctClassReady("TKLocalSEPKey")) {
+        acctPendingMask &= ~kAcctBitCryptoTokenKit;
+        acctInstalledMask |= kAcctBitCryptoTokenKit;
         installCryptoTokenKitObservers();
-    } else if (strstr(name, "/AppleIDSSOAuthentication.framework/") &&
-               !(acctInstalledMask & 8)) {
-        acctInstalledMask |= 8;
+    }
+    if ((acctPendingMask & kAcctBitAIDA) &&
+        !(acctInstalledMask & kAcctBitAIDA) &&
+        acctClassReady("AIDAServiceOwnersManager")) {
+        acctPendingMask &= ~kAcctBitAIDA;
+        acctInstalledMask |= kAcctBitAIDA;
         installOwnerObserver();
     }
+    if (acctPendingMask && acctRetryCount < kAcctRetryLimit) {
+        acctScheduleRetry();
+    } else if (acctPendingMask) {
+        acctLog(@"install-expired", @{@"pending": @(acctPendingMask)});
+        acctPendingMask = 0;
+    }
+}
+
+static void acctSawFramework(unsigned bit, const char *anchorClass) {
+    if (acctInstalledMask & bit) return;
+    acctPendingMask |= bit;
+    acctRetryCount = 0;
+    if (acctClassReady(anchorClass))
+        acctRetryStep();
+    else
+        acctScheduleRetry();
+}
+
+static void acctInstallForImage(const char *name) {
+    if (!name) return;
+    if (strstr(name, "/AuthKitUI.framework/"))
+        acctSawFramework(kAcctBitAuthKitUI, "AKAuthWebTabView");
+    else if (strstr(name, "/LocalAuthentication.framework/"))
+        acctSawFramework(kAcctBitLocalAuth, "LAContext");
+    else if (strstr(name, "/CryptoTokenKit.framework/"))
+        acctSawFramework(kAcctBitCryptoTokenKit, "TKLocalSEPKey");
+    else if (strstr(name, "/AppleIDSSOAuthentication.framework/"))
+        acctSawFramework(kAcctBitAIDA, "AIDAServiceOwnersManager");
 }
 static void acctImageAdded(const struct mach_header *header, intptr_t slide) {
     (void)header;

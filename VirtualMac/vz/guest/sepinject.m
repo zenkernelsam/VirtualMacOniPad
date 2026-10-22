@@ -245,6 +245,12 @@ static void serve(void) {
 // (private SPI — resolved dynamically; SDK marks it iOS-unavailable)
 #include <dlfcn.h>
 
+static void (*gTxnBegin)(void);
+static void *txnPinLoop(void *_) {
+    for (;;) { sleep(20); if (gTxnBegin) gTxnBegin(); }
+    return NULL;
+}
+
 __attribute__((constructor)) static void boot(void) {
     // May be domain-injected into every user-domain process; only akd
     // owns the bridge.
@@ -258,7 +264,16 @@ __attribute__((constructor)) static void boot(void) {
     if (!mk) return;
     objc_registerClassPair(mk);
     void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
-    if (xt) xt();
+    if (xt) {
+        xt();
+        // Leak one transaction every 20s: launchd's idle-exit fires only
+        // when the outstanding count reaches zero. Idle exits kept
+        // killing the bridge mid-request; this keeps akd resident.
+        gTxnBegin = xt;
+        pthread_t pin;
+        pthread_create(&pin, NULL, txnPinLoop, NULL);
+        pthread_detach(pin);
+    }
     // Pin akd for real: an open client connection to its own listener
     // keeps launchd's idle accounting satisfied where transaction_begin
     // alone proved insufficient (still idle-exited ~30s).

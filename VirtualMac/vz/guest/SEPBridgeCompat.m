@@ -167,7 +167,7 @@ static NSDictionary *sepRoundtrip(NSDictionary *request) {
     if (!payload) { sepLog(@"wire-encode-fail", @{}); return nil; }
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) return nil;
-    struct timeval tv = {25, 0};
+    struct timeval tv = {60, 0};
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     struct sockaddr_in sa;
@@ -317,6 +317,13 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
             @"err": resp[@"error"] ? @YES : @NO} mutableCopy];
         if (resp[@"error"]) {
             id eo = sepUnwrap(resp[@"error"]);
+            if (!eo) {
+                // Raw structure for diagnostics: which wrap kind arrived
+                // and why unwrap dropped it.
+                id rw = resp[@"error"];
+                ev[@"errRaw"] = [rw isKindOfClass:NSDictionary.class]
+                    ? (rw[@"k"] ?: @"?") : NSStringFromClass([rw class]);
+            }
             if ([eo isKindOfClass:NSError.class]) {
                 NSError *ne = eo;
                 ev[@"errDomain"] = ne.domain ?: @"";
@@ -400,7 +407,8 @@ static void sepFwdAbsintheBatch(id self, SEL _cmd, id datas, id options,
     NSData *arch = [NSKeyedArchiver archivedDataWithRootObject:
         rebuilt ?: [NSNull null] requiringSecureCoding:NO error:nil];
     NSArray *wrapped = arch ? @[@{@"k": @"keyed", @"v": arch}] : @[];
-    sepInvokeCompletion(completion, wrapped, firstErr);
+    sepInvokeCompletion(completion, wrapped,
+                        firstErr ? sepWrapError(firstErr) : nil);
 }
 
 #pragma mark - Swizzle installation

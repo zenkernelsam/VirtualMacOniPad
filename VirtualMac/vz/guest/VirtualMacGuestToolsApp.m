@@ -5,6 +5,7 @@
 static NSString * const VMOpenGLKey = @"OpenGLAcceleration";
 static NSString * const VMOpenGLAllowedKey = @"OpenGLAllowed";
 static NSString * const VMAccountSignInKey = @"AccountSignInAdapter";
+static NSString * const VMSEPBridgeKey = @"SEPIdentityBridge";
 static NSString * const VMPencilSupportKey =
     @"ApplePencilPressureTiltEnabled";
 static NSString * const VMLibrary = @"/Library/VirtualMac";
@@ -316,6 +317,18 @@ static NSString *VML(NSString *key)
             stringByAppendingPathComponent:@"AppleAccountSignInCompat.dylib"]];
 }
 
+- (BOOL)sepIdentityBridgeAvailable
+{
+    // Opt-in identity bridge. Default off; the guest enables it with
+    // `defaults write com.mac.virtual.guest-tools SEPIdentityBridge
+    // -bool true`. Forwards anisette/attestation operations to the host
+    // iPad's real SEP path (see docs/SEP-IDENTITY-BRIDGE.md).
+    return [self preferenceForKey:VMSEPBridgeKey defaultValue:NO] &&
+        [self securityPolicySupportsOpenGL] &&
+        [NSFileManager.defaultManager fileExistsAtPath:[VMLibrary
+            stringByAppendingPathComponent:@"SEPBridgeCompat.dylib"]];
+}
+
 - (void)applyOpenGL
 {
     BOOL requested = [self preferenceForKey:VMOpenGLKey defaultValue:YES] &&
@@ -330,6 +343,9 @@ static NSString *VML(NSString *key)
     if ([self accountSignInAdapterAvailable])
         [libraries addObject:[VMLibrary
             stringByAppendingPathComponent:@"AppleAccountSignInCompat.dylib"]];
+    if ([self sepIdentityBridgeAvailable])
+        [libraries addObject:[VMLibrary
+            stringByAppendingPathComponent:@"SEPBridgeCompat.dylib"]];
     // This changes only the requested Aqua environment variable and leaves
     // unrelated values intact.
     [self setEnvironmentVariable:@"DYLD_INSERT_LIBRARIES"

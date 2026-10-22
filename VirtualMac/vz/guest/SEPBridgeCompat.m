@@ -30,6 +30,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #include <dlfcn.h>
+#include <pthread.h>
 #include <mach-o/dyld.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -351,8 +352,9 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
         NSMutableString *rs = [NSMutableString string];
         for (id w in rargs) {
             id o = sepUnwrap(w);
-            [rs appendFormat:@"%s%@%lu", rs.length ? "," : "",
-                o ? NSStringFromClass([o class]).UTF8String : "nil",
+            const char *cn = o ? NSStringFromClass([o class]).UTF8String : "nil";
+            [rs appendFormat:@"%s%s%lu", rs.length ? "," : "",
+                cn ?: "?",
                 (unsigned long)([o isKindOfClass:NSData.class]
                     ? [o length] : 0)];
         }
@@ -389,8 +391,10 @@ static void sepFwdAbsintheBatch(id self, SEL _cmd, id datas, id options,
             if (![item isKindOfClass:NSData.class]) return item;
             dispatch_semaphore_t s1 = dispatch_semaphore_create(0);
             __block id out = nil, err = nil;
-            sepForward(leaf, @[item], ^(NSArray *a, id e) {
-                out = a.count ? a[0] : nil;
+            sepForward(leaf, @[item], ^(id a, id e) {
+                // sepInvokeCompletion delivers the first unwrapped result
+                // object (the NSData signature), not an array wrapper.
+                out = a;
                 err = e;
                 dispatch_semaphore_signal(s1);
             });
@@ -520,9 +524,28 @@ static BOOL sepEnabled(void) {
         boolValue];
 }
 
+// akd is on-demand: launchd idle-exits it whenever XPC activity drains.
+// Our TCP forwarding is invisible to that accounting, so guest akd was
+// dying mid-auth (4097 on com.apple.ak.auth.xpc -> field got swallowed).
+// Pin it with leaked transactions — same trick as the iPad side.
+static void *sepPinLoop(void *_) {
+    void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
+    if (!xt) return NULL;
+    for (;;) { sleep(20); xt(); }
+    return NULL;
+}
+
 __attribute__((constructor)) static void sepInit(void) {
     swizzled = CFSetCreateMutable(NULL, 0, NULL);
     if (!sepEnabled()) return;
+    const char *pn = getprogname();
+    if (pn && !strcmp(pn, "akd")) {
+        void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
+        if (xt) xt();
+        pthread_t pin;
+        pthread_create(&pin, NULL, sepPinLoop, NULL);
+        pthread_detach(pin);
+    }
     sepLog(@"loaded",
            @{@"host": sepHost(), @"port": @(sepPort())});
     // Frameworks attach lazily; rescan until anchors appear (60 × 250 ms).

@@ -792,3 +792,14 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - `resp["error"]` = `{"k":"nil"}` dict 永真 → 之前所有 forward-ok err:true 实为**成功返回**（absinthe 真签名已拿到）
 - 真失败只剩 forward-fail（link 断）。email 被吞的真实原因在**更下游**：返回值形状或后续步骤，不是签名失败
 - 下次：把 forward-ok 的 args[0] 类名+长度打进日志，对照 macOS 原生 signaturesForData: 期望返回的形状（NSArray of NSData? dict?），修 fanout 的 reassembly
+
+### 20:5x 真根因：我自己的诊断代码在崩 akd
+- **崩溃1** `__sepForward_block_invoke`→`appendFormat:`：resClass 日志用 `%@` 格式化 `const char*`（`.UTF8String`）→ SIGTRAP。改 `%s`
+- **崩溃2** `sepFwdAbsintheBatch→sepInvokeCompletion`→EXC_BAD_ACCESS：fanout 内层 completion 写成 `^(NSArray *a, id e)` 且取 `a[0]`，但 sepInvokeCompletion 传的是第一个解包结果对象（NSData 签名）→ `a.count` unrecognized selector。改 `^(id a, id e){ out=a; }`
+- **效应**：每次桥转发成功返回 → akd 当场崩 → `com.apple.ak.auth.xpc` 4097 → email 被吞。所谓"idle-exit"假象全是这两处自伤
+- GrandSlam `lookup/v2` 已实测返回 200——网络层通
+
+### 客机 akd launchd 退避恢复（重要，反复用到）
+- akd 连崩后被 exponential throttling → "spawn scheduled" 不起、登录页空白
+- `launchctl kickstart -k` 会**挂起**（等退避）——别用
+- **有效重置**：`sudo launchctl bootout gui/501/com.apple.akd && sudo launchctl bootstrap gui/501 /System/Library/LaunchAgents/com.apple.akd.plist` —— 崩溃计数清零，立即重生

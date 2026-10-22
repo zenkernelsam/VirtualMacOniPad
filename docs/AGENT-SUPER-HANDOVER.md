@@ -440,7 +440,30 @@ App的Export Diagnostics可有约1.1GB zip。先列条目并只提取需要的lo
 3. **有归因证据才选路径**；没有证据就标“未定位”，不编新包宣称解决。
 4. 若需新风险复现/压力测试，先列具体操作、风险与回滚，并向用户单独请求许可。不要在这台承载会话的客机上进行不可控实验。
 
+## 9.4 Apple 服务战线：登录实测失败定位 + SEP 身份桥设计（2026-10-22 后半）
+
+**已实测的死因链**（`.diag/signin-20261022-125404/appleauth-stream.log` 逐字）：
+`Cannot sign data, platform is not supported by DeviceIdentity`→baa -10000→`DeviceIdentity not available`→-7066(host attestation headers)→`ADIProvisioningEnd -43004`→`AKAnisetteError -8004 No Anisette`→-8001→SRP 失败→UI -7018「验证失败」。**不是 web 超时也不是凭据问题——guest 无 SEP 派生身份**。web 适配器（30→90s/重绘）只覆盖 UI 层，没到这个位置。
+
+**已确认的三方事实**：
+- 客机 akd `flags=0x0`（无 hardened runtime/LV）→ `DYLD_INSERT_LIBRARIES` 可直接注入；akd 内含 `AKAnisetteProvisioningController`（`id<AKAnisetteServiceProtocol>` provider + 官方 `setAnisetteDataProvider:` 注入缝）、`_AKAnisetteProviderProxy`、服务侧 `AKNativeAnisetteService`（内含 ADIProvisioning 调用）、`AKAttestationSigner`+`SecKeyCreateAttestation`、官方 proxied-auth 通道（`_proxied*`/`fetchPeerAttestationDataForContext:`——Apple 本就支持"设备A为设备B出 attestation"）。
+- 宿主 iPadOS 16.3：**真机原语全在**（`DeviceIdentityIssueClientCertificate`/`CopyAttestation`/`CreateClientCertificateRequest`/`AKAnisette*`/`fetchAnisetteDataForContext`/`legacyAnisetteData`/`DCBAASigner`）；**`DeviceIdentityProcessVMRequest`/`DeviceIdentityCreateHostSignature`/`AKAnisetteProvisioningService`/`vm_create_host_key_signature` 全部缺失**——Apple 的 VM attestation 入口是 macOS-only，iPad 上无 `ProcessVMRequest` 可直连。`com.apple.ak.anisette.xpc` 由 akd(mobile) LaunchDaemon 在系统域注册且 ACTIVE。证据 `.diag/sepbridge-20261022/host-probe/RAW-EVIDENCE.md`。
+- macPad PR#4 证明 Apple 接受 iPad 设备身份配 macOS 格式请求（chroot 共享内核→克隆 akd 自产 anisette 打到真 SEP；不是转发）。
+
+**桥接设计已定稿**：`docs/SEP-IDENTITY-BRIDGE.md`。三层拦截（A=akd 内 `AKNativeAnisetteService` 协议方法→转发 iPad anisette.xpc；B=`AKAttestationSigner`/`SecKeyCreateAttestation`→iPad Security/DeviceIdentity；C=`DCBAASigner`→iPad DeviceCheckInternal），TCP 192.168.64.1 传输，语义不变只是把身份运算挪到同一 iPad 的真 SEP。未决问题按序：iPad XPC entitlement probe → akd 内 `AKNativeAnisetteService` runtime introspection → akd 注入验证 → helper/provider 实现 → 分段实测。
+
+`AccountSignInAdapter` 开关在测试后应复位（`defaults write ... -bool false` + 重新登录会话）；剩余 `.diag/signin-*` 证据保留。
+
 ## 10. 下一任任务清单与优先级
+
+### P0a：SEP 身份桥 P0 实施（Apple 服务主线，当前最高优先级）
+
+- [ ] 先读 `docs/SEP-IDENTITY-BRIDGE.md` + `docs/GUEST-SIGNIN-TEST-PROTOCOL.md` + `.diag/sepbridge-20261022/` 与 `.diag/signin-20261022-125404/` 证据。
+- [ ] iPad anisette XPC probe：最小 root helper 连 `com.apple.ak.anisette.xpc` 调 `legacyAnisetteDataForContext:DSID:`，验证 entitlement 门槛；被拦则 ldid 签私有 entitlement，再不行回退 macPad-chroot helper。
+- [ ] 客机 akd runtime introspection：注入 probe 枚举 `AKNativeAnisetteService`/`AKAnisetteProvisioningDaemonProtocol` 方法表，钉 swizzle 面。
+- [ ] akd 注入链路：`killall akd`（agent，按需重生）→ 新实例加载 dylib → `VMSEP` 事件落点验证。
+- [ ] 实现 helper（iPad root，监听 192.168.64.1）+ guest provider swizzle → 分段实测：先只开 anisette 层看 SRP 是否越过 -8004，再补 attestation 层。
+- [ ] 每步独立证据存 `.diag/`；凭据永远用户输入；不声称登录成功除非 System Settings 持久显示账户。
 
 ### P0：88本次启动验收，不改功能
 
@@ -486,11 +509,20 @@ App的Export Diagnostics可有约1.1GB zip。先列条目并只提取需要的lo
  docs/WORKLOG.md 的末尾和 docs/GPU-NATIVE-RESEARCH.md 的N/O节。
 不要依赖前任vendor私有记忆工具，使用你自己的读文件/搜索/终端工具。
 
-最新状态：用户在2026-10-02因VM满载卡死重启iPad、重新越狱，并安装了build88。
-GuestTools=88-46e1996c7b58fd11，GL哈希/严格签名匹配，安装库的只读Mac2 gate生效，
-本次recoveryCount=0；88新宿主日志和安装后Godot实景尚未验收。
-重启前卡死的根因未确认，不得直接归咎macPad、88或GPU。
-88源码来源bb005a7dfea749e26aae42e43ed2d43e83441dff已推送，包已复制飞牛。
+当前最高优先级 = Apple 服务/SEP 身份桥（docs/SEP-IDENTITY-BRIDGE.md，§9.4）。
+2026-10-22 Apple 账户登录实测失败，死因链已逐字锁定：guest 无 SEP 派生身份
+（DeviceIdentity not available→ADIProvisioningEnd -43004→No Anisette→SRP 失败→-7018）。
+客机 akd flags=0x0 可 DYLD_INSERT 注入；宿主 iPad 真机身份原语全在，
+但 Apple 的 VM attestation 入口(DeviceIdentityProcessVMRequest)在 iPadOS 缺失
+——必须自实现 host 端语义，按设计文档三层拦截（akd 内服务层→iPad anisette.xpc
+/attestation→iPad Security+DeviceIdentity/BAA→iPad DeviceCheckInternal）。
+按 P0a 顺序做：iPad XPC probe→akd 类 runtime introspection→akd 注入验证→
+helper+provider 实现→分段实测。红线：不伪造身份输出/不绕过 BAA-Anisette 校验/
+不伪造证书；凭据永远用户输入；登录成功以 System Settings 持久账户为准。
+
+GPU 线状态：build88 已安装（GuestTools=88-46e1996c7b58fd11，GL哈希/签名匹配，
+Mac2 gate 生效，recoveryCount=0）；88新宿主日志和安装后Godot实景尚未验收。
+重启前卡死根因未确认，不得直接归咎macPad、88或GPU。
 Tier2仍受协议门控阻塞：Ventura最高43，guest相关feature在207档才开启；
 不要提高协议/serializer、假报能力或恢复Apple9/4095全开。
 
@@ -515,6 +547,9 @@ Tier2仍受协议门控阻塞：Ventura最高43，guest相关feature在207档才
 
 - 根 `AGENTS.md`：行为、当前短摘要、常用命令；早期段落保留时点，不能忽略后来的更新。
 - `docs/WORKLOG.md`：逐步记录，最新末尾与本文最新状态优先。
+- **`docs/SEP-IDENTITY-BRIDGE.md`：Apple 服务战线设计文档（SEP 身份桥三层拦截+宿主盘点+未决问题）——当前最高优先级主线**。
+- `docs/GUEST-SIGNIN-TEST-PROTOCOL.md`：Apple 账户登录测试协议；`.diag/signin-20261022-125404/` 为实测失败证据。
+- `.diag/sepbridge-20261022/`：DSC 提取件（AuthKit/DeviceIdentity/DeviceCheckInternal/AppleVirtualPlatform）+ 宿主原语盘点 RAW。
 - `docs/GPU-NATIVE-RESEARCH.md`：主研究；G–K含旧代差/协议假设，L为Godot，N为审计profile，O为88。旧K的枚举/根因推论已纠正，不再沿用。
 - `docs/VM-crash-fix-and-build-notes.md`：GPU映射旧crash和a2sb/chained-fixups构建坑。
 - `docs/VMGPU-REFERENCE.md`、`VMGPU-cdhash.tsv`：黄金基线、__text忠实性和签名/trustcache。

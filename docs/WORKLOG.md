@@ -698,3 +698,15 @@
 - [x] `build-ipad-deb.sh` EXIT=0 → **`VirtualMac_1.2.3_317567bbc7.deb`**（20,846,104 B，build/release/）。payload VZ SHA `1b0daef0…` 与 `ipad-vm/payload` 中间件逐字节一致（restamp_bundle 二段 stamp+minos 校验通过）。
 - [x] deb 内 GuestTools tar 含 `AppleAccountSignInCompat.dylib`；热点栈（bootpd/rtadvd+NetworkMemoryPolicy）正常构建。
 - [ ] NAS 镜像目录未挂载（飞牛同步 skipped）；push 仍无凭据（5 commit 待推）；装机/启用 pref/取 VMACCT 日志待用户。
+
+## 2026-10-22 — Apple 账户登录实测失败定位 + SEP 身份桥静态设计
+
+- [x] **登录实测（用户凭据，协议执行）**：preflight 全过（.build `224-6b9c1467accb8a6a` / 15.6.1 24G90 / 三切片严格签名 / SIP off / `-arm64e_preview_abi`）；`AccountSignInAdapter` 开，env 两库就位；用户登录 → UI 报「验证失败，发生未知错误」。
+- [x] **死因链锁定**（`.diag/signin-20261022-125404/appleauth-stream.log` 逐字）：`Cannot sign data, platform is not supported by DeviceIdentity`→baa -10000→`DeviceIdentity not available`→-7066(host attestation headers)→`ADIProvisioningEnd -43004`→`AKAnisetteError -8004 No Anisette`→-8001→SRP 失败→-7018。**非 web 超时、非凭据问题 = 无 SEP 派生身份**。
+- [x] **侧记**：取证 pkill 了 AppleIDSettings.appex(pid7800) 触发「Extension process exited」错误框（无害，重开页面即恢复）；直捕证明注入 ABI 全兼容（6 观察器安装成功）；`VMACCT` 在 unified log 仅见流头——扩展进程 stderr 不进 log，注入路径尚需 file fallback。
+- [x] **macPad PR#4 重读纠正**：`com.apple.ak.anisette.xpc` 被重命名进私有命名空间——克隆 akd **自己产出** anisette（共享内核→真 SEP），非转发。证明 Apple 接受 iPad 设备身份配 macOS 请求。
+- [x] **宿主盘点**（iPadOS 16.3 DSC 全量字节搜索，`.diag/sepbridge-20261022/host-probe/RAW-EVIDENCE.md`）：真机原语全在（DeviceIdentity*/AKAnisette*/fetchAnisetteDataForContext/legacyAnisetteData/DCBAASigner/ADIProvisioning）；**`DeviceIdentityProcessVMRequest`/`CreateHostSignature`/`AKAnisetteProvisioningService` 全缺 = VM attestation API 为 macOS 专属**。`com.apple.ak.anisette.xpc` 由 akd(mobile) LaunchDaemon 在系统域注册且 ACTIVE。
+- [x] **客机 akd 注入面确认**：akd `flags=0x0` 无 hardened runtime/LV → DYLD_INSERT 生效；内部 `AKAnisetteProvisioningController`（`id<AKAnisetteServiceProtocol>` provider，`setAnisetteDataProvider:` 官方注入缝）+ `_AKAnisetteProviderProxy` + 服务侧 `AKNativeAnisetteService`（内含 ADIProvisioning 调用）+ `AKAttestationSigner`/`SecKeyCreateAttestation` + **官方 proxied-auth 通道**（`_proxied*`/`fetchPeerAttestationDataForContext:`/`_pairedDeviceAnisetteService`）。
+- [x] **产出 `docs/SEP-IDENTITY-BRIDGE.md`**：三层拦截设计（A=AKNativeAnisetteService→iPad anisette.xpc / B=AKAttestationSigner+SecKeyCreateAttestation→iPad Security/DeviceIdentity / C=DCBAASigner→iPad DeviceCheckInternal）+ TCP(192.168.64.1) 序列化转发 + 未决问题清单 + 交付形态。核心：不改变身份语义，只把身份运算转移到同一物理 iPad 的真 SEP；无伪造无绕过。
+- [ ] 待做（按序）：iPad anisette XPC entitlement probe → 客机 runtime introspection probe（AKNativeAnisetteService 方法表）→ akd 注入验证（killall akd+VMSEP 事件）→ 实现 helper+guest provider → 分段实测。adapter 待收尾 disable。
+- [ ] push 仍待 GitHub 凭据。

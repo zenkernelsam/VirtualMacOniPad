@@ -770,3 +770,8 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 
 ### 铁律复述（AGENTS.md §4 有全文）
 - 客机操作=本地 shell+sudo -S，**永不注入**；dylib 部署=rm+mv 新 inode；`pgrep -x` 勿 `-fl`
+
+### 19:15 追加（错误通道修复后）
+- nserr 可移植错误格式实测：`AKAnisetteError -8004` 完整回传客机，不再 silently 变 nil
+- **新阻塞**：iPad akd 又开始 idle-exit（`xpc_transaction_begin` pin 失效，~30s 退）→ 请求到达时链路常刚断 → helper wake→kickstart→重注(~10s) → 对端 socket 已 reset → `forward-fail`。下一步要么修好 pin（查 dlsym 返回值/换 mach 保活），要么把 helper 重试拉长到覆盖冷启动（已重试 1 次仍不够）
+- 待取证据：`forward-ok` 的 errDomain/errCode 字段已就位，下次真到桥即可见

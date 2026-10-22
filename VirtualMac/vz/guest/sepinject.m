@@ -64,16 +64,10 @@ static id wrap(id o) {
     // fail unarchive on the peer and silently become nil.
     if ([o isKindOfClass:NSError.class]) {
         NSError *e = o;
-        NSMutableDictionary *ui = [NSMutableDictionary dictionary];
-        for (id key in e.userInfo) {
-            id val = e.userInfo[key];
-            if ([val isKindOfClass:NSString.class] ||
-                [val isKindOfClass:NSNumber.class]) ui[key] = val;
-        }
-        ui[NSLocalizedDescriptionKey] = e.localizedDescription ?: @"";
         return @{@"k": @"nserr",
                  @"v": @{@"d": e.domain ?: @"?", @"c": @(e.code),
-                         @"u": ui}};
+                         @"u": @{NSLocalizedDescriptionKey:
+                                    e.localizedDescription ?: @""}}};
     }
     NSData *arch = [NSKeyedArchiver
         archivedDataWithRootObject:o requiringSecureCoding:YES error:nil];

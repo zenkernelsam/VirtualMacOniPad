@@ -135,6 +135,7 @@ static const struct op kOps[] = {
 
 static void respond(NSArray *rargs, id err) {
     NSDictionary *resp = @{@"args": rargs ?: @[],
+                           @"akdpid": @(getpid()),
                            @"error": err ? wrap(err) : @{@"k": @"nil"}};
     NSData *p = [NSPropertyListSerialization dataWithPropertyList:resp
         format:NSPropertyListBinaryFormat_v1_0 options:0 error:nil];

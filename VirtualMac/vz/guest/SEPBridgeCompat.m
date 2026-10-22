@@ -311,12 +311,13 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
         }
         NSArray *rargs = [resp[@"args"] isKindOfClass:NSArray.class]
             ? resp[@"args"] : @[];
-        NSMutableDictionary *ev = [@{@"sel": selName,
+        id eo = resp[@"error"] ? sepUnwrap(resp[@"error"]) : nil;
+        NSMutableDictionary *ev = [@{@"akdpid": resp[@"akdpid"] ?: @0,
+            @"sel": selName,
             @"ms": @(elapsed * 1000),
             @"argc": @(rargs.count),
-            @"err": resp[@"error"] ? @YES : @NO} mutableCopy];
+            @"err": eo ? @YES : @NO} mutableCopy];
         if (resp[@"error"]) {
-            id eo = sepUnwrap(resp[@"error"]);
             if (!eo) {
                 // Raw structure for diagnostics: which wrap kind arrived
                 // and why unwrap dropped it.
@@ -344,6 +345,18 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
                    ev[@"argClass"], NSStringFromClass([a class]) ?: @"?"]
                 : (NSStringFromClass([a class]) ?: @"?");
         }
+        // Result shape diagnostics: unwrapped class + byte length for
+        // each returned arg — needed to verify reassembly matches what
+        // the caller's completion block expects.
+        NSMutableString *rs = [NSMutableString string];
+        for (id w in rargs) {
+            id o = sepUnwrap(w);
+            [rs appendFormat:@"%s%@%lu", rs.length ? "," : "",
+                o ? NSStringFromClass([o class]).UTF8String : "nil",
+                (unsigned long)([o isKindOfClass:NSData.class]
+                    ? [o length] : 0)];
+        }
+        if (rs.length) ev[@"resClass"] = rs;
         sepLog(@"forward-ok", ev);
         sepInvokeCompletion(completion, rargs, resp[@"error"]);
     });

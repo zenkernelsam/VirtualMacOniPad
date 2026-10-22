@@ -803,3 +803,12 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - akd 连崩后被 exponential throttling → "spawn scheduled" 不起、登录页空白
 - `launchctl kickstart -k` 会**挂起**（等退避）——别用
 - **有效重置**：`sudo launchctl bootout gui/501/com.apple.akd && sudo launchctl bootstrap gui/501 /System/Library/LaunchAgents/com.apple.akd.plist` —— 崩溃计数清零，立即重生
+
+### 21:5x-22:0x 逐层下挖到真底（重要）
+- 修好 3 个自伤崩溃后，登录流程不再崩 akd：`lookup/v2` 200 ✓、absinthe 签名逐条真回（__NSCFString）✓、完整错误链到 UI
+- **真错误链**：`ADIGetIDMSRouting` -45061 / `ADIProvisioningEnd` -43004 → `AKAnisetteError` -8004 → `AKAuthenticationError` -7018 = 验证失败。anisette provision 在 akd 内部直走 `com.apple.adid`（C 级 ADI），不经过任何 ObjC 服务层
+- 已挂 `_AKAnisetteProviderProxy` 6 个 context 方法（context→device=nil 转译到 iOS 同名 selector），但该类在 akd 里注册很晚/可能不走这条路
+- XPC 回复块 = **stack block**（flags 0xc2000000）；invoke 曾崩在其内部（PAC'd capture 失效）——改为调用线程同步回调后该路径不再炸，但 leaf 串行 ~10s×N 期间客户端可能先超时
+- 结论：最底层 = **adid（CoreADI）**。akd 直连 `com.apple.adid`；adid 是 C 级/混淆二进制，ObjC 面几乎为空。**下一层桥接对象 = guest adid ↔ iPad adid**（或 adid 的 XPC 接口方法层），工程量等价于再造一层桥
+- 客机 akd launchd 退避恢复：`bootout`+`bootstrap` 已验证秒恢复
+- iPad helper 会死（connect errno 61），恢复 = 它自己被 launchd 拉起或手动重启

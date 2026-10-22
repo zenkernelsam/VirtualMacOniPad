@@ -252,8 +252,18 @@ static unsigned sepBlockArgTypes(void *block, char *types, unsigned max) {
 static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                                 id wrappedError) {
     if (!block) return;
+    const char *bsig = _Block_signature((__bridge void *)block);
     char types[6] = {0};
     unsigned n = sepBlockArgTypes((__bridge void *)block, types, 6);
+    sepLog(@"invoke-sig",
+           @{@"sig": bsig ? [NSString stringWithUTF8String:bsig] : @"?",
+             @"argc": @(n),
+             @"blk": [NSString stringWithFormat:@"%p", (__bridge void *)block],
+             @"isa": [NSString stringWithFormat:@"%p",
+                      ((void **)(__bridge void *)block)[0]],
+             @"flags": [NSString stringWithFormat:@"%lx",
+                        ((unsigned long *)((__bridge void *)block))[1] &
+                          0xffffffff]});
     long vals[6] = {0};
     for (unsigned i = 0; i < n; i++) {
         BOOL last = (i == n - 1);
@@ -269,7 +279,9 @@ static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                     ? (long)[v longLongValue] : (long)(v != nil);
                 break;
             default:
-                vals[i] = (long)(__bridge void *)v;
+                // v is released at loop scope; the raw pointer must
+                // outlive this function, so retain it deliberately.
+                vals[i] = (long)CFBridgingRetain(v);
                 break;
         }
     }
@@ -380,50 +392,86 @@ static void sepFwdB1(id self, SEL _cmd, BOOL x, id a, id completion) {
 // absintheSignatureForData: does not — it signs raw bytes and returns.
 // Decompose the batch call into per-item absinthe forwards and rebuild
 // the response shape (dict->dict, array->array).
+// Nested completion blocks via sepInvokeCompletion corrupted __block
+// byref captures (EXC_BAD_ACCESS, PAC failure on byref ptr). Instead call
+// the leaf synchronously with sepRoundtrip — no inner block ABI at all.
+static id sepLeafCall(NSString *sel, id item, NSError **errOut) {
+    double start = sepNow();
+    NSDictionary *resp = sepRoundtrip(@{@"op": @"daemon",
+        @"sel": sel, @"args": @[sepWrap(item)]});
+    double elapsed = sepNow() - start;
+    if (![resp isKindOfClass:NSDictionary.class]) {
+        sepLog(@"leaf-fail", @{@"sel": sel, @"ms": @(elapsed * 1000)});
+        if (errOut) *errOut = sepError(-1, @"SEP bridge transport failure");
+        return nil;
+    }
+    NSArray *rargs = [resp[@"args"] isKindOfClass:NSArray.class]
+        ? resp[@"args"] : @[];
+    id eo = resp[@"error"] ? sepUnwrap(resp[@"error"]) : nil;
+    id res = rargs.count ? sepUnwrap(rargs[0]) : nil;
+    sepLog(@"leaf-ok",
+           @{@"sel": sel, @"ms": @(elapsed * 1000),
+             @"akdpid": resp[@"akdpid"] ?: @0,
+             @"err": eo ? @YES : @NO,
+             @"resClass": res ? NSStringFromClass([res class]) : @"nil"});
+    if (errOut && [eo isKindOfClass:NSError.class]) *errOut = eo;
+    return res;
+}
+
 static void sepFwdAbsintheBatch(id self, SEL _cmd, id datas, id options,
                               id completion) {
-    SEL leaf = sel_registerName("absintheSignatureForData:completion:");
-    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    NSString *leaf = @"absintheSignatureForData:completion:";
+    // Fully synchronous on the calling thread: the XPC reply block's
+    // lifetime is only guaranteed while the method invocation is active;
+    // deferred invocation on another queue left its captured state stale
+    // (EXC_BAD_ACCESS inside NSXPCConnection decode block).
     __block id rebuilt = nil;
-    __block id firstErr = nil;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        id (^signOne)(id) = ^id(id item) {
-            if (![item isKindOfClass:NSData.class]) return item;
-            dispatch_semaphore_t s1 = dispatch_semaphore_create(0);
-            __block id out = nil, err = nil;
-            sepForward(leaf, @[item], ^(id a, id e) {
-                // sepInvokeCompletion delivers the first unwrapped result
-                // object (the NSData signature), not an array wrapper.
-                out = a;
-                err = e;
-                dispatch_semaphore_signal(s1);
-            });
-            dispatch_semaphore_wait(s1,
-                dispatch_time(DISPATCH_TIME_NOW, 30ull * NSEC_PER_SEC));
-            if (err && !firstErr) firstErr = err;
-            return out;
-        };
-        if ([datas isKindOfClass:NSDictionary.class]) {
-            NSMutableDictionary *r = [NSMutableDictionary dictionary];
-            for (id k in datas) r[k] = signOne(datas[k]) ?: NSNull.null;
-            rebuilt = r;
-        } else if ([datas isKindOfClass:NSArray.class]) {
-            NSMutableArray *r = [NSMutableArray array];
-            for (id item in datas)
-                [r addObject:signOne(item) ?: NSNull.null];
-            rebuilt = r;
-        } else {
-            rebuilt = signOne(datas);
-        }
-        dispatch_semaphore_signal(sem);
-    });
-    dispatch_semaphore_wait(sem,
-        dispatch_time(DISPATCH_TIME_NOW, 120ull * NSEC_PER_SEC));
-    // The wrapped-results path expects the remote's wire format; rebuild
-    // one item as a keyed archive so unwrap reproduces the object.
+    __block NSError *firstErr = nil;
+    id (^signOne)(id) = ^id(id item) {
+        if (![item isKindOfClass:NSData.class]) return item;
+        NSError *e = nil;
+        id out = sepLeafCall(leaf, item, &e);
+        if (e && !firstErr) firstErr = e;
+        return out;
+    };
+    if ([datas isKindOfClass:NSDictionary.class]) {
+        NSMutableDictionary *r = [NSMutableDictionary dictionary];
+        for (id k in datas) r[k] = signOne(datas[k]) ?: NSNull.null;
+        rebuilt = r;
+    } else if ([datas isKindOfClass:NSArray.class]) {
+        NSMutableArray *r = [NSMutableArray array];
+        for (id item in datas)
+            [r addObject:signOne(item) ?: NSNull.null];
+        rebuilt = r;
+    } else {
+        rebuilt = signOne(datas);
+    }
+    // Completion ABI (from AuthKit extended signatures):
+    //   ^(NSDictionary *result, NSData *data, NSError *error)
+    // rebuilt holds per-item signature tokens from absinthe; put the
+    // collected dict/array in slot 0 and the first signature blob
+    // (UTF-8 of the absinthe token) in slot 1.
+    id sigBlob = nil;
+    if ([rebuilt isKindOfClass:NSDictionary.class]) {
+        for (id v in ((NSDictionary *)rebuilt).allValues)
+            if ([v isKindOfClass:NSString.class] ||
+                [v isKindOfClass:NSData.class]) { sigBlob = v; break; }
+    } else if ([rebuilt isKindOfClass:NSArray.class]) {
+        for (id v in (NSArray *)rebuilt)
+            if ([v isKindOfClass:NSString.class] ||
+                [v isKindOfClass:NSData.class]) { sigBlob = v; break; }
+    } else {
+        sigBlob = rebuilt;
+    }
+    if ([sigBlob isKindOfClass:NSString.class])
+        sigBlob = [(NSString *)sigBlob dataUsingEncoding:NSUTF8StringEncoding];
     NSData *arch = [NSKeyedArchiver archivedDataWithRootObject:
         rebuilt ?: [NSNull null] requiringSecureCoding:NO error:nil];
-    NSArray *wrapped = arch ? @[@{@"k": @"keyed", @"v": arch}] : @[];
+    NSData *sarch = [NSKeyedArchiver archivedDataWithRootObject:
+        sigBlob ?: [NSNull null] requiringSecureCoding:NO error:nil];
+    NSMutableArray *wrapped = [NSMutableArray array];
+    if (arch) [wrapped addObject:@{@"k": @"keyed", @"v": arch}];
+    if (sarch) [wrapped addObject:@{@"k": @"keyed", @"v": sarch}];
     sepInvokeCompletion(completion, wrapped,
                         firstErr ? sepWrapError(firstErr) : nil);
 }
@@ -475,8 +523,57 @@ static unsigned sepSwizzleDaemonClass(Class c) {
     return n;
 }
 
+// _AKAnisetteProviderProxy serves com.apple.ak.anisette.xpc inside akd.
+// Its context-based methods provision anisette via local ADI (adid),
+// which fails on this SEP-less VM (-43004). Translate each call into
+// the iOS AKAnisetteProvisioningService equivalent (device = current,
+// i.e. nil) and forward across the bridge. DSID/B verified from method
+// type encodings: DSID is an object, provisionIfNecessary is BOOL.
+static void sepFwdProvisionCtx(id self, SEL _cmd, id ctx, id c) {
+    sepForward(sel_registerName("provisionAnisetteForDevice:completion:"),
+               @[NSNull.null], c);
+}
+static void sepFwdFetchCtx(id self, SEL _cmd, id ctx, BOOL p, id c) {
+    sepForward(sel_registerName(
+        "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
+               @[@(p), NSNull.null], c);
+}
+static void sepFwdLegacyCtx(id self, SEL _cmd, id ctx, id d, id c) {
+    sepForward(sel_registerName(
+        "legacyAnisetteDataForDSID:device:completion:"),
+               @[d ?: NSNull.null, NSNull.null], c);
+}
+static void sepFwdSyncCtx(id self, SEL _cmd, id ctx, id sim, id c) {
+    sepForward(sel_registerName("syncAnisetteWithSIMData:device:completion:"),
+               @[sim ?: NSNull.null, NSNull.null], c);
+}
+static void sepFwdPeerAttestCtx(id self, SEL _cmd, id ctx, id req, id c) {
+    sepForward(sel_registerName(
+        "attestationDataForDevice:withRequest:completion:"),
+               @[NSNull.null, req ?: NSNull.null], c);
+}
+static void sepFwdEraseCtx(id self, SEL _cmd, id ctx, id c) {
+    sepForward(sel_registerName("eraseAnisetteForDevice:completion:"),
+               @[NSNull.null], c);
+}
+
 static const struct { const char *cls; const char *sel; IMP impl; }
     kSignerOps[] = {
+    {"_AKAnisetteProviderProxy",
+     "provisionAnisetteForContext:withCompletion:", (IMP)sepFwdProvisionCtx},
+    {"_AKAnisetteProviderProxy",
+     "fetchAnisetteDataForContext:provisionIfNecessary:withCompletion:",
+     (IMP)sepFwdFetchCtx},
+    {"_AKAnisetteProviderProxy",
+     "legacyAnisetteDataForContext:DSID:withCompletion:",
+     (IMP)sepFwdLegacyCtx},
+    {"_AKAnisetteProviderProxy",
+     "syncAnisetteForContext:withSIMData:completion:", (IMP)sepFwdSyncCtx},
+    {"_AKAnisetteProviderProxy",
+     "fetchPeerAttestationDataForContext:withRequest:completion:",
+     (IMP)sepFwdPeerAttestCtx},
+    {"_AKAnisetteProviderProxy",
+     "eraseAnisetteForContext:withCompletion:", (IMP)sepFwdEraseCtx},
     {"AKAttestationSigner", "signatureForData:options:completion:",
      (IMP)sepFwd2},
     {"AKAttestationSigner", "signaturesForData:options:completion:",
@@ -548,15 +645,17 @@ __attribute__((constructor)) static void sepInit(void) {
     }
     sepLog(@"loaded",
            @{@"host": sepHost(), @"port": @(sepPort())});
-    // Frameworks attach lazily; rescan until anchors appear (60 × 250 ms).
+    // Frameworks/classes attach lazily — _AKAnisetteProviderProxy only
+    // registers when the first anisette XPC connection arrives, which can
+    // be minutes later. Rescan forever; sepSwizzle no-ops on methods
+    // already redirected.
     dispatch_async(dispatch_get_global_queue(
         QOS_CLASS_BACKGROUND, 0), ^{
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0;; i++) {
             unsigned n = sepInstall();
             if (n) sepLog(@"install-pass",
                           @{@"pass": @(i), @"swizzled": @(n)});
-            usleep(250 * 1000);
+            usleep(500 * 1000);
         }
-        sepLog(@"install-done", @{});
     });
 }

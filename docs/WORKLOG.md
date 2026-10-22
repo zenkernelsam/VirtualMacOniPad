@@ -710,3 +710,63 @@
 - [x] **产出 `docs/SEP-IDENTITY-BRIDGE.md`**：三层拦截设计（A=AKNativeAnisetteService→iPad anisette.xpc / B=AKAttestationSigner+SecKeyCreateAttestation→iPad Security/DeviceIdentity / C=DCBAASigner→iPad DeviceCheckInternal）+ TCP(192.168.64.1) 序列化转发 + 未决问题清单 + 交付形态。核心：不改变身份语义，只把身份运算转移到同一物理 iPad 的真 SEP；无伪造无绕过。
 - [ ] 待做（按序）：iPad anisette XPC entitlement probe → 客机 runtime introspection probe（AKNativeAnisetteService 方法表）→ akd 注入验证（killall akd+VMSEP 事件）→ 实现 helper+guest provider → 分段实测。adapter 待收尾 disable。
 - [ ] push 仍待 GitHub 凭据。
+
+## 2026-10-22 — SEP bridge iPad 侧端到端打通，deb 已交付
+
+**外部 XPC 路径结论（RE-confirmed）**：iPad akd 的 `com.apple.ak.anisette.xpc`
+对非 launchd 原生 client 在传输层即 INTERRUPTED(4097)——消息从未到达 akd
+（SecTask/audit_token/xpc_connection_* 断点全零命中）。bootstrap_look_up、
+域迁移(user/501)、entitlement、code-signing identifier 白名单逐个排除，
+非根因。放弃外部 client 方案。
+
+**采用架构**：opainject 把 sepinject.dylib 注入 iPad 真 akd 进程 →
+进程内 `AKClient initWithAuditToken:`(akd 自身 token) → `AKNativeAnisetteService`
+直出真 SEP anisette；因 akd sandbox 禁 network-bind/file-write，反向
+dial-out(network-outbound 允许)到 helper:18444；helper 在 :18443 面向客机
+透传，watchdog 在每次 akd 重生后自动重注；:18445 HTTP 向客机发 dylib。
+
+**证据**：deb 安装后 `akd-linked` 事件 + `fetchAnisetteDataAndProvisionIfNecessary:`
+返回真 AKAnisetteData（_machineID 80字符、_oneTimePassword 每次变化、
+_routingInfo 有值）。调试期修过的坑：completion block 垃圾寄存器
+ARC-retain 崩溃 → 精确 (data,error) 双参签名；`__strong` rs[] → unsafe。
+
+**交付**：`com.vm.sepbridge_0.9.0_iphoneos-arm64.deb`（Desktop +
+VirtualMac/build/release/），postinst 走 trustadd 准入。客机启用步骤与
+验证 witness 见 `docs/SEP-BRIDGE-DEB-README.md`。
+**未验证项**：客机 akd 内 swizzle→转发 + 最终 Apple Account 登录 UI 测试
+待用户执行。
+
+## 2026-10-22 SEP桥实战状态（重启续跑必读）
+
+### 架构（已实测通）
+- 客机 `SEPBridgeCompat.dylib`（DYLD 注入）swizzle akd 守护类 7 个叶子方法 → TCP `192.168.64.1:18443`
+- iPad `sepbridge-helper`（launchd system/com.vm.sepbridge）:18443 收客机、:18444 收 iPad akd 回链、:18445 文件服务
+- iPad `sepinject.dylib`（注入 iPad akd）回拨 :18444，执行真 AuthKit/SEP 调用并回传
+- **已验证**：`legacyAnisetteDataForDSID:` 请求 → iPad akd → 真实 `AKAnisetteError` 回传；`signaturesForData:` 曾真实转发到 iPad
+
+### 当前卡点（按序排查）
+- 登录点击「继续」后 **零 bridge-call**：`appleaccountd`(gui/501) 根本没被拉起 → 失败点在 akd/attestation **之前**（可能是 UI 自身 HTTP/GrandSlam 或环境检测）
+- `adid` 是 **system 域**（`launchctl print system/com.apple.adid`），user-domain setenv 管不到它；若需要它在桥内要 `sudo launchctl setenv` 覆盖 system 域
+- 待查：`/tmp/signin-stream.log`（log stream 抓 appleaccountd/akd/adid/AppleID）确认点击后第一个调的是谁
+
+### 客机重启恢复步骤（env 不持久，每次必做）
+```bash
+# 全部在客机本地 shell，密码问用户
+echo <pw> | sudo -S sh -c 'curl -fsS -o /tmp/SEPBridgeCompat.dylib http://192.168.64.1:18445/SEPBridgeCompat.dylib && rm -f /Library/VirtualMac/SEPBridgeCompat.dylib && mv /tmp/SEPBridgeCompat.dylib /Library/VirtualMac/ && chmod 755 /Library/VirtualMac/SEPBridgeCompat.dylib'
+echo <pw> | sudo -S sh -c 'uid=$(stat -f %u /dev/console); launchctl asuser $uid launchctl setenv DYLD_INSERT_LIBRARIES "/Library/VirtualMac/OpenGLPVGCompat.dylib:/Library/VirtualMac/AppleAccountSignInCompat.dylib:/Library/VirtualMac/SEPBridgeCompat.dylib"; launchctl asuser $uid launchctl setenv VM_SEP_BRIDGE 1'
+defaults write com.mac.virtual.guest-tools SEPIdentityBridge -bool true   # 用户域！不能 sudo 写（sudo 写到 root 域=无效）
+echo <pw> | sudo -S killall -9 akd appleaccountd adid
+# 验证：grep '"process":"akd"' /tmp/sepbridge-events.log → install-pass swizzled:2
+```
+- **三件套缺一不可**：dylib 文件 + env + `SEPIdentityBridge` 偏好（之前"装了不工作"就是漏了它）
+- env 只覆盖 gui/501 域；adid 要 system 域另设
+- **TODO**：把以上做成 LaunchDaemon 免手动
+
+### iPad 侧状态
+- `user/501` 域 env 残留 `DYLD_INSERT_LIBRARIES=systemhook:/var/jb/sepinject.dylib`（setenv/asuser 都改不掉）→ 文件必须保持有效签名存在；sepinject 已加 `getprogname=="akd"` 门控
+- akd 唤醒：`/var/jb/usr/bin/launchctl kickstart user/501/com.apple.akd`；watchdog 自动重注
+- sepinject 特性：`xpc_transaction_begin` 钉住 akd、`VMSepBridgeMarker` ObjC 类名去重、@try 兜底、断线重拨
+- iPad akd spawn 暴毙排查：`launchctl print user/501 | grep -A3 environment` + fresh-inode 重部署
+
+### 铁律复述（AGENTS.md §4 有全文）
+- 客机操作=本地 shell+sudo -S，**永不注入**；dylib 部署=rm+mv 新 inode；`pgrep -x` 勿 `-fl`

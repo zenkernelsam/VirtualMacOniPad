@@ -153,3 +153,13 @@ clang -fobjc-arc -Wall -Wextra -Werror -framework Foundation VirtualMac/scripts/
 ```
 
 > 最高优先级：**用户当下指令 > 代码/配置 > 文档/记忆**。发现文档与现实不符 → 以证据为准并更新文档。
+
+## 4. SEP 桥 / 客机操作硬教训（2026-10-22，务必先读）
+
+- **本 CLI 就跑在客机里**。客机侧一切操作 = 本地命令 + `echo <密码> | sudo -S`（密码问用户，勿写文件）。**永远不需要为了执行客机命令去注入 iPad 进程**——之前为这目的搭的 opainject→App 通道多次把 VM 弄崩，属红线。
+- **禁止 opainject/注入任何运行中进程**（App、VirtualMachine.xpc、akd、ReportCrash）——已实测：注入 App 会连带杀死 VM xpc 实例（客机重启），fd 枚举扫到 guarded fd 直接 SIGGUARD 杀进程。客机侧用本地 shell；iPad 侧 akd 例外已授权（watchdog+opainject 流程），但也要走"先 kickstart 再注入"的既定流程。
+- **dylib 部署必须 fresh inode**：`rm 旧文件` 再放新文件。`cp`/scp 同 inode 覆写已被 mmap 的 dylib → 内核缓存 `cs_mtime != mtime` → `tainted:1` → 所有加载者 page-fault 被 SIGKILL（客机和 iPad 两侧都踩过，伪装成"哪项 env 都有罪"的假阳性）。
+- **launchd 域 env 的 DYLD_INSERT_LIBRARIES 指向坏文件 = 全域 spawn 死**：iPad `user/501` 域曾残留 `/var/jb/sepinject.dylib`，全部 user daemon `OS_REASON_CODESIGNING` 循环；客机同理。排障 spawn 暴毙先 `launchctl print <domain> | grep -A3 environment`，再 `pgrep -x`（不要 `-fl`，自己的命令行会假阳性）。
+- **iPad akd 是 on-demand**：无请求即 idle-exit。唤醒 `/var/jb/usr/bin/launchctl kickstart user/501/com.apple.akd`（rootless 下 `/bin/launchctl` 不存在）；`gui/501`、`system/` 为备选域。多实例去重用 ObjC 类名占用（`objc_allocateClassPair("VMSepBridgeMarker")`）——`bootstrap_check_in` 在 akd 沙盒内被拒。
+- **`launchctl setenv` 不持久**：客机重启后 env 全丢，需重新执行 setup（`curl http://192.168.64.1:18445/setup.sh | sudo sh`）或把它做成 LaunchDaemon。诊断清理时同步检查 `/private/var/tmp/*.dylib`——App 启动会 dlopen 该路径，残留坏 dylib 会让 App 循环闪退。
+- 桥源码入仓库：`VirtualMac/vz/guest/sepinject.m`（iPad 侧注入件）、`VirtualMac/vz/guest/sepbridge-helper.m`（iPad 常驻转发器）、`SEPBridgeCompat.m`（客机注入件）。工作日志 `docs/WORKLOG.md`。

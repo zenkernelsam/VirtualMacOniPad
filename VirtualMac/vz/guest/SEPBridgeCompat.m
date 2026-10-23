@@ -920,9 +920,58 @@ static BOOL sepProcessAllowed(void) {
     return NO;
 }
 
+// Diagnostic: run the AVP identity probes from INSIDE an entitled daemon
+// (akd), where the AppleVirtualPlatform XPC client actually lives. The
+// standalone probe gets 4097 on the identity service even when a listener
+// exists, which points at audit-token/entitlement checks rather than the
+// service itself. Opt in with VM_SEP_DEVID_TEST=1.
+static void sepDeviceIdentityProbe(void) {
+    void *di = dlopen("/System/Library/PrivateFrameworks/DeviceIdentity.framework/DeviceIdentity", RTLD_NOW);
+    void *avp = dlopen("/System/Library/PrivateFrameworks/AppleVirtualPlatform.framework/AppleVirtualPlatform", RTLD_NOW);
+    BOOL (*isSup)(void) = di ? (BOOL (*)(void))dlsym(di, "DeviceIdentityIsSupported") : NULL;
+    BOOL (*hasKey)(void) = avp ? (BOOL (*)(void))dlsym(avp, "AppleVirtualPlatformGuestHasHostKey") : NULL;
+    CFDataRef (*copyStrong)(CFDictionaryRef, CFErrorRef *) = avp
+        ? (CFDataRef (*)(CFDictionaryRef, CFErrorRef *))dlsym(avp, "AppleVirtualPlatformGuestCopyStrongIdentityData")
+        : NULL;
+    sepLog(@"devid-probe", @{
+        @"di": di ? @YES : @NO, @"avp": avp ? @YES : @NO,
+        @"supported": isSup ? @(isSup()) : @(-1),
+        @"hasHostKey": hasKey ? @(hasKey()) : @(-1),
+    });
+    // The option names are exported CFString *variables* (the symbol points
+    // at a CFStringRef), not getter functions.
+    CFStringRef syncKey = avp ? *(CFStringRef *)dlsym(avp, "kAppleVirtualPlatformGuestStrongIdentityOptionSynchronous") : NULL;
+    CFStringRef ignoreKey = avp ? *(CFStringRef *)dlsym(avp, "kAppleVirtualPlatformGuestStrongIdentityOptionIgnoreCache") : NULL;
+    CFStringRef timeoutKey = avp ? *(CFStringRef *)dlsym(avp, "kAppleVirtualPlatformGuestStrongIdentityOptionSynchronousTimeoutNsec") : NULL;
+    if (copyStrong) {
+        for (int mode = 0; mode < 2; mode++) {
+            NSMutableDictionary *opts = [NSMutableDictionary dictionary];
+            if (mode == 1) {
+                if (syncKey) opts[(__bridge NSString *)syncKey] = @YES;
+                if (ignoreKey) opts[(__bridge NSString *)ignoreKey] = @YES;
+                if (timeoutKey) opts[(__bridge NSString *)timeoutKey] = @(5ull * NSEC_PER_SEC);
+            }
+            CFErrorRef err = NULL;
+            CFDataRef d = copyStrong((__bridge CFDictionaryRef)opts, &err);
+            sepLog(@"devid-strong", @{
+                @"mode": @(mode),
+                @"opts": @(opts.count),
+                @"len": @(d ? CFDataGetLength(d) : -1),
+                @"err": err ? [(__bridge NSError *)err description] : @"nil",
+            });
+            if (d) CFRelease(d);
+            if (err) CFRelease(err);
+        }
+    }
+}
+
 __attribute__((constructor)) static void sepInit(void) {
     swizzled = CFSetCreateMutable(NULL, 0, NULL);
     if (!sepEnabled() || !sepProcessAllowed()) return;
+    if (sepIsAkd()) {
+        const char *t = getenv("VM_SEP_DEVID_TEST");
+        if (t && !strcmp(t, "1")) sepDeviceIdentityProbe();
+    }
     // A dead helper socket makes write() raise SIGPIPE, whose default
     // disposition kills the host process — that is how guest akd kept
     // "exiting cleanly" right after a transport failure. Ignore it;

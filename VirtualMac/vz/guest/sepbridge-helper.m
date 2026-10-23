@@ -185,13 +185,22 @@ static void replyErr(int fd, NSString *msg) {
 // Wake iPad akd on demand: it idle-exits, so a request can arrive while
 // nothing holds the reverse link. kickstart spawns it; the watchdog
 // reinjects; the injected dylib dials back to 18444.
+//
+// Never pass -k here: kickstart -k kills a healthy akd first, so every
+// brief link gap (reconnect, watchdog not yet done) cost a full cold
+// start (~10s) and bursty auth flows timed out. If the process exists,
+// leave it alone and let the watchdog's 3s poll inject and redial.
 static void wakeAkd(void) {
     static const char *doms[] = {"user/501/com.apple.akd",
                                  "gui/501/com.apple.akd",
                                  "system/com.apple.akd"};
+    if (findAkdPid() > 0) {
+        hLog(@"akd-alive-wait", @{});
+        return;
+    }
     for (int i = 0; i < 3; i++) {
         pid_t cp;
-        char *a[] = {"/var/jb/usr/bin/launchctl", "kickstart", "-k",
+        char *a[] = {"/var/jb/usr/bin/launchctl", "kickstart",
                      (char *)doms[i], NULL};
         if (posix_spawn(&cp, "/var/jb/usr/bin/launchctl", NULL, NULL,
                         a, NULL) == 0) {
@@ -204,16 +213,18 @@ static void wakeAkd(void) {
     }
 }
 
-// Wait for the reverse link for up to ms milliseconds.
+// Wait for the reverse link for up to ms milliseconds (immediate probe
+// first: the old loop body never ran for ms == 0, so every guest request
+// looked link-less and went through the akd wake path).
 static int waitForLink(int ms) {
-    for (int i = 0; i < ms / 50; i++) {
+    for (int i = 0;; i++) {
         [gLock lock];
         int link = gAkdFd;
         [gLock unlock];
         if (link >= 0) return link;
+        if (i >= ms / 50) return -1;
         usleep(50 * 1000);
     }
-    return -1;
 }
 
 static void guestHandle(int fd) {

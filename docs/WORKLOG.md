@@ -812,3 +812,18 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 结论：最底层 = **adid（CoreADI）**。akd 直连 `com.apple.adid`；adid 是 C 级/混淆二进制，ObjC 面几乎为空。**下一层桥接对象 = guest adid ↔ iPad adid**（或 adid 的 XPC 接口方法层），工程量等价于再造一层桥
 - 客机 akd launchd 退避恢复：`bootout`+`bootstrap` 已验证秒恢复
 - iPad helper 会死（connect errno 61），恢复 = 它自己被 launchd 拉起或手动重启
+
+## 2026-10-23 — 唤醒路径致命 bug 修复，iPad akd 常驻；anisette 真实路径取证
+
+- **致命 bug（已修）**：helper `waitForLink(0)` 的循环条件 `i < ms / 50` 在 `ms=0` 时一次都不执行 → 永远返回 -1 → **每个客机请求**都进 wakeAkd；而 wakeAkd 用 `launchctl kickstart -k`，**会先杀掉健康的 akd**。后果：iPad akd `runs=281`，每次转发 ~10s（kickstart+opainject 冷启动），客机登录 UI 15s 窗口内多次调用必然超时/吞字段。
+  - 修复：`waitForLink` 先做一次立即探测；wakeAkd 在 `findAkdPid()>0` 时直接返回（不再 kill），只在真死时 `kickstart`（去掉 `-k`）。
+  - 实测：连续 3 次 `absintheSignatureForData:` **1–6ms**、同一 akd pid；同 data 两次签名不同（非缓存）；空闲 6+ 分钟 akd 仍存活（pid 68810），`runs` 不再增长。
+- **客机桥收窄注入面**：新增 `sepProcessAllowed()`（akd / appleaccountd / System Settings / AppleIDSettings；`VM_SEP_BRIDGE_ALLOW=all` 恢复全域），其余 GUI 进程不再 swizzle/刷日志。`sepSwizzle` 改为幂等返回，`install-pass` 只记首轮。gate 实测：`DYLD_INSERT_LIBRARIES=... VM_SEP_BRIDGE=1 /usr/bin/true` 零事件；akd 首轮 `swizzled:15`。
+- **iPad akd abort 取证**（`.diag/sepbridge-20261023/*.ips`）：20:50 四份 akd .ips 全为 `std::terminate → abort`（dispatch / XPC async reply 线程），分别由 nil device 的 `provisionAnisetteForDevice:completion:`、`legacyAnisetteDataForDSID:device:completion:`(DSID=-1)、随机 request 的 `attestationDataForDevice:withRequest:completion:` 触发。
+  - 正常：`fetchAnisetteDataAndProvisionIfNecessary:device:`(device=nil) 与同步 `anisetteDataForDevice:provisionIfNecessary:`(nil, YES) 均返回 455B 真 AKAnisetteData（3.8s 冷启动 / 10ms 热）。
+  - 影响：客机 context 方法（context→device=nil 翻译）若被真实流程调用，会打断 iPad akd 链路；异步 provision/legacy 需要改走同步路径或提供真实 AKDevice 才能安全转发。
+  - 另：20:33 akd .ips = `_xpc_authenticate_launchd_response_failure`（Accounts XPC），注入后的 akd 对 launchd 服务鉴权偶发失败（SIGTRAP），与本次请求路径无直接关系。
+- **anisette 真实路径证据**（客机 20:42 抓包 `/tmp/authcapture-204216.log`）：AMPLibraryAgent `FetchAttestation` → akd 原生 `attestationDataForRequestData:`（**未挂**）→ 直连 `com.apple.adid` → `ADIGetIDMSRouting -45061` → `AKAnisetteError -8025` → “Kicking off Anisette provisioning” → 再连 adid。**证实 anisette 在 akd 内部 C/ADI 层，绕过已挂的 ObjC 服务方法**；`attestationDataForRequestData:` 是下一个桥接点（iPad 对应 `attestationDataForDevice:withRequest:`，但需先规避上述 abort）。
+- 客机普通进程直连 `com.apple.ak.anisette.xpc` → `4099 invalidated`（缺 entitlement，符合预期）。测试工具：`/tmp/anisette-client`、`/tmp/sep-probe.py`、`/tmp/sep-probe2.py`（会话临时，未入库）。
+- 部署：iPad helper 已更新（fresh inode + kickstart，89184B arm64e）；`/var/jb/sepbridge/SEPBridgeCompat.dylib` 更新为 275008B universal（修复前的 223296B 是旧版）。客机 `/Library/VirtualMac/SEPBridgeCompat.dylib` 同步新构建，akd 装载 7 daemon + 8 signer 方法，`forward-ok` 实测（含真实 akd 流量的 `signaturesForData:options:completion:`）。
+- 待办：①用户回来做真实登录复现（转圈时 `sample AppleIDSettings`/`sample akd` + log stream）；②异步 provision/legacy 的 iPad abort 规避；③`attestationDataForRequestData:` 层桥接评估。

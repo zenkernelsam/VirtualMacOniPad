@@ -537,7 +537,9 @@ static BOOL sepSwizzle(Class c, SEL sel, IMP repl) {
     if (!c || !sel) return NO;
     Method m = class_getInstanceMethod(c, sel);
     if (!m) return NO;
-    if (method_getImplementation(m) == repl) return YES;
+    // Already ours: report no change so the rescan loop stops logging
+    // install-pass every half second for the life of the process.
+    if (method_getImplementation(m) == repl) return NO;
     method_setImplementation(m, repl);
     return YES;
 }
@@ -727,9 +729,26 @@ static void *sepPinLoop(void *_) {
     return NULL;
 }
 
+// The launchd env is domain-wide, so the dylib gets mapped into every GUI
+// process. Only the auth daemons need it; swizzling unrelated agents just
+// widens the crash surface (and the rescan loop keeps them awake).
+// VM_SEP_BRIDGE_ALLOW=all restores the old everywhere behaviour.
+static BOOL sepProcessAllowed(void) {
+    const char *all = getenv("VM_SEP_BRIDGE_ALLOW");
+    if (all && !strcmp(all, "all")) return YES;
+    const char *pn = getprogname();
+    if (!pn) return NO;
+    static const char *const names[] = {
+        "akd", "appleaccountd", "System Settings", "AppleIDSettings",
+    };
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++)
+        if (!strcmp(pn, names[i])) return YES;
+    return NO;
+}
+
 __attribute__((constructor)) static void sepInit(void) {
     swizzled = CFSetCreateMutable(NULL, 0, NULL);
-    if (!sepEnabled()) return;
+    if (!sepEnabled() || !sepProcessAllowed()) return;
     // A dead helper socket makes write() raise SIGPIPE, whose default
     // disposition kills the host process — that is how guest akd kept
     // "exiting cleanly" right after a transport failure. Ignore it;

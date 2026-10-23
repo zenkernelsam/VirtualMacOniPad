@@ -3,6 +3,13 @@
 > 交接对象：任何 coding agent（不依赖 Devin 会话记忆）。项目根：`/Users/ciscohe/Desktop/VirtualMacOniPad`。
 > 先读本文件 + 根 `AGENTS.md` + `docs/WORKLOG.md`（末尾的 2026-10-22 SEP桥 系列条目 = 逐小时取证流水）。
 > 最后更新：2026-10-23，对应 commit `a827f32`。
+>
+> **2026-10-23 更新（先读这条）**：helper 每个请求都 `kickstart -k` 杀 akd 的 bug 已修
+> （`waitForLink(0)` 循环永不执行）——iPad akd 现在常驻，单次转发 1–6ms 而非 ~10s。
+> 客机桥改为只注入 akd/appleaccountd/Settings。新取证：anisette 在 akd 内**直连
+> `com.apple.adid`**（绕过 ObjC swizzle）；nil-device 的异步 `provisionAnisetteForDevice:`
+> / `legacyAnisetteDataForDSID:device:` 会让 iPad akd `std::terminate`。详见
+> `docs/WORKLOG.md` 的 2026-10-23 条目与 `.diag/sepbridge-20261023/`。
 
 ## 0. 三十秒状态摘要
 

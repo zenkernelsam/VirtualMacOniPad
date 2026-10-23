@@ -28,8 +28,10 @@
 
 #import <Foundation/Foundation.h>
 #import <objc/message.h>
+#import <signal.h>
 #import <objc/runtime.h>
 #include <dlfcn.h>
+#include <execinfo.h>
 #include <pthread.h>
 #include <mach-o/dyld.h>
 #include <arpa/inet.h>
@@ -40,6 +42,7 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 
 extern const char *_Block_signature(void *aBlock);
 
@@ -51,6 +54,23 @@ static double sepNow(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec + ts.tv_nsec / 1e9;
+}
+// ReportCrash throttles akd corpses ("Corpse allowed 1 of 5"), so the
+// real faulting stacks were invisible. Dump our own backtrace first.
+static void sepCrashDump(int sig, siginfo_t *si, void *uc) {
+    char buf[64];
+    int n = snprintf(buf, sizeof(buf),
+        "VMSEP {\"event\":\"crash\",\"sig\":%d,\"addr\":\"%p\",\"pid\":%d}\n",
+        sig, si ? si->si_addr : 0, getpid());
+    int f = open("/tmp/sepbridge-events.log",
+                 O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (f >= 0) { write(f, buf, n); }
+    void *frames[32];
+    int nf = backtrace(frames, 32);
+    if (f >= 0) backtrace_symbols_fd(frames, nf, f);
+    if (f >= 0) close(f);
+    signal(sig, SIG_DFL);
+    raise(sig);
 }
 static void sepLog(NSString *tag, NSDictionary *details) {
     if (__atomic_fetch_add(&sepCount, 1, __ATOMIC_RELAXED) >= 2048) return;
@@ -252,9 +272,12 @@ static unsigned sepBlockArgTypes(void *block, char *types, unsigned max) {
 static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                                 id wrappedError) {
     if (!block) return;
+    sepLog(@"invoke-enter", @{@"blk":
+        [NSString stringWithFormat:@"%p", (__bridge void *)block]});
     const char *bsig = _Block_signature((__bridge void *)block);
     char types[6] = {0};
     unsigned n = sepBlockArgTypes((__bridge void *)block, types, 6);
+    sepLog(@"invoke-parsed", @{@"argc": @(n)});
     sepLog(@"invoke-sig",
            @{@"sig": bsig ? [NSString stringWithUTF8String:bsig] : @"?",
              @"argc": @(n),
@@ -269,6 +292,8 @@ static void sepInvokeCompletion(id block, NSArray *wrappedResults,
         BOOL last = (i == n - 1);
         id v = last ? sepUnwrap(wrappedError)
             : (i < wrappedResults.count ? sepUnwrap(wrappedResults[i]) : nil);
+        sepLog(@"invoke-arg",
+               @{@"i": @(i), @"cls": v ? NSStringFromClass([v class]) : @"nil"});
         switch (types[i]) {
             case 'B':
                 vals[i] = [v respondsToSelector:@selector(boolValue)]
@@ -285,10 +310,32 @@ static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                 break;
         }
     }
-    void *invoke = ((void **)(__bridge void *)block)[2];
-    ((void (*)(void *, long, long, long, long, long, long))invoke)(
-        (__bridge void *)block, vals[0], vals[1], vals[2], vals[3],
-        vals[4], vals[5]);
+    // Do NOT call the raw invoke pointer: on arm64e it carries a PAC
+    // signature, and a C-style indirect call jumps to an unauthenticated
+    // address -> SIGSEGV inside the reply block every time. A real
+    // block-call expression lets clang emit the authenticated blraa.
+    // Object and small-scalar params share the same x-register slot, so
+    // id casts are ABI-safe; extra params are ignored by the callee.
+    switch (n) {
+        case 0:
+            ((void (^)(void))block)();
+            break;
+        case 1:
+            ((void (^)(id))block)((__bridge id)(void *)vals[0]);
+            break;
+        case 2:
+            ((void (^)(id, id))block)((__bridge id)(void *)vals[0], (__bridge id)(void *)vals[1]);
+            break;
+        case 3:
+            ((void (^)(id, id, id))block)((__bridge id)(void *)vals[0], (__bridge id)(void *)vals[1],
+                                         (__bridge id)(void *)vals[2]);
+            break;
+        default:
+            ((void (^)(id, id, id, id, id, id))block)(
+                (__bridge id)(void *)vals[0], (__bridge id)(void *)vals[1], (__bridge id)(void *)vals[2],
+                (__bridge id)(void *)vals[3], (__bridge id)(void *)vals[4], (__bridge id)(void *)vals[5]);
+            break;
+    }
     sepLog(@"completion-invoked", @{@"argc": @(n)});
 }
 
@@ -395,10 +442,12 @@ static void sepFwdB1(id self, SEL _cmd, BOOL x, id a, id completion) {
 // Nested completion blocks via sepInvokeCompletion corrupted __block
 // byref captures (EXC_BAD_ACCESS, PAC failure on byref ptr). Instead call
 // the leaf synchronously with sepRoundtrip — no inner block ABI at all.
-static id sepLeafCall(NSString *sel, id item, NSError **errOut) {
+static id sepLeafCall(NSString *sel, NSArray *args, NSError **errOut) {
     double start = sepNow();
+    NSMutableArray *w = [NSMutableArray array];
+    for (id a in args) [w addObject:sepWrap(a)];
     NSDictionary *resp = sepRoundtrip(@{@"op": @"daemon",
-        @"sel": sel, @"args": @[sepWrap(item)]});
+        @"sel": sel, @"args": w});
     double elapsed = sepNow() - start;
     if (![resp isKindOfClass:NSDictionary.class]) {
         sepLog(@"leaf-fail", @{@"sel": sel, @"ms": @(elapsed * 1000)});
@@ -420,7 +469,11 @@ static id sepLeafCall(NSString *sel, id item, NSError **errOut) {
 
 static void sepFwdAbsintheBatch(id self, SEL _cmd, id datas, id options,
                               id completion) {
-    NSString *leaf = @"absintheSignatureForData:completion:";
+    // absintheSignatureForData: returns an absinthe token (NSString);
+    // the real batch result needs per-datum signatures (NSData) — akd
+    // base64-encodes each dict value and aborted on NSString. The real
+    // leaf is signatureForData:options:completion: on the iOS service.
+    NSString *leaf = @"signatureForData:options:completion:";
     // Fully synchronous on the calling thread: the XPC reply block's
     // lifetime is only guaranteed while the method invocation is active;
     // deferred invocation on another queue left its captured state stale
@@ -430,7 +483,8 @@ static void sepFwdAbsintheBatch(id self, SEL _cmd, id datas, id options,
     id (^signOne)(id) = ^id(id item) {
         if (![item isKindOfClass:NSData.class]) return item;
         NSError *e = nil;
-        id out = sepLeafCall(leaf, item, &e);
+        id out = sepLeafCall(leaf,
+            options ? @[item, options] : @[item], &e);
         if (e && !firstErr) firstErr = e;
         return out;
     };
@@ -503,8 +557,13 @@ static const struct { const char *sel; IMP impl; } kDaemonOps[] = {
     // but the macOS implementation decomposes into the leaf ops below,
     // which all exist on the iOS daemon service and are forwarded.
     {"absintheSignatureForData:completion:", (IMP)sepFwd1},
-    {"signaturesForData:options:completion:", (IMP)sepFwdAbsintheBatch},
-    {"signatureForData:options:completion:", (IMP)sepFwdAbsintheBatch},
+    // Whole-batch forward to iOS AKAttestationSigner.sharedSigner: the
+    // signer's batch method returns the exact (NSDictionary, NSData,
+    // NSError) reply shape, so relay it verbatim instead of a per-item
+    // absinthe fanout (which produced NSString tokens that made akd
+    // abort calling -base64EncodedStringWithOptions: on them).
+    {"signaturesForData:options:completion:", (IMP)sepFwd2},
+    {"signatureForData:options:completion:", (IMP)sepFwd2},
 };
 
 static unsigned sepSwizzleDaemonClass(Class c) {
@@ -625,6 +684,42 @@ static BOOL sepEnabled(void) {
 // Our TCP forwarding is invisible to that accounting, so guest akd was
 // dying mid-auth (4097 on com.apple.ak.auth.xpc -> field got swallowed).
 // Pin it with leaked transactions — same trick as the iPad side.
+//
+// Leaked xpc_transaction_begin did NOT stop it: akd calls
+// xpc_transaction_exit_clean() from its own idle logic and exits anyway
+// (EXITED code=0 right after the reply fired). Interpose that symbol so
+// akd cannot self-exit while the bridge is loaded — launchd still owns
+// its lifecycle for demand/termination.
+extern void xpc_transaction_exit_clean(void);
+extern void _exit(int);
+extern void exit(int);
+static BOOL sepIsAkd(void) {
+    const char *pn = getprogname();
+    return pn && !strcmp(pn, "akd");
+}
+static void sepExitCleanNoop(void) {
+    static int once;
+    if (!__sync_fetch_and_add(&once, 1))
+        sepLog(@"exit-clean-blocked", @{});
+}
+// akd's idle logic uses several exits; exit_clean was blocked but the
+// process still left through _exit(0)/exit(0). Block status-0 exits in
+// akd only (other processes keep normal semantics); nonzero exits and
+// signal deaths are unaffected.
+static void sepExitBlock0(int status) {
+    if (!sepIsAkd() || status != 0) { syscall(SYS_exit, status); }
+    static int once;
+    if (!__sync_fetch_and_add(&once, 1))
+        sepLog(@"exit0-blocked", @{});
+}
+typedef struct { const void *n; const void *o; } sepInterpose;
+__attribute__((used)) static const sepInterpose sepInterposes[]
+    __attribute__((section("__DATA,__interpose"))) = {
+        { (const void *)sepExitCleanNoop,
+          (const void *)xpc_transaction_exit_clean },
+        { (const void *)sepExitBlock0, (const void *)_exit },
+        { (const void *)sepExitBlock0, (const void *)exit },
+};
 static void *sepPinLoop(void *_) {
     void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
     if (!xt) return NULL;
@@ -635,6 +730,19 @@ static void *sepPinLoop(void *_) {
 __attribute__((constructor)) static void sepInit(void) {
     swizzled = CFSetCreateMutable(NULL, 0, NULL);
     if (!sepEnabled()) return;
+    // A dead helper socket makes write() raise SIGPIPE, whose default
+    // disposition kills the host process — that is how guest akd kept
+    // "exiting cleanly" right after a transport failure. Ignore it;
+    // write() then returns EPIPE which the transport already handles.
+    signal(SIGPIPE, SIG_IGN);
+    struct sigaction sa = {0};
+    sa.sa_sigaction = sepCrashDump;
+    sa.sa_flags = SA_SIGINFO | SA_RESETHAND;
+    sigaction(SIGSEGV, &sa, NULL);
+    sigaction(SIGBUS, &sa, NULL);
+    sigaction(SIGABRT, &sa, NULL);
+    sigaction(SIGTRAP, &sa, NULL);
+    sigaction(SIGILL, &sa, NULL);
     const char *pn = getprogname();
     if (pn && !strcmp(pn, "akd")) {
         void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");

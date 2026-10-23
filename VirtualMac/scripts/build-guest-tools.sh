@@ -20,12 +20,14 @@ SYMBOL_CATALOG="$OUT/VirtualMacGuestTools.xcassets"
 
 "$SCRIPT_DIR/development/build-opengl-guest-compat.sh"
 "$SCRIPT_DIR/development/build-account-signin-compat.sh"
+"$SCRIPT_DIR/development/build-sepbridge-compat.sh"
 
 rm -rf "$APP" "$OUT/VirtualMac.iconset" "$OUT/payload" "$SYMBOL_CATALOG"
 rm -f "$OUT/VirtualMacGuestTools.arm64" \
     "$OUT/VirtualMacGuestTools.x86_64" \
     "$OUT/OpenGLPVGCompat.dylib" \
     "$OUT/AppleAccountSignInCompat.dylib" \
+    "$OUT/SEPBridgeCompat.dylib" \
     "$OUT/com.mac.virtual.guest-tools.plist" \
     "$OUT/com.mac.virtual.opengl-compat.plist" \
     "$OUT/Virtual Mac OpenGL Acceleration" \
@@ -75,6 +77,8 @@ codesign --force --sign - "$APP"
 cp "$OPENGL_OUT/OpenGLPVGCompat.dylib" "$OUT/OpenGLPVGCompat.dylib"
 cp "$VZ_BUILD_ROOT/guest-account/AppleAccountSignInCompat.dylib" \
     "$OUT/AppleAccountSignInCompat.dylib"
+cp "$VZ_BUILD_ROOT/guest-sepbridge/SEPBridgeCompat.dylib" \
+    "$OUT/SEPBridgeCompat.dylib"
 cp "$VZ_REPO_ROOT/vz/guest/com.mac.virtual.guest-tools.plist" \
     "$OUT/com.mac.virtual.guest-tools.plist"
 PAYLOAD="$OUT/payload"
@@ -82,6 +86,7 @@ mkdir -p "$PAYLOAD/Library/VirtualMac" "$PAYLOAD/Library/LaunchAgents"
 cp -R "$APP" "$PAYLOAD/Library/VirtualMac/"
 cp "$OUT/OpenGLPVGCompat.dylib" "$PAYLOAD/Library/VirtualMac/"
 cp "$OUT/AppleAccountSignInCompat.dylib" "$PAYLOAD/Library/VirtualMac/"
+cp "$OUT/SEPBridgeCompat.dylib" "$PAYLOAD/Library/VirtualMac/"
 cp "$OUT/com.mac.virtual.guest-tools.plist" \
     "$PAYLOAD/Library/LaunchAgents/"
 # Do not encode checkout provenance into the guest payload. macOS 27 launchd

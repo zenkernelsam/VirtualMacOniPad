@@ -13,6 +13,7 @@
 // akd-dylib's outbound dial to 192.168.64.1 reaches us).
 
 #import <Foundation/Foundation.h>
+#import <signal.h>
 #import <arpa/inet.h>
 #import <errno.h>
 #import <netinet/in.h>
@@ -311,6 +312,10 @@ static void guestHandle(int fd) {
 }
 
 int main(void) {
+    // Writing to an akd link whose peer just exited raises SIGPIPE and
+    // kills this whole process (guest then sees ECONNREFUSED on 18443).
+    // EPIPE is already handled by the retry path below.
+    signal(SIGPIPE, SIG_IGN);
     gLock = [NSLock new];
     hLog(@"start", @{@"uid": @(getuid())});
     dispatch_async(dispatch_get_global_queue(0, 0), ^{ akdLinkThread(); });

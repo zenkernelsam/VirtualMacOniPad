@@ -13,6 +13,7 @@
 
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
+#import <signal.h>
 #import <objc/message.h>
 #import <arpa/inet.h>
 #import <sys/socket.h>
@@ -116,22 +117,33 @@ static id makeSvc(void) {
         sel_registerName("initWithClient:"), client);
 }
 
-// selector -> arg kinds: i=id obj, b=BOOL, n=none (sync call)
-struct op { const char *sel; const char *sig; };
+// selector -> arg kinds: i=id obj, b=BOOL, n=none (sync call);
+// target "signer" dispatches to AKAttestationSigner.sharedSigner — the
+// worker class that performs real SEP signing without a daemon XPC
+// context. sig suffix 3 = three-arg completion (result,data,error).
+struct op { const char *sel; const char *target; const char *sig; };
 static const struct op kOps[] = {
-    {"ping", "n"},
-    {"legacyAnisetteDataForDSID:device:completion:", "iib"},
-    {"provisionAnisetteForDevice:completion:", "ib"},
-    {"fetchAnisetteDataAndProvisionIfNecessary:device:completion:", "bib"},
-    {"syncAnisetteWithSIMData:device:completion:", "iib"},
-    {"eraseAnisetteForDevice:completion:", "ib"},
-    {"anisetteDataForDevice:provisionIfNecessary:", "ibs"},
-    {"attestationDataForDevice:withRequest:completion:", "iib"},
-    {"absintheSignatureForData:completion:", "ib"},
-    {"signatureForData:options:completion:", "iib"},
-    {"signaturesForData:options:completion:", "iib"},
-    {NULL, NULL},
+    {"ping", "daemon", "n"},
+    {"legacyAnisetteDataForDSID:device:completion:", "daemon", "iib"},
+    {"provisionAnisetteForDevice:completion:", "daemon", "ib"},
+    {"fetchAnisetteDataAndProvisionIfNecessary:device:completion:", "daemon", "bib"},
+    {"syncAnisetteWithSIMData:device:completion:", "daemon", "iib"},
+    {"eraseAnisetteForDevice:completion:", "daemon", "ib"},
+    {"anisetteDataForDevice:provisionIfNecessary:", "daemon", "ibs"},
+    {"attestationDataForDevice:withRequest:completion:", "daemon", "iib"},
+    {"absintheSignatureForData:completion:", "daemon", "ib"},
+    {"signatureForData:options:completion:", "signer", "iib3"},
+    {"signaturesForData:options:completion:", "signer", "iib3"},
+    {NULL, NULL, NULL},
 };
+
+static id gSigner;
+static id makeSigner(void) {
+    Class c = objc_getClass("AKAttestationSigner");
+    if (!c) return nil;
+    return ((id (*)(id, SEL))objc_msgSend)(
+        (id)c, sel_registerName("sharedSigner"));
+}
 
 static void respond(NSArray *rargs, id err) {
     NSDictionary *resp = @{@"args": rargs ?: @[],
@@ -152,13 +164,24 @@ static void runCall(NSString *sel, NSArray *args) {
         if (!strcmp(kOps[i].sel, sel.UTF8String)) { o = &kOps[i]; break; }
     if (!o) { respond(nil, [NSString stringWithFormat:@"unsupported %@", sel]);
         return; }
-    if (!gSvc) gSvc = makeSvc();
-    if (!gSvc) { respond(nil, @"no svc"); return; }
+    id target = gSvc;
+    if (!strcmp(o->target, "signer")) {
+        if (!gSigner) {
+            gSigner = makeSigner();
+            if (gSigner) CFRetain((__bridge CFTypeRef)gSigner);
+        }
+        target = gSigner;
+    } else {
+        if (!gSvc) gSvc = makeSvc();
+        target = gSvc;
+    }
+    if (!target) { respond(nil, [NSString stringWithFormat:
+        @"no target for %@", sel]); return; }
 
     SEL s = sel_registerName(sel.UTF8String);
-    if (![gSvc respondsToSelector:s]) {
+    if (![target respondsToSelector:s]) {
         respond(nil, [NSString stringWithFormat:
-            @"%@ not on %@", sel, NSStringFromClass(object_getClass(gSvc))]);
+            @"%@ not on %@", sel, NSStringFromClass(object_getClass(target))]);
         return;
     }
     id a0 = args.count > 0 ? unwrap(args[0]) : nil;
@@ -185,18 +208,29 @@ static void runCall(NSString *sel, NSArray *args) {
         }
         dispatch_semaphore_signal(sem);
     };
-    if (o->sig[0] == 'b') {
+    if (strchr(o->sig, '3')) {
+        // Three-arg completion: (result, data, error) — the signature
+        // batch ABI verified from AuthKit's own method type encoding.
+        void (^cb3)(id, id, id) = ^(id r0, id r1, id r2) {
+            if ([r2 isKindOfClass:NSError.class]) rerr = r2;
+            else if ([r1 isKindOfClass:NSError.class]) rerr = r1;
+            if (r0) [rr addObject:wrap(r0)];
+            if (r1 && ![r1 isKindOfClass:NSError.class])
+                [rr addObject:wrap(r1)];
+            if (r2 && ![r2 isKindOfClass:NSError.class])
+                [rr addObject:wrap(r2)];
+            dispatch_semaphore_signal(sem);
+        };
+        ((void(*)(id, SEL, id, id, id))objc_msgSend)(
+            target, s, a0, a1, cb3);
+    } else if (o->sig[0] == 'b') {
         ((void(*)(id, SEL, BOOL, id, id))objc_msgSend)(
-            gSvc, s, a0 ? [a0 boolValue] : NO, a1, cb);
+            target, s, a0 ? [a0 boolValue] : NO, a1, cb);
     } else if (o->sig[1] == 'i' && o->sig[2] == 'b' && o->sig[0] == 'i') {
         // "iib": (id, id) + block — i.e. two object args
-        if ([sel hasSuffix:@"options:completion:"]) {
-            ((void(*)(id, SEL, id, id, id))objc_msgSend)(gSvc, s, a0, a1, cb);
-        } else {
-            ((void(*)(id, SEL, id, id, id))objc_msgSend)(gSvc, s, a0, a1, cb);
-        }
+        ((void(*)(id, SEL, id, id, id))objc_msgSend)(target, s, a0, a1, cb);
     } else {
-        ((void(*)(id, SEL, id, id))objc_msgSend)(gSvc, s, a0, cb);
+        ((void(*)(id, SEL, id, id))objc_msgSend)(target, s, a0, cb);
     }
     if (dispatch_semaphore_wait(sem,
             dispatch_time(DISPATCH_TIME_NOW, 20ull * NSEC_PER_SEC)))
@@ -257,6 +291,9 @@ __attribute__((constructor)) static void boot(void) {
     // owns the bridge.
     const char *pn = getprogname();
     if (!pn || strcmp(pn, "akd")) return;
+    // Helper disconnects make our link writes raise SIGPIPE; default
+    // disposition would kill akd. Turn it into EPIPE instead.
+    signal(SIGPIPE, SIG_IGN);
     // Single-instance dedupe via ObjC runtime namespace: env-injection and
     // watchdog dlopen can both load this dylib; only the first serves.
     // (mach bootstrap_check_in is denied inside the akd sandbox.)

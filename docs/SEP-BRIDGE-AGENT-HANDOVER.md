@@ -4,6 +4,11 @@
 > 先读本文件 + 根 `AGENTS.md` + `docs/WORKLOG.md`（末尾的 2026-10-22 SEP桥 系列条目 = 逐小时取证流水）。
 > 最后更新：2026-10-23，对应 commit `a827f32`。
 >
+> **2026-10-24 更新（已突破）**：VM 内 Apple Account 登录成功。关键是在客机 `akd` 内
+> interpose `sysctlbyname("kern.hv_vmm_present")` 返回 0（`VM_SEP_FAKE_NONVM=1`），
+> 让 DeviceIdentity 走真机 BAA 路径，经本桥用 iPad 真 SEP 完成真实 2FA。完整复盘见
+> `docs/VM-APPLE-ID-BREAKTHROUGH.md`；开机自恢复 `com.vm.sepbridge.autoapply`。
+>
 > **2026-10-23 更新（先读这条）**：helper 每个请求都 `kickstart -k` 杀 akd 的 bug 已修
 > （`waitForLink(0)` 循环永不执行）——iPad akd 现在常驻，单次转发 1–6ms 而非 ~10s。
 > 客机桥改为只注入 akd/appleaccountd/Settings。新取证：anisette 在 akd 内**直连

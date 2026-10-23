@@ -5,7 +5,7 @@
 ## 0. 我是谁 / 当前任务
 
 - 项目：让 iPad 原生跑 macOS。本仓库 = **虚拟机路线**（Apple Virtualization.framework + PG/MetalSerializer 转发 GPU）。姐妹项目 `~/Desktop/macPad` = chroot 路线。
-- **当前战线**：①外设直通盘点（已产出 `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md`）；②**主线研究：VM 原生 GPU 优化**——目标是接近真 Mac 上 Virtualization.framework 的 GPU 体验。已知痛点：Matlab、Devin(Electron GPU)、Qoder CN 等需 `--disable-gpu` 或崩溃。研究记录写 `docs/GPU-NATIVE-RESEARCH.md`。
+- **当前战线**：①外设直通盘点（已产出 `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md`）；②**主线研究：VM 原生 GPU 优化**——目标是接近真 Mac 上 Virtualization.framework 的 GPU 体验。已知痛点：Matlab、Devin(Electron GPU)、Qoder CN 等需 `--disable-gpu` 或崩溃。研究记录写 `docs/GPU-NATIVE-RESEARCH.md`；③**VM 内 Apple Account 登录已突破（2026-10-24）**——关键在 akd 内 interpose `sysctlbyname("kern.hv_vmm_present")` 返回 0（`VM_SEP_FAKE_NONVM=1`），让 AuthKit 走真机 BAA 路径、经 SEP 桥用 iPad 真 SEP 完成真实 2FA。完整复盘（含错误结论与死胡同）：`docs/VM-APPLE-ID-BREAKTHROUGH.md`；开机自恢复：`com.vm.sepbridge.autoapply`。克隆机 `Sequoia-SerialAux.bundle` 已登录 iCloud，原机未动。
 - 进度日志：`docs/WORKLOG.md`（每完成一步追加，压缩后从这里恢复进度）。
 
 ## 1. 十条行为准则（load-bearing，逐条遵守）
@@ -165,3 +165,13 @@ clang -fobjc-arc -Wall -Wextra -Werror -framework Foundation VirtualMac/scripts/
 - **客机 akd 连崩退避**：连崩 ~10+ 次后 launchd exponential throttling → "spawn scheduled" 不起、登录页空白；`kickstart -k` 会挂起等退避。**重置**：`sudo launchctl bootout gui/501/com.apple.akd && sudo launchctl bootstrap gui/501 /System/Library/LaunchAgents/com.apple.akd.plist`。
 - **桥代码自身会崩 akd（已踩 2 次）**：①`%@` 格式化 `const char*`(.UTF8String)→SIGTRAP——ObjC 格式串里 C 字符串一律用 `%s`；②fanout completion 写成 `^(NSArray *a,…)` 但 `sepInvokeCompletion` 传的是解包结果对象本身（NSData）→ unrecognized selector EXC_BAD_ACCESS。桥代码改动后先看 `~/Library/Logs/DiagnosticReports/akd-*.ips` 排除自伤再查远端。
 - 桥源码入仓库：`VirtualMac/vz/guest/sepinject.m`（iPad 侧注入件）、`VirtualMac/vz/guest/sepbridge-helper.m`（iPad 常驻转发器）、`SEPBridgeCompat.m`（客机注入件）。工作日志 `docs/WORKLOG.md`。
+
+### 2026-10-24 00:45 突破：VM 内 Apple Account 登录成功（真实 iPad SEP）
+
+- **结果**：克隆机 `Sequoia-SerialAux.bundle` 已登录 iCloud（`hejiajie9527@gmail.com` / Cisco He，DSID 10118378221，Services active）；iPad 弹授权窗、iPhone 要求密码 = 真实 2FA。原机 `Sequoia.bundle` 未动。
+- **关键**：`DeviceIdentityIsSupported()` 的 VM 分支要求宿主密钥（iPadOS 无），但该判断只是本地 `sysctlbyname("kern.hv_vmm_present")==1`。在 akd 内 interpose `sysctlbyname` 对该 key 返回 0（env `VM_SEP_FAKE_NONVM=1`）→ AuthKit 走真机 BAA 路径 → 既有 SEP 桥（anisette/AKAttestationSigner）用 iPad 真 SEP 完成认证。
+- **不是伪造**：证书/签名/2FA 都是真的；改的是本地“是否 VM”判断。属 diagnostic 级 interpose，env 门控、代码注释标注、可回滚（unset env + kill akd）。
+- **稳定配方**：`DYLD_INSERT_LIBRARIES`（OpenGLPVGCompat+AppleAccountSignInCompat+SEPBridgeCompat）+ `VM_SEP_BRIDGE=1` + `VM_SEP_FAKE_NONVM=1` + `SEPIdentityBridge=true`；克隆身份 = 宿主侧 `_machineIdentifierWithSerialNumber:` 生成（`{ECID, SerialNumber:"R9D3WPY7T5", DisableECIDChecks:true}`）+ **复制原 AuxiliaryStorage**（新建会黑屏）。
+- **开机自恢复**：`/Library/LaunchDaemons/com.vm.sepbridge.autoapply.plist` + `/Library/VirtualMac/apply-sep-bridge.sh`（等 console 用户 → setenv → kickstart akd），日志 `/var/log/sepbridge-autostart.log`。源码在 `VirtualMac/vz/guest/`。
+- **完整复盘**（为什么先判死路、错在哪、死胡同清单、验证与回滚）：`docs/VM-APPLE-ID-BREAKTHROUGH.md`。
+- **已知环境限制**：VM 经 iPad 热点 NAT，热点抖动会断网；账户只在克隆盘；App Store/查找/Apple Pay 按 Apple 文档在 VM 中仍不可用。

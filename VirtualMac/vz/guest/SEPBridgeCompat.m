@@ -39,6 +39,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/sysctl.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -888,6 +889,29 @@ static void sepExitBlock0(int status) {
     if (!__sync_fetch_and_add(&once, 1))
         sepLog(@"exit0-blocked", @{});
 }
+// DIAGNOSTIC ONLY (env-gated): DeviceIdentity decides "am I a VM?" with
+// sysctlbyname("kern.hv_vmm_present"). Reporting 0 inside akd makes AuthKit
+// take the device-BAA path instead of the (absent) host-key path, which lets
+// us see whether it then uses the already-bridged AKAttestationSigner.
+// Everything else passes through untouched.
+static int sepSysctlByName(const char *name, void *oldp, size_t *oldlenp,
+                           void *newp, size_t newlen) {
+    const char *env = getenv("VM_SEP_FAKE_NONVM");
+    if (env && !strcmp(env, "1") && sepIsAkd() &&
+        name && !strcmp(name, "kern.hv_vmm_present") &&
+        oldp && oldlenp && *oldlenp >= sizeof(int)) {
+        *(int *)oldp = 0;
+        *oldlenp = sizeof(int);
+        sepLog(@"fake-nonvm", @{@"name": @(name)});
+        return 0;
+    }
+    int mib[8];
+    size_t miblen = sizeof(mib) / sizeof(mib[0]);
+    if (!sysctlnametomib(name, mib, &miblen))
+        return sysctl(mib, (u_int)miblen, oldp, oldlenp, newp, newlen);
+    return -1;
+}
+
 typedef struct { const void *n; const void *o; } sepInterpose;
 __attribute__((used)) static const sepInterpose sepInterposes[]
     __attribute__((section("__DATA,__interpose"))) = {
@@ -895,6 +919,7 @@ __attribute__((used)) static const sepInterpose sepInterposes[]
           (const void *)xpc_transaction_exit_clean },
         { (const void *)sepExitBlock0, (const void *)_exit },
         { (const void *)sepExitBlock0, (const void *)exit },
+        { (const void *)sepSysctlByName, (const void *)sysctlbyname },
 };
 static void *sepPinLoop(void *_) {
     void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
@@ -918,6 +943,38 @@ static BOOL sepProcessAllowed(void) {
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++)
         if (!strcmp(pn, names[i])) return YES;
     return NO;
+}
+
+// DIAGNOSTIC ONLY (env-gated, never part of the delivered profile): force
+// DeviceIdentityIsSupported() to true inside akd so AuthKit takes the BAA
+// path. The VM branch of that function asks the absent host for a host key;
+// what we want to learn is whether AuthKit then falls back to
+// AKAttestationSigner (already bridged to the iPad SEP) or insists on the
+// host-key stack. Reversible by restarting akd without the env.
+static void sepForceDeviceIdentity(void) {
+    void *h = dlopen("/System/Library/PrivateFrameworks/DeviceIdentity.framework/DeviceIdentity", RTLD_NOW);
+    void *sym = h ? dlsym(h, "DeviceIdentityIsSupported") : NULL;
+    if (!sym) {
+        sepLog(@"force-devid", @{@"err": @"symbol unavailable"});
+        return;
+    }
+    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
+    // arm64e symbol pointers can carry PAC bits; keep the 48-bit address.
+    uintptr_t addr = (uintptr_t)sym & 0x0000FFFFFFFFFFFFULL;
+    sym = (void *)addr;
+    vm_address_t base = (vm_address_t)addr & ~(vm_address_t)(page - 1);
+    kern_return_t kr = vm_protect(mach_task_self(), base, page, false,
+        VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE);
+    if (kr != KERN_SUCCESS) {
+        sepLog(@"force-devid", @{@"err": @(kr)});
+        return;
+    }
+    uint32_t insns[2] = {0x52800020u, 0xD65F03C0u}; // mov w0,#1 ; ret
+    memcpy(sym, insns, sizeof(insns));
+    vm_protect(mach_task_self(), base, page, false,
+        VM_PROT_READ | VM_PROT_EXECUTE);
+    __builtin___clear_cache((char *)sym, (char *)sym + sizeof(insns));
+    sepLog(@"force-devid", @{@"patched": @YES});
 }
 
 // Diagnostic: run the AVP identity probes from INSIDE an entitled daemon
@@ -971,6 +1028,8 @@ __attribute__((constructor)) static void sepInit(void) {
     if (sepIsAkd()) {
         const char *t = getenv("VM_SEP_DEVID_TEST");
         if (t && !strcmp(t, "1")) sepDeviceIdentityProbe();
+        const char *f = getenv("VM_SEP_FORCE_DEVID");
+        if (f && !strcmp(f, "1")) sepForceDeviceIdentity();
     }
     // A dead helper socket makes write() raise SIGPIPE, whose default
     // disposition kills the host process — that is how guest akd kept

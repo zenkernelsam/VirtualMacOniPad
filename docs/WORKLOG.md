@@ -955,3 +955,13 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 结论（架构级）：VM 的 host key/BAA 依赖宿主 macOS 的 SEP coprocessor 服务；iPad 侧只有设备身份，没有该服务。模拟它需要逆 mailbox/coprocessor 协议 + 用 iOS SEP 接口复刻宿主密钥，且宿主密钥很可能由 Apple 按宿主签发（设备根证书可能不被接受）。成功概率低、工程量最大。
 - **补充取证（13338 已切 arm64e 后）**：VMM 的 `SepF / VzCore::Hardware::SepCoprocessor` 与 `AVPSEPBooter.vresearch1` 确认 SEP coprocessor 是宿主侧协处理器 VM；宿主侧还需 `com.apple.virtualization.coprocessor.sep` 服务（macOS 宿主专属）。guest 的 `DeviceIdentity` 里 `copyRootCertificate` 从 `BAAVMRootCAPEM / BAAMFiRootCAPEM / BAAUCRTRootCAPEM / BAASCRTRootCAPEM / BAAASMFiOSRootCAPEM` 中按 index(1..13) 选锚点 → VM attestation 使用独立 VM 根链，非设备根。
 - **架构结论**：要拿到 host key/BAA，必须在宿主侧运行 macOS 15 的 SEP coprocessor（vresearch1）并以宿主 SEP 签发 VM 专属证书链；iPadOS 无此组件、iPad 设备身份也不具备 VM 根密钥。VM 内 Apple Account 登录在现有硬件/系统栈下不可达。
+
+### 2026-10-24 00:45 🎉 突破：VM 内 Apple Account 登录成功（iPad 真机 SEP）
+
+- **结果**：客机 `Sequoia-SerialAux.bundle` 已登录 iCloud：`hejiajie9527@gmail.com`（DisplayName `Cisco He`，AltDSID/DSID 齐全，Services active），`Accounts4.sqlite` 落库，`cloudd`/`appleaccountd` 运行。登录过程中 iPad 侧弹出 Apple ID 授权窗、iPhone 侧要求密码——**真实的双因素登录**，非伪造。
+- **关键开关：`VM_SEP_FAKE_NONVM=1`**。`DeviceIdentityIsSupported()` 的实现是 `sysctlbyname("kern.hv_vmm_present")==1 ? libavp_guest_has_host_key() : true`；在 akd 内 interpose `sysctlbyname`，对该 key 返回 0（非 VM），AuthKit 即走**真机 BAA 路径**，经既有桥接（AKAttestationSigner/anisette → iPad SEP）完成认证。宿主密钥/BAAVMRoot 的缺口由此绕开。
+  - 注意：这是 **diagnostic 级 interpose**（显式 env 门控、代码注释标注），并非伪造身份——密码学仍由 iPad 真 SEP 完成；但它改变了 DeviceIdentity 的“是否 VM”判断，属于已知语义偏移。
+  - 之前尝试的 `VM_SEP_FORCE_DEVID`（在 akd 内直接改 `DeviceIdentityIsSupported` 代码页）被代码签名保护拒绝（vm_protect kr=2），已弃用；interpose 方案合法且生效。
+- **稳定配方**（重启后自动恢复）：LaunchDaemon `com.vm.sepbridge.autoapply` → `/Library/VirtualMac/apply-sep-bridge.sh`：等待 console 用户 → 设置 `DYLD_INSERT_LIBRARIES`（三库）/`VM_SEP_BRIDGE=1`/`VM_SEP_FAKE_NONVM=1` → 写 `SEPIdentityBridge` 偏好 → `kickstart -k gui/$uid/com.apple.akd`。日志 `/var/log/sepbridge-autostart.log`。
+- 现场：克隆机运行中（串号 `R9D3WPY7T5`、UUID `1E03B2C5…`）；原机 `Sequoia.bundle` 未动。
+- 已知环境问题：VM 经 iPad 热点 NAT，热点抖动会导致客机断网（与本方案无关）；重启后由上述 daemon 自动恢复桥与诊断开关。

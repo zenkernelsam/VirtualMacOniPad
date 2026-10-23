@@ -985,3 +985,16 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - **待办**：App Store 实例状态已坏（重启 App 无效），建议重启 VM 复位后，用 staged-password 方案重试 UI 登录；若仍不行，改走“cdpd 认证结果 + 媒体账户 API”的程序化路线。
 - **01:32 追加**：staged password 被**后台 IDMS check-in** 消费（`Failed to check in with IDMS … 401`），并非 App Store 媒体认证；已 `unsetenv VM_SEP_STAGE_PASSWORD/VM_SEP_STAGE_EMAIL` 停止全局补位。App Store 登录 action 仍哑（即使白名单已回退、App 已重启），判断为 App Store/账户瞬态损坏，待重启 VM 复位。iCloud 账户本体仍在（MobileMeAccounts 正常）。
 - **教训**：`_password` 补位必须按“媒体上下文”精确门控（如 proxied bundle = com.apple.AppStore），不能按 username 全局补，否则会被背景 IDMS check-in 吃掉。
+
+### 2026-10-24 01:50 App Store 定位收尾：密码在不可注入的授权 appex 内丢失
+
+- **autoapply 修复**：上电时 `/dev/console` 属主短暂为 **uid=88（windowserver）**，旧脚本误把 env 设到 gui/88，真用户 501 无桥。新判定：uid≠0、`/Users/<name>` 存在、`gui/<uid>` 可 print 才采纳（最长 300s）。
+- **网络修复持久化**：脚本加入 `ifconfig en0 mtu 1400` + pf 规则（`block return out proto udp port 443` + `pass out all`）。注意 macOS 的 `pfctl` 在 **/sbin/pfctl**（旧脚本写成 /usr/sbin 静默失败）。重启后 iCloud 设备列表恢复。
+- **App Store 实测**：
+  - sheet 能弹、能输入（有圆点）；提交后窗口消失、仍为未登录。
+  - appex 存活（pid 不变）、akd 不重启；akd 只收到 `username`（len 22），**没有 password**，也没有 `ctxprops`（`_password` getter 未被调用）→ SRP `M2 missing (bad password)`。
+  - 结论：密码在 AuthKitUI/AKAuthorizationRemoteViewService（不可注入）内部就丢失，未交给 akd。与 iCloud 登录不同（AppleIDSettings 自有 UI，密码可送达）。
+  - 反证：在 cdpd（有 auth entitlement 的守护）内驱动 `AKAppleIDAuthenticationController authenticateWithContext:`，带密码认证**成功**（AKIDMSToken/AKIdentityToken 等齐全）→ 底层 SRP/桥/2FA 全通，缺的只是 UI 交付与媒体账户创建。
+  - 媒体账户（App Store/iTunes）在 `Accounts4.sqlite` 中仍不存在（仅有 IDMS/AppleAccount/GameCenter 等数据类账户）。
+- 探针已降噪（unset VM_SEP_PROBE_CTX/CALLS/CREDS），保留 `VM_SEP_BRIDGE=1` + `VM_SEP_FAKE_NONVM=1`。
+- **下一步选项**：①接受 App Store 在 VM 中的限制（Apple 官方亦声明 Media Services 不可用），保留 iCloud；②另起“程序化媒体账户”项目（AuthKit 结果 → AMS/StoreKit/CommerceKit 服务账户），工程量较大；③换其他具备自有登录 UI 的客户端（Music/TV）做对照试验。

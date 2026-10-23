@@ -878,3 +878,15 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   4. 重试 Apple Account 登录；观察 AOS 是否仍 440（此前证据：iPad anisette/SRP 已通、AOS 440、`DeviceIdentity is not supported. No BAA V1 headers.`）。
 - **环境注意**：`AppleAccountSignInCompat` 已加进程门控（仅 akd/appleaccountd/Settings，`VM_SEP_BRIDGE_ALLOW=all` 可放开），修复了 Git Desktop/git-lfs 被 VMACCT 输出干扰的问题（`595ec95`）。
 - 工具：`VirtualMac/vz/development/probes/vz-identity/`（生成/回读 identity、建 aux、clonefile、make_identity_clone.sh）；iPad 上 `patch_clone.sh`、`serial-flag.mid`、`compat/` 均在 `/var/jb/tmp/`。
+
+### 2026-10-24 00:35 突破：身份克隆可启动的正确配方（AuxStorage 才是黑屏根因）
+
+- **黑屏根因定位**：全部克隆会话都**没有** `Apple guest agent connected over Virtio socket`（旧 VM 正常启动必有；2 秒 0 帧是正常基线）→ 客机从未进入系统。
+- **对照实验（两个 bundle 均成功开机）**：
+  | Bundle | 磁盘 | AuxStorage | 身份 | 结果 |
+  |---|---|---|---|---|
+  | Sequoia-AuxTest | COW 克隆盘 | **原始（复制）** | 原始 60B | ✅ 正常开机 |
+  | Sequoia-SerialAux | COW 克隆盘 | **原始（复制）** | **iPad 序列号 121B** | ✅ 正常开机 |
+  → ①磁盘 clonefile 克隆没问题；②**App 克隆流程新建的 AuxiliaryStorage 会让客机无法启动**（启动策略/个性化不匹配）；③序列号身份在有原始 AuxStorage 时可正常引导。
+- **正确配方（已验证可启动）**：`Disk.img` = 源盘 clonefile；`AuxiliaryStorage` = **直接复制源 VM 的**（不要新建）；`HardwareModel/plist` 复制；`MachineIdentifier` = `{ECID, SerialNumber:"<iPad serial>", DisableECIDChecks:true}`。
+- **下一步（在新 VM 内验证）**：启动 `Sequoia-SerialAux` → `ioreg -rd1 -c IOPlatformExpertDevice` 查 `IOPlatformSerialNumber` 是否=`R9D3WPY7T5`、记录 UUID → 按 handover §6 恢复 SEP 桥 env（重启用）→ 重试 Apple Account，观察 AOS 是否仍 440。

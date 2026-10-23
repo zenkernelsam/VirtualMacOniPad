@@ -892,3 +892,15 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - **下一步（在新 VM 内验证）**：启动 `Sequoia-SerialAux` → `ioreg -rd1 -c IOPlatformExpertDevice` 查 `IOPlatformSerialNumber` 是否=`R9D3WPY7T5`、记录 UUID → 按 handover §6 恢复 SEP 桥 env（重启用）→ 重试 Apple Account，观察 AOS 是否仍 440。
 - **清理**：无用的克隆（`Sequoia Identity Clone`、`Sequoia-AuxTest`）与 `Sequoia.bundle/Identities/.Trash`（6 个 10/5 旧身份）均已 `rm -rf` 永久删除并核验零残留；虚拟机场只剩 `Sequoia.bundle`（原机）+ `Sequoia-SerialAux.bundle`（串号测试机）。
 - **配方已回写入库工具**：`make_identity_clone.sh` 改为「clonefile Disk.img + **clonefile 源 AuxStorage** + 序列号 MachineIdentifier」，README 记录 fresh-aux 黑屏对照表；`vz_aux_create` 仅用于全新 VM。
+
+### 2026-10-24 22:50 克隆机首启验收：序列号已生效，AOS 仍 440（BAA/宿主密钥缺口）
+
+- **克隆机（Sequoia-SerialAux）首启成功**：`IOPlatformSerialNumber = R9D3WPY7T5`（iPad 真值）、`IOPlatformUUID = 1E03B2C5-6EA3-5850-AD99-4A0D4CD473A8`（新 ECID 派生）、`model = VirtualMac2,1`。→ 宿主侧序列号注入路线（B 的前半）**验证成立**。
+- 桥在克隆机恢复（env 三件套 + `kill akd` → `install-pass swizzled:18`，anisette 直连探针 10ms/455B）。
+- **登录复测仍失败**：`Response code: 440`（UI「无法联系服务器」），SRP/Anisette 均正常；日志继续出现 `DeviceIdentity is not supported. No BAA V1 headers.`、`BAA is not enabled for URL key - postData`。
+- **BAA 根因链（逐层取证）**：
+  1. `DeviceIdentityIsSupported`（DeviceIdentity.framework@0x1be643728）：`if (is_virtual_machine()) return libavp_guest_has_host_key(); else return true;`
+  2. `libavp_guest_has_host_key` → `AppleVirtualPlatformLibraryCore` → `AppleVirtualPlatformGuestHasHostKey()`；宿主密钥由 VZ 宿主的 identity 服务提供（`com.apple.Virtualization.AppleVirtualPlatformIdentity`）。
+  3. iPad 的 VZ payload（Virtualization.framework + VMM 三个 iPadOS 变体）中 `AppleVirtualPlatformIdentity|GuestHasHostKey|HostKey|DeviceIdentityProcessVMRequest|StrongIdentity` 字符串计数全为 **0**，且无任何 DeviceIdentity 相关框架 → **iPadOS 侧根本没有宿主 VM attestation 服务**。
+- **结论**：仅共享序列号不足以通过 AOS；VM 客户端的 BAA/VM attestation 需要宿主（macOS 15+）提供的 host key/certs，iPadOS 不提供。与本项目既有的 `-7066 host attestation headers` 证据一致。除非实现宿主侧 identity 服务（协议不透明、且依赖宿主 SEP 的 VM 密钥），否则 VM 内 Apple Account 登录无法完成。
+- 现场：克隆机 `/var/mobile/Media/VirtualMac/Sequoia-SerialAux.bundle` 正在运行（序列号=R9D3WPY7T5）；原机 `Sequoia.bundle` 未动。

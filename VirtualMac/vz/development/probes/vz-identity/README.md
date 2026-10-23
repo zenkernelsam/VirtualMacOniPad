@@ -41,13 +41,31 @@ before serializing. `vz_identity_gen` does exactly that and produces a
 96-byte blob, e.g. `{ECID: <random>, SerialNumber: "<serial>"}`, which
 `-initWithDataRepresentation:` accepts.
 
-## Identity is bound to AuxiliaryStorage
+## AuxiliaryStorage: copy it, do not create it
 
-`VirtualMacApp.m` refuses a serial override for an installed VM
-("installed VM identity is bound to AuxiliaryStorage"). Do not swap the
-MachineIdentifier of a live VM. Instead create a clone with a **fresh**
-auxiliary storage (`initCreatingStorageAtURL:hardwareModel:options:error:`)
-and give the clone the serial-bound identity before its first boot.
+Verified on 2026-10-24 with three clones of the same stopped VM:
+
+| disk | AuxiliaryStorage | identity | boot |
+|---|---|---|---|
+| clonefile | copied from source | original | boots |
+| clonefile | **freshly created** | original / random / serial | **black screen** |
+
+A freshly created auxiliary storage (`initCreatingStorageAtURL:hardwareModel:options:error:`)
+boots to a black screen on this VZ payload: the guest never connects the
+guest agent socket, i.e. it never reaches the OS. The working recipe is
+
+```
+Disk.img        = clonefile(source)
+AuxiliaryStorage= clonefile(source)      # never create a new one for a clone
+MachineIdentifier = {ECID, SerialNumber, DisableECIDChecks:true}
+```
+
+`make_identity_clone.sh` implements exactly that. `vz_aux_create` remains
+useful for brand-new VMs only.
+
+The earlier comment in `VirtualMacApp.m` ("installed VM identity is bound to
+AuxiliaryStorage") is why the app ignores a serial override on a live VM;
+a clone carrying both files with a new identity is the supported path.
 
 ## Build
 

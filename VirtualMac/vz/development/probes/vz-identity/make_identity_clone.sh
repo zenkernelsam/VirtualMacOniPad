@@ -1,17 +1,21 @@
 #!/bin/sh
 # make_identity_clone.sh — build a bootable identity-test clone of a VM
-# bundle with a fresh AuxiliaryStorage and a MachineIdentifier that carries
-# the given serial number.
+# bundle whose MachineIdentifier carries the given serial number.
 #
-# Run on the iPad as root. The source VM may be running: Disk.img is cloned
-# with clonefile(2), which freezes its block map at that instant
-# (crash-consistent, journal replay on boot). The source is never modified.
+# Run on the iPad as root. The source VM never changes: Disk.img and
+# AuxiliaryStorage are both clonefile(2) clones.
+#
+# IMPORTANT (verified 2026-10-24): copy the source AuxiliaryStorage. A
+# freshly created auxiliary storage (vz_aux_create) boots to a black screen
+# on this VZ payload: the guest never reaches its OS and never opens the
+# guest agent socket. The clone recipe that boots is:
+#   cloned Disk.img + copied AuxiliaryStorage + serial-bound MachineIdentifier
 #
 #   make_identity_clone.sh <src-bundle> <dst-bundle> <serial> <compat-dir> <tools-dir>
 #
 # compat-dir contains Hypervisor, ParavirtualizedGraphics, Virtualization
-# (payload/Compatibility/iPadOS<NN>). tools-dir contains vz_identity_gen,
-# vz_aux_create and vz_clonefile built for arm64e.
+# (payload/Compatibility/iPadOS<NN>). tools-dir contains vz_identity_gen
+# and vz_clonefile built for arm64e.
 set -eu
 
 SRC="$1"; DST="$2"; SERIAL="$3"; COMPAT="$4"; TOOLS="$5"
@@ -24,9 +28,9 @@ mkdir -p "$DST" "$WORK"
 
 "$TOOLS/vz_identity_gen" "$COMPAT" "$SERIAL" "$WORK/MachineIdentifier" || exit 4
 "$TOOLS/vz_clonefile" "$SRC/Disk.img" "$DST/Disk.img" || exit 5
+"$TOOLS/vz_clonefile" "$SRC/AuxiliaryStorage" "$DST/AuxiliaryStorage" || exit 6
 cp "$SRC/HardwareModel" "$DST/HardwareModel"
 cp "$SRC/VirtualMac.plist" "$DST/VirtualMac.plist"
-"$TOOLS/vz_aux_create" "$COMPAT" "$SRC/HardwareModel" "$DST/AuxiliaryStorage" || exit 6
 cp "$WORK/MachineIdentifier" "$DST/MachineIdentifier"
 
 # Keep the generated identity as the "original" so the app's identity pane

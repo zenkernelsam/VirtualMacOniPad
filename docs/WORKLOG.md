@@ -890,3 +890,5 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   → ①磁盘 clonefile 克隆没问题；②**App 克隆流程新建的 AuxiliaryStorage 会让客机无法启动**（启动策略/个性化不匹配）；③序列号身份在有原始 AuxStorage 时可正常引导。
 - **正确配方（已验证可启动）**：`Disk.img` = 源盘 clonefile；`AuxiliaryStorage` = **直接复制源 VM 的**（不要新建）；`HardwareModel/plist` 复制；`MachineIdentifier` = `{ECID, SerialNumber:"<iPad serial>", DisableECIDChecks:true}`。
 - **下一步（在新 VM 内验证）**：启动 `Sequoia-SerialAux` → `ioreg -rd1 -c IOPlatformExpertDevice` 查 `IOPlatformSerialNumber` 是否=`R9D3WPY7T5`、记录 UUID → 按 handover §6 恢复 SEP 桥 env（重启用）→ 重试 Apple Account，观察 AOS 是否仍 440。
+- **清理**：无用的克隆（`Sequoia Identity Clone`、`Sequoia-AuxTest`）与 `Sequoia.bundle/Identities/.Trash`（6 个 10/5 旧身份）均已 `rm -rf` 永久删除并核验零残留；虚拟机场只剩 `Sequoia.bundle`（原机）+ `Sequoia-SerialAux.bundle`（串号测试机）。
+- **配方已回写入库工具**：`make_identity_clone.sh` 改为「clonefile Disk.img + **clonefile 源 AuxStorage** + 序列号 MachineIdentifier」，README 记录 fresh-aux 黑屏对照表；`vz_aux_create` 仅用于全新 VM。

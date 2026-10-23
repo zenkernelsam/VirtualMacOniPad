@@ -627,8 +627,43 @@ static void sepFwdEraseCtx(id self, SEL _cmd, id ctx, id c) {
                @[NSNull.null], c);
 }
 
+// AKNativeAnisetteService is the provider that actually talks to CoreADI
+// inside akd (confirmed via the provider getter probe). It is what the
+// native attestation/SRP path uses, so the daemon-protocol swizzles above
+// never see it. Its completion shapes are the AKAnisetteServiceProtocol
+// pair (result, error), so relaying the iPad fetch result works for both
+// one-arg (error-only) and two-arg completions. Provision and legacy are
+// served by the same provision-if-necessary fetch: on this VM the missing
+// hardware identity is exactly what that fetch supplies. erase/sync stay
+// native — forwarding erase would wipe the iPad's real anisette.
+static void sepFwdNativeFetch(id self, SEL _cmd, BOOL p, id c) {
+    sepLog(@"native-fetch", @{@"p": @(p)});
+    sepForward(sel_registerName(
+        "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
+               @[@(p), NSNull.null], c);
+}
+static void sepFwdNativeProvision(id self, SEL _cmd, id c) {
+    sepLog(@"native-provision", @{});
+    sepForward(sel_registerName(
+        "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
+               @[@YES, NSNull.null], c);
+}
+static void sepFwdNativeLegacy(id self, SEL _cmd, id dsid, id c) {
+    sepLog(@"native-legacy", @{@"dsid": dsid ?: @"nil"});
+    sepForward(sel_registerName(
+        "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
+               @[@YES, NSNull.null], c);
+}
+
 static const struct { const char *cls; const char *sel; IMP impl; }
     kSignerOps[] = {
+    {"AKNativeAnisetteService",
+     "fetchAnisetteDataAndProvisionIfNecessary:withCompletion:",
+     (IMP)sepFwdNativeFetch},
+    {"AKNativeAnisetteService", "provisionAnisetteWithCompletion:",
+     (IMP)sepFwdNativeProvision},
+    {"AKNativeAnisetteService", "legacyAnisetteDataForDSID:withCompletion:",
+     (IMP)sepFwdNativeLegacy},
     {"_AKAnisetteProviderProxy",
      "provisionAnisetteForContext:withCompletion:", (IMP)sepFwdProvisionCtx},
     {"_AKAnisetteProviderProxy",
@@ -691,6 +726,22 @@ static void sepLogReceivers(void) {
 // It logs and calls the original implementation unchanged.
 static BOOL sepIsAkd(void);
 static IMP gOrigAttestReq;
+static IMP gOrigNativeSvc, gOrigClientSvc, gOrigPairedSvc;
+static id sepLogProviderGetter(id self, SEL _cmd, IMP orig, NSString *tag) {
+    id r = orig ? ((id (*)(id, SEL))orig)(self, _cmd) : nil;
+    sepLog(@"provider", @{@"sel": tag,
+                          @"cls": r ? NSStringFromClass([r class]) : @"nil"});
+    return r;
+}
+static id sepGetNative(id self, SEL _cmd) {
+    return sepLogProviderGetter(self, _cmd, gOrigNativeSvc, @"native");
+}
+static id sepGetClientSvc(id self, SEL _cmd) {
+    return sepLogProviderGetter(self, _cmd, gOrigClientSvc, @"client");
+}
+static id sepGetPaired(id self, SEL _cmd) {
+    return sepLogProviderGetter(self, _cmd, gOrigPairedSvc, @"paired");
+}
 static void sepLogAttestReq(id self, SEL _cmd, id req, id completion) {
     NSUInteger len = [req isKindOfClass:NSData.class]
         ? [(NSData *)req length] : 0;
@@ -702,6 +753,29 @@ static void sepLogAttestReq(id self, SEL _cmd, id req, id completion) {
     if (gOrigAttestReq)
         ((void (*)(id, SEL, id, id))gOrigAttestReq)(
             self, _cmd, req, completion);
+}
+
+// Dump a class's own method list + protocol conformance. The anisette XPC
+// handshake inside akd clearly reaches *some* service object that talks to
+// ADI, but neither swizzled class logged a call — so the receiver is not
+// necessarily what the names suggest.
+static void sepDumpClass(const char *name) {
+    Class c = objc_getClass(name);
+    if (!c) { sepLog(@"dump-class", @{@"cls": @(name), @"found": @NO}); return; }
+    unsigned n = 0;
+    Method *ms = class_copyMethodList(c, &n);
+    NSMutableArray *names = [NSMutableArray array];
+    for (unsigned i = 0; i < n; i++)
+        [names addObject:@(sel_getName(method_getName(ms[i])))];
+    free(ms);
+    unsigned pc = 0;
+    Protocol *__unsafe_unretained *ps = class_copyProtocolList(c, &pc);
+    NSMutableArray *protos = [NSMutableArray array];
+    for (unsigned i = 0; i < pc; i++)
+        [protos addObject:@(protocol_getName(ps[i]))];
+    free(ps);
+    sepLog(@"dump-class", @{@"cls": @(name), @"methods": names,
+                            @"protos": protos});
 }
 
 static unsigned sepInstall(void) {
@@ -727,15 +801,46 @@ static unsigned sepInstall(void) {
         Class c = objc_getClass(kSignerOps[i].cls);
         if (!c) continue;
         SEL s = sel_registerName(kSignerOps[i].sel);
-        if (sepSwizzle(c, s, kSignerOps[i].impl)) total++;
+        if (sepSwizzle(c, s, kSignerOps[i].impl)) {
+            total++;
+            sepLog(@"signer-swizzled", @{@"cls": @(kSignerOps[i].cls),
+                                         @"sel": @(kSignerOps[i].sel)});
+        }
     }
-    if (sepIsAkd() && !gOrigAttestReq) {
+    if (sepIsAkd()) {
+        static BOOL dumped;
+        if (!dumped) {
+            dumped = YES;
+            sepDumpClass("AKAnisetteProvisioningService");
+            sepDumpClass("_AKAnisetteProviderProxy");
+            sepDumpClass("AKAnisetteProvisioningController");
+        }
         Class sc = objc_getClass("AKAnisetteProvisioningService");
-        SEL s = sel_registerName("attestationDataForRequestData:completion:");
-        Method m = sc ? class_getInstanceMethod(sc, s) : NULL;
-        if (m)
-            gOrigAttestReq = method_setImplementation(
-                m, (IMP)sepLogAttestReq);
+        if (!gOrigAttestReq && sc) {
+            SEL s = sel_registerName(
+                "attestationDataForRequestData:completion:");
+            Method m = class_getInstanceMethod(sc, s);
+            if (m)
+                gOrigAttestReq = method_setImplementation(
+                    m, (IMP)sepLogAttestReq);
+        }
+        if (!gOrigNativeSvc && sc) {
+            SEL s = sel_registerName("_nativeAnisetteService");
+            Method m = class_getInstanceMethod(sc, s);
+            if (m)
+                gOrigNativeSvc = method_setImplementation(
+                    m, (IMP)sepGetNative);
+            s = sel_registerName("_clientAnisetteService");
+            m = class_getInstanceMethod(sc, s);
+            if (m)
+                gOrigClientSvc = method_setImplementation(
+                    m, (IMP)sepGetClientSvc);
+            s = sel_registerName("_pairedDeviceAnisetteService");
+            m = class_getInstanceMethod(sc, s);
+            if (m)
+                gOrigPairedSvc = method_setImplementation(
+                    m, (IMP)sepGetPaired);
+        }
     }
     return total;
 }

@@ -830,3 +830,15 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   - 验证（独立进程，崩也不伤 akd）：`DYLD_INSERT_LIBRARIES=... VM_SEP_BRIDGE=1 VM_SEP_BRIDGE_ALLOW=all /tmp/signer-client` → stack block 经 copy 后 `forward-ok sel=signaturesForData:options:completion: ms=54 resClass=__NSDictionaryI0,__NSCFData1480 err=false`，回调参数 (dict, 1480B, nil)，进程正常退出。
 - **客机 akd 接收者扫描**（一次启动一条 `receivers` 事件）：`AKAnisetteProvisioningService` 实现 provision/fetch/attestationDataForRequestData/attestationDataForDevice；`_AKAnisetteProviderProxy` 与 `AKAppleIDAuthenticationContextManager` 实现 context fetch；`AKAnisetteProvisioningController` 实现 attestationDataForRequestData。→ `attestationDataForRequestData:` 是未挂的原生 ADI 入口（已加**只记录、不改行为**的 passthrough，命中时打 `attest-req` 事件，供登录实测判定）。
 - 待办：①用户回来做真实登录复现（转圈时 `sample AppleIDSettings`/`sample akd` + log stream）；②异步 provision/legacy 的 iPad abort 规避；③`attestationDataForRequestData:` 层桥接评估（先拿真实请求 blob）。
+
+### 2026-10-23 晚间：真实登录连测 5 轮 —— anisette/SRP 打通，AOS 440 卡在服务端
+
+- **重大进展：anisette 桥接成功、SRP 成功**。抓包定位真正提供者是 akd 二进制内的 `AKNativeAnisetteService`（不在 AuthKit，先前 runtime dump 看不到）。对其 `fetchAnisetteDataAndProvisionIfNecessary:withCompletion:` / `provisionAnisetteWithCompletion:` / `legacyAnisetteDataForDSID:withCompletion:` 做 swizzle，统一映射到 iPad 的 `fetchAnisetteDataAndProvisionIfNecessary:device:completion:`（erase/sync 保持原生，绝不动 iPad 身份）。
+  - 证据（`/tmp/logincap-*`，第五轮）：`native-fetch p=true` → `forward-ok sel=fetchAnisetteDataAndProvisionIfNecessary:device:completion: resClass=AKAnisetteData ms=1.7-4.2 err=false`；全程 ADI 报错归零。
+  - akd：`Successfully obtained password. Time for SRP auth.` → `Successful SRP!` → `Asking client to dismiss basic login UI. SRP Success.`
+- **最后一关：AOS 登录被服务端 440**。`setup.icloud.com/setup/aos/login/$APPLE_ID$/$UDID$` 五次全部 HTTP 440（响应体 606B，客户端消息=「无法连接服务器」），随后 `cacheLoginResponse:` 在 appleaccountd 侧解码 `AALoginAccountResponse` 抛 `com.apple.AppleAccount.Error 0`（次生问题）。
+- **根因指向 DeviceIdentity/BAA**：登录流量中反复出现 `DeviceIdentity is not supported. No BAA V1 headers.` / `BAA is not enabled for URL key - postData` —— 客机无 host attestation，AuthKit 直接放弃 BAA/设备身份头；Apple 官方支持文档明确：**VM 上登录 Apple Account 要求宿主机是 macOS 15 (Sequoia) 或更新**（iPadOS 16.3 不满足）。待确认：440 是否即「VM 客户端缺少有效 host attestation/device provisioning」。
+- 诊断尝试（未成功但已排除）：私有日志 —— macOS 15 移除 `log config private_data`，用户域/系统作用域 profile 均不生效（`log config --status` 仍 DEFAULT），描述文件已移除。
+- 已排除：时钟偏差（客机/iPad 同步）；外部 client 无 entitlement（4099，正常）；XPC 解码入口方案（响应对象不保存原始 body）。
+- 当前可用状态：客机 akd 保持注入（native anisette + signer + daemon 三路），iPad akd 常驻、转发 1–6ms；VM 稳定（0 crash、无 swap）。
+- 下一步候选：①MITM（系统 CA + 代理）读 440 body 确认语义；②在客机侧伪造/桥接 DeviceIdentity 能力并验证 BAA 头是否被 AOS 接受（需先证明 440 与 BAA 相关）；③接受 Apple 限制，Apple ID 走 macPad chroot 路线（已验证可登录）。

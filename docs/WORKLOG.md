@@ -864,3 +864,17 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 工具与产物（iPad `/var/jb/tmp/`）：`compat/{Hypervisor,ParavirtualizedGraphics,Virtualization}`、`vzid*`/`vzgen*`/`vzload`、`vzclone`、`vzaux`、`serial.mid`。回滚：直接删除 Sequoia-IDTest.bundle；原 VM 与三码均未改。
 - 风险：克隆的 NVRAM 是全新的（无原 boot-args，如 `-arm64e_preview_abi`）；Clash 拷贝来自运行中的磁盘（崩溃一致性，macOS 日志回放应可恢复）；若 VZ 对 serial/ECID 做校验可能拒绝启动（`_disableECIDChecks` 是备用开关）。
 - **工具入库（防客机 /tmp 重启丢失）**：`VirtualMac/vz/development/probes/vz-identity/`（`vz_identity_gen`/`vz_identity_load`/`vz_aux_create`/`vz_clonefile`/`make_identity_clone.sh`/README，含 payload bug 与 AuxiliaryStorage 绑定结论）；`VirtualMac/scripts/development/login-capture.sh`、`apple-mitm-observe.py`（后者注明 pinning 限制）。
+
+### 2026-10-24 00:20 交接：干净克隆已就绪并注入 iPad 序列号（等待首启验证）
+
+- **首个测试克隆（live disk clone）失败**：`Sequoia-IDTest.bundle`（运行中 Disk.img 的 clonefile + 新 AuxStorage + 序列号身份）启动后**一帧未出**（App 日志 `VM STARTED state=1`、`framebuffer ... lastFrame=0x0/0x0`），用户停掉。注意 VZ **配置校验是通过的**（`VM configuration validation result=1 error=(none)`）→ 身份本身未被 VZ 拒绝；黑屏嫌疑为「运行中磁盘 clone 不一致」和/或 ECID/序列号校验。该 bundle 已删除（清理时 `mv` 跨卷误变成复制、产生 132GB 半成品，已一并删除，源 VM 无损）。
+- **改用 App 官方克隆**（VM 停止态）：`/var/mobile/Media/VirtualMac/Sequoia Identity Clone.bundle`。核验：Disk.img 为 APFS COW 克隆（卷占用未翻倍）、AuxiliaryStorage 33.5MB 全新、HardwareModel/plist 完整、VMName=`Sequoia Identity Clone`、MAC 随机。App 曾在 22:09 被 watchdog 杀（`bug_type 509`，退出阶段），与克隆数据无关。
+- **身份已注入**：克隆的 `MachineIdentifier` 替换为 `{DisableECIDChecks:true, ECID:随机, SerialNumber:"R9D3WPY7T5"}`（121B，VZ 回读通过；序列号来自 iPad 真值）。原随机身份备份为 `MachineIdentifier.orig-random`（85B，`{ECID,DisableECIDChecks}`）。
+  - 注意 App 自己的 clone 身份本来就是 `DisableECIDChecks=true`、无 serial；我们只加了 SerialNumber。
+- **新会话首要验证顺序**（克隆首启后）：
+  1. `ioreg -rd1 -c IOPlatformExpertDevice`：`IOPlatformSerialNumber` 是否 = `R9D3WPY7T5`；记录 `IOPlatformUUID`/`model`（`model` 预计仍为 VirtualMac2,1）。
+  2. 若黑屏：回旧 VM，执行 `cp "…Sequoia Identity Clone.bundle/MachineIdentifier.orig-random" …/MachineIdentifier`（先备份当前 serial 版），重试启动 → 用于区分「序列号身份」vs「克隆机制」。
+  3. 序列号生效后：按 `docs/SEP-BRIDGE-AGENT-HANDOVER.md` §6 恢复客机 env（重启即丢；三件套），grep `daemon-swizzled`。
+  4. 重试 Apple Account 登录；观察 AOS 是否仍 440（此前证据：iPad anisette/SRP 已通、AOS 440、`DeviceIdentity is not supported. No BAA V1 headers.`）。
+- **环境注意**：`AppleAccountSignInCompat` 已加进程门控（仅 akd/appleaccountd/Settings，`VM_SEP_BRIDGE_ALLOW=all` 可放开），修复了 Git Desktop/git-lfs 被 VMACCT 输出干扰的问题（`595ec95`）。
+- 工具：`VirtualMac/vz/development/probes/vz-identity/`（生成/回读 identity、建 aux、clonefile、make_identity_clone.sh）；iPad 上 `patch_clone.sh`、`serial-flag.mid`、`compat/` 均在 `/var/jb/tmp/`。

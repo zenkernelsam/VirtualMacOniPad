@@ -365,5 +365,5 @@ sudo rm /Library/LaunchDaemons/com.vm.sepbridge.autoapply.plist
 | App Store 登录 | ❌ 仍失败 | 转圈后消失；Apple 官方文档称 VM 不支持 Apple Media Services；待进一步取证确认是服务端策略还是本机问题 |
 | 双因素认证 | ✅ | 登录时 iPad 弹窗、iPhone 密码 |
 
-> 注意：MTU 与 pf 规则**重启后不保留**；若确认有效，可做成 LaunchDaemon
-> （与 `apply-sep-bridge.sh` 同一套路）开机自动执行。
+> 注意：MTU 与 pf 规则已纳入 `apply-sep-bridge.sh`（`/sbin/pfctl`），重启自动生效；
+> 手动兜底见 §9.3。

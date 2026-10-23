@@ -5,7 +5,7 @@
 ## 0. 我是谁 / 当前任务
 
 - 项目：让 iPad 原生跑 macOS。本仓库 = **虚拟机路线**（Apple Virtualization.framework + PG/MetalSerializer 转发 GPU）。姐妹项目 `~/Desktop/macPad` = chroot 路线。
-- **当前战线**：①外设直通盘点（已产出 `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md`）；②**主线研究：VM 原生 GPU 优化**——目标是接近真 Mac 上 Virtualization.framework 的 GPU 体验。已知痛点：Matlab、Devin(Electron GPU)、Qoder CN 等需 `--disable-gpu` 或崩溃。研究记录写 `docs/GPU-NATIVE-RESEARCH.md`；③**VM 内 Apple Account 登录已突破（2026-10-24）**——关键在 akd 内 interpose `sysctlbyname("kern.hv_vmm_present")` 返回 0（`VM_SEP_FAKE_NONVM=1`），让 AuthKit 走真机 BAA 路径、经 SEP 桥用 iPad 真 SEP 完成真实 2FA。完整复盘（含错误结论与死胡同）：`docs/VM-APPLE-ID-BREAKTHROUGH.md`；开机自恢复：`com.vm.sepbridge.autoapply`。克隆机 `Sequoia-SerialAux.bundle` 已登录 iCloud，原机未动。
+- **当前战线**：①外设直通盘点（已产出 `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md`）；②**主线研究：VM 原生 GPU 优化**——目标是接近真 Mac 上 Virtualization.framework 的 GPU 体验。已知痛点：Matlab、Devin(Electron GPU)、Qoder CN 等需 `--disable-gpu` 或崩溃。研究记录写 `docs/GPU-NATIVE-RESEARCH.md`；③**VM 内 Apple Account 登录已突破（2026-10-24）**——关键在 akd 内 interpose `sysctlbyname("kern.hv_vmm_present")` 返回 0（`VM_SEP_FAKE_NONVM=1`），让 AuthKit 走真机 BAA 路径、经 SEP 桥用 iPad 真 SEP 完成真实 2FA。完整复盘（含错误结论与死胡同）：`docs/VM-APPLE-ID-BREAKTHROUGH.md`；**复活/复现入口：`docs/VM-APPLE-ID-REVIVAL-HANDOFF.md`**（含从零复现、重启恢复、资产指纹、探针开关、已知坑）；开机自恢复：`com.vm.sepbridge.autoapply`（env + MTU1400 + pf 封 UDP443 + 重启 akd）。克隆机 `Sequoia-SerialAux.bundle` 已登录 iCloud，原机未动。**App Store/Music/TV 媒体服务仍未通**：AMS 报 `Security level check failed to find IDMS account`，`iTunesStore` 账户从未建行；UI 登录 sheet 不把密码交给 akd（不可注入 appex）。
 - 进度日志：`docs/WORKLOG.md`（每完成一步追加，压缩后从这里恢复进度）。
 
 ## 1. 十条行为准则（load-bearing，逐条遵守）

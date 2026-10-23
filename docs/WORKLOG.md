@@ -944,3 +944,12 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 结论（待确认）：AVP 的身份链路很可能走 VMM 的 vmapple 子系统/代理层（`AppleVirtualPlatformSubsystemMessenger`），或使用特权/审计令牌受控的连接，普通 guest launchd Mach 服务不足以冒充宿主服务。
 - 已清理：system/gui 两个 launchd job 与 plist 均 bootout/删除，`VM_SEP_DEVID_TEST` env 已 unset；akd 桥正常运行（克隆机）。
 - 下一步：反汇编 `AppleVirtualPlatformIdentityServiceConnection` / `SubsystemMessenger`，确定连接方式（服务名/options/代理层）；若必须经 VMM，则改在 iPad 侧 VZHostCompat 注入点拦截 vmapple 消息。
+
+### 2026-10-24 23:40 IDA 三实例接入 + 切片发现：强身份只存在于 arm64e 宿主侧
+
+- IDA MCP 端口对应：13337=AppleVirtualPlatform.guest-15.6、13338=VMM.macOS15.6、13339=DeviceIdentity.guest-15.6；用 MCP-over-SSE 小客户端（`/tmp/ida_mcp.py`）接入手工分析。
+- **AVP 连接实现**：`AppleVirtualPlatformGuestCopyStrongIdentityData` → `sub_22ABFC150`（构造连接对象）→ 两个 Mach 服务名常量：
+  `com.apple.AppleVirtualPlatform.IdentityService`（0x22ac06a4c，46 字符）与 `com.apple.AppleVirtualPlatform.SystemService`（0x22ac06a1f，44 字符）。连接经由 NSXPCConnection 类+init 选择器（thunk 未解析）。
+- **VMM 切片陷阱**：IDA 载入的是 `VMM.macOS15.6` 的 **x86_64** 切片（`proc=metapc`），其中 `AvpStrongIdentity/currentHostKey/coprocessor.sep` 字符串计数为 **0**；arm64e 切片为 **5** → 宿主强身份是 **Apple Silicon 专属**。已切出 `VMM.macOS15.6.arm64e` / `.x86_64` 薄片（`~/Desktop/analysis/`），后续 IDA 应载入 arm64e 切片。
+- **宿主侧架构（arm64e 切片取证）**：`com.apple.virtualization.coprocessor.sep`、`...coprocessor.mailbox`、`...mailbox-backend.xpc/.null`、`AVPSEPBooter.vresearch1.bin`、`AppleVirtualPlatformHostKeyStorage/HostKeyData`、`currentHostKey`。SEP coprocessor 本身是宿主上的协处理器（vresearch1 固件），由 **macOS 宿主专属组件**提供；iPadOS 全无。
+- 结论（架构级）：VM 的 host key/BAA 依赖宿主 macOS 的 SEP coprocessor 服务；iPad 侧只有设备身份，没有该服务。模拟它需要逆 mailbox/coprocessor 协议 + 用 iOS SEP 接口复刻宿主密钥，且宿主密钥很可能由 Apple 按宿主签发（设备根证书可能不被接受）。成功概率低、工程量最大。

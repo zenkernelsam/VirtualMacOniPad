@@ -270,3 +270,100 @@ tail -3 /var/log/sepbridge-autostart.log
    密码学，而是“让 AuthKit 愿意用这条通道”的开关。
 4. **所有诊断补丁必须 env 门控 + 显式标注 + 可回滚**。`VM_SEP_FAKE_NONVM` 满足这三点。
 5. **用户的一线直觉很重要**。“学 macPad 的一二伎俩”直接指向了正确答案。
+
+---
+
+## 9. 重启后恢复运行手册（2026-10-24 00:55 增补）
+
+> 适用：克隆机 `Sequoia-SerialAux.bundle`（iPad 序列号身份）已登录 iCloud，
+> VM 重启后部分服务加载失败。以下步骤按序执行即可恢复。
+
+### 9.1 自动部分（已在开机时执行）
+
+`com.vm.sepbridge.autoapply` 会等待 console 用户后自动：
+- 设置 `DYLD_INSERT_LIBRARIES`（三库）/ `VM_SEP_BRIDGE=1` / `VM_SEP_FAKE_NONVM=1`
+- 写 `SEPIdentityBridge=true`
+- `kickstart -k gui/$uid/com.apple.akd`
+
+**核对**：
+
+```sh
+launchctl print system/com.vm.sepbridge.autoapply | grep -E 'state|last exit'
+tail -3 /var/log/sepbridge-autostart.log
+pgrep -xl akd
+grep -E '"event":"(loaded|fake-nonvm|install-pass)"' /tmp/sepbridge-events.log | tail -3
+# 期望看到 loaded + fake-nonvm + install-pass swizzled:18
+```
+
+### 9.2 手动核对身份与账户
+
+```sh
+ioreg -rd1 -c IOPlatformExpertDevice | grep -E 'IOPlatformSerialNumber|IOPlatformUUID|"model"'
+# 期望：R9D3WPY7T5 / 1E03B2C5-... / VirtualMac2,1
+
+defaults read MobileMeAccounts | grep -E 'AccountID|DisplayName|status = active'
+pgrep -xl cloudd; pgrep -xl appleaccountd
+```
+
+### 9.3 网络修复（本次新增，iCloud 设备列表加载失败时必做）
+
+**症状**：iCloud 账户页「载入设备失败」；App Store 登录转圈后消失；日志里
+`quic_conn_idle_timeout_fired` + `Operation timed out`（QUIC/UDP 443 被热点丢弃）。
+IPv4 TCP 端点本身很快（`curl -4` 到 gsa/setup/apps 均 <1s）。
+
+**处理**：
+
+```sh
+# 1) 降低 MTU（热点/隧道 PMTU 黑洞，防大响应卡死；重启后失效）
+sudo ifconfig en0 mtu 1400
+
+# 2) 临时封掉出站 UDP 443（QUIC），强制 Apple 请求回落 TCP
+cat > /tmp/noquic.rules <<'R'
+block return out quick proto udp from any to any port 443
+pass out quick all keep state
+R
+sudo pfctl -e
+sudo pfctl -f /tmp/noquic.rules
+```
+
+**核验**：
+
+```sh
+ifconfig en0 | grep mtu          # 1400
+sudo pfctl -s info | grep Status # Enabled
+sudo pfctl -sr | grep 'udp.*443' # block return ... port = 443
+```
+
+本次实测：执行后 iCloud 设备列表立即恢复加载。
+
+### 9.4 还原/回滚
+
+```sh
+# 网络
+sudo ifconfig en0 mtu 1500
+sudo pfctl -d                    # 恢复到此前“pf 未启用”的状态
+rm -f /tmp/noquic.rules
+
+# 桥与诊断开关
+sudo launchctl asuser 501 launchctl unsetenv VM_SEP_FAKE_NONVM
+sudo launchctl asuser 501 launchctl unsetenv VM_SEP_BRIDGE
+sudo killall -9 akd
+
+# 取消开机自恢复
+sudo launchctl bootout system/com.vm.sepbridge.autoapply
+sudo rm /Library/LaunchDaemons/com.vm.sepbridge.autoapply.plist
+
+# 回原机：App 里停止 VM，启动 Sequoia.bundle（未登录、三码未动）
+```
+
+### 9.5 当前已知状态（2026-10-24 00:55）
+
+| 功能 | 状态 | 说明 |
+|---|---|---|
+| iCloud 账户页 / 设备列表 | ✅ 恢复 | 需 9.3 网络修复 |
+| iCloud 基础服务（列表/设置同步等） | ✅ | `MobileMeAccounts` Services 可见 |
+| App Store 登录 | ❌ 仍失败 | 转圈后消失；Apple 官方文档称 VM 不支持 Apple Media Services；待进一步取证确认是服务端策略还是本机问题 |
+| 双因素认证 | ✅ | 登录时 iPad 弹窗、iPhone 密码 |
+
+> 注意：MTU 与 pf 规则**重启后不保留**；若确认有效，可做成 LaunchDaemon
+> （与 `apply-sep-bridge.sh` 同一套路）开机自动执行。

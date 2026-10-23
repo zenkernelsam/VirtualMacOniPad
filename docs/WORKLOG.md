@@ -965,3 +965,11 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - **稳定配方**（重启后自动恢复）：LaunchDaemon `com.vm.sepbridge.autoapply` → `/Library/VirtualMac/apply-sep-bridge.sh`：等待 console 用户 → 设置 `DYLD_INSERT_LIBRARIES`（三库）/`VM_SEP_BRIDGE=1`/`VM_SEP_FAKE_NONVM=1` → 写 `SEPIdentityBridge` 偏好 → `kickstart -k gui/$uid/com.apple.akd`。日志 `/var/log/sepbridge-autostart.log`。
 - 现场：克隆机运行中（串号 `R9D3WPY7T5`、UUID `1E03B2C5…`）；原机 `Sequoia.bundle` 未动。
 - 已知环境问题：VM 经 iPad 热点 NAT，热点抖动会导致客机断网（与本方案无关）；重启后由上述 daemon 自动恢复桥与诊断开关。
+
+### 2026-10-24 00:55 iCloud 设备列表恢复：QUIC/UDP 443 被热点丢弃
+
+- 现象：重启后 iCloud「载入设备失败」、App Store 登录转圈消失；日志 `quic_conn_idle_timeout_fired` + `Operation timed out`。
+- 取证：IPv4 TCP 到 `gsa/setup/apps` 均 <1s；大响应下载 326KB/0.07s → 排除 DNS/MTU 单因素，锁定 QUIC。
+- 修复（生效）：`ifconfig en0 mtu 1400` + pf `block return out proto udp port 443` + `pass out all`，强制回落 TCP；iCloud 设备列表立即恢复。
+- 回滚与持久化方案见 `docs/VM-APPLE-ID-BREAKTHROUGH.md` §9；MTU/pf 重启不保留。
+- App Store 仍失败：Apple 官方文档称 VM 不支持 Apple Media Services，待确认；`commerce`/`appstoreagent` 已带桥 env。

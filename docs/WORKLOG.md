@@ -998,3 +998,8 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   - 媒体账户（App Store/iTunes）在 `Accounts4.sqlite` 中仍不存在（仅有 IDMS/AppleAccount/GameCenter 等数据类账户）。
 - 探针已降噪（unset VM_SEP_PROBE_CTX/CALLS/CREDS），保留 `VM_SEP_BRIDGE=1` + `VM_SEP_FAKE_NONVM=1`。
 - **下一步选项**：①接受 App Store 在 VM 中的限制（Apple 官方亦声明 Media Services 不可用），保留 iCloud；②另起“程序化媒体账户”项目（AuthKit 结果 → AMS/StoreKit/CommerceKit 服务账户），工程量较大；③换其他具备自有登录 UI 的客户端（Music/TV）做对照试验。
+- **媒体服务统一卡点（App Store/Music/TV）**：`amsengagementd` 日志逐字：
+  `ACAccountStore: Failed to find a corresponding account. accountTypeIdentifier = com.apple.account.idms`
+  `ACAccount: Security level check failed to find IDMS account`。
+  akd 侧 `SaveAccount AccountType=com.apple.account.idms … SaveAccount YES`，账户库 type 9 行为 `ZACTIVE=1/ZAUTHENTICATED=1`，但 `ZCREDENTIALTYPE` 为空、`ZDATACLASSPROPERTIES` 为空；`com.apple.account.iTunesStore`(type 47) 从未建账户行。
+  结论：媒体账户创建被 AMS 的“IDMS 账户安全等级”校验挡住（与 App Store/Music/TV 表现一致），属 Apple VM 媒体服务限制层；与 iCloud（已可用）不是同一条链路。

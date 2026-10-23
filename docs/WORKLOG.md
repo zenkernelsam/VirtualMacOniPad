@@ -1003,3 +1003,9 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   `ACAccount: Security level check failed to find IDMS account`。
   akd 侧 `SaveAccount AccountType=com.apple.account.idms … SaveAccount YES`，账户库 type 9 行为 `ZACTIVE=1/ZAUTHENTICATED=1`，但 `ZCREDENTIALTYPE` 为空、`ZDATACLASSPROPERTIES` 为空；`com.apple.account.iTunesStore`(type 47) 从未建账户行。
   结论：媒体账户创建被 AMS 的“IDMS 账户安全等级”校验挡住（与 App Store/Music/TV 表现一致），属 Apple VM 媒体服务限制层；与 iCloud（已可用）不是同一条链路。
+
+### 2026-10-24 02:20 会话复活自检（暂停点）
+
+- 压缩复活后按 `docs/VM-APPLE-ID-REVIVAL-HANDOFF.md` §1 复验全部通过：序列号 `R9D3WPY7T5` / UUID `1E03B2C5-…` / model `VirtualMac2,1`；akd pid 9352 带 `fake-nonvm` 事件、`install-pass swizzled:20`；gui/501 env 三库 + `VM_SEP_BRIDGE=1` + `VM_SEP_FAKE_NONVM=1`（残留 `VM_SEP_STAGE_EMAIL` 无害，staging 需 `VM_SEP_STAGE_PASSWORD=1` 才生效）；en0 MTU 1400；MobileMeAccounts 仍为 `hejiajie9527@gmail.com`；amsengagementd pid 9129 已装载只读探针（启动时 `ams-probe accts=1 type=1`，此后无登录尝试故无新事件）。
+- **下一步（§6.2 第 1 步的取证入口已改道）**：`Security level check failed to find IDMS account` 在磁盘上的 Framework 二进制里 grep 不到（macOS 15 走 dyld shared cache），应改用 `ipsw dyld str -h`/`ipsw dyld str "Security level"` 在 `/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_arm64e` 定位所属 image，再 `ipsw dyld extract` 该 dylib 反汇编校验条件；或直接用 Music/App Store 触发一次登录读 `ams-accts`/`ams-type`。
+- 用户关机睡觉，VM 已停；下次从本节 + handoff §6.2 继续。

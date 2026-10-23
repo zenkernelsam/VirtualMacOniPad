@@ -863,3 +863,4 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - **待验证（重启后新会话首要任务）**：停主 VM → App 里启动 Sequoia-IDTest → 在客机查 `ioreg -c IOPlatformExpertDevice` 的 `IOPlatformSerialNumber`/`IOPlatformUUID` 是否变为 iPad 值（序列号目标 `R9D3WPY7T5`；UUID 待观察）→ 按 handover §6 恢复客机桥 env（重启即丢）→ 重试 Apple Account 登录，看 AOS 是否还 440。
 - 工具与产物（iPad `/var/jb/tmp/`）：`compat/{Hypervisor,ParavirtualizedGraphics,Virtualization}`、`vzid*`/`vzgen*`/`vzload`、`vzclone`、`vzaux`、`serial.mid`。回滚：直接删除 Sequoia-IDTest.bundle；原 VM 与三码均未改。
 - 风险：克隆的 NVRAM 是全新的（无原 boot-args，如 `-arm64e_preview_abi`）；Clash 拷贝来自运行中的磁盘（崩溃一致性，macOS 日志回放应可恢复）；若 VZ 对 serial/ECID 做校验可能拒绝启动（`_disableECIDChecks` 是备用开关）。
+- **工具入库（防客机 /tmp 重启丢失）**：`VirtualMac/vz/development/probes/vz-identity/`（`vz_identity_gen`/`vz_identity_load`/`vz_aux_create`/`vz_clonefile`/`make_identity_clone.sh`/README，含 payload bug 与 AuxiliaryStorage 绑定结论）；`VirtualMac/scripts/development/login-capture.sh`、`apple-mitm-observe.py`（后者注明 pinning 限制）。

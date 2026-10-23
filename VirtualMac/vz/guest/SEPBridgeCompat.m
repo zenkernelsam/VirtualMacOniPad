@@ -732,6 +732,34 @@ static void sepStageClear(void) {
         sepLog(@"stage-password", @{@"phase": @"cleared"});
     }
 }
+// Probe: fingerprint a context that arrives without a password so the
+// media sign-in can be told apart from background IDMS check-ins. Only
+// identifiers/enums/classes are logged, never secrets.
+static void sepLogCtxProps(id ctx) {
+    const char *on = getenv("VM_SEP_PROBE_CTX");
+    if (!on || strcmp(on, "1")) return;
+    NSArray *sels = @[@"username", @"_serviceType", @"proxiedAppBundleID",
+        @"clientBundleID", @"_proxiedBundleID", @"proxiedBundleID",
+        @"verifyCredentialReason", @"_reason", @"reason",
+        @"shouldPromptForPasswordOnly", @"passwordlessToken",
+        @"_isEligibleForUpgradeFromPassword", @"_requiresPasswordInput",
+        @"_isPasswordEditable"];
+    NSMutableDictionary *d = [NSMutableDictionary dictionary];
+    for (NSString *s in sels) {
+        SEL sel = NSSelectorFromString(s);
+        if (![ctx respondsToSelector:sel]) continue;
+        @try {
+            id v = ((id (*)(id, SEL))objc_msgSend)(ctx, sel);
+            if ([v isKindOfClass:NSString.class] ||
+                [v isKindOfClass:NSNumber.class])
+                d[s] = [v description];
+            else
+                d[s] = v ? NSStringFromClass([v class]) : @"nil";
+        } @catch (NSException *e) { d[s] = @"exc"; }
+    }
+    sepLog(@"ctxprops", d);
+}
+
 static id sepPasswordGetter(id self, SEL _cmd) {
     id v = gOrigPasswordGetter
         ? ((id (*)(id, SEL))gOrigPasswordGetter)(self, _cmd) : nil;
@@ -743,6 +771,7 @@ static id sepPasswordGetter(id self, SEL _cmd) {
         self, sel_registerName("username"));
     if (![user isKindOfClass:NSString.class]) return v;
     if (want && *want && strcmp([(NSString *)user UTF8String], want)) return v;
+    sepLogCtxProps(self);
     if (!gStagedPassword) {
         gStagedPassword = [NSString stringWithContentsOfFile:@"/tmp/.vmsep-pw"
             encoding:NSUTF8StringEncoding error:nil];
@@ -1069,6 +1098,7 @@ static BOOL sepProcessAllowed(void) {
     if (!pn) return NO;
     static const char *const names[] = {
         "akd", "appleaccountd", "System Settings", "AppleIDSettings",
+        "amsengagementd",
     };
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++)
         if (!strcmp(pn, names[i])) return YES;
@@ -1158,6 +1188,37 @@ static void sepMediaSelfTest(void) {
     });
 }
 
+// Read-only probe for amsengagementd: which account types it asks for and
+// what ACAccountStore returns. The full bridge is NOT installed in this
+// process — injecting swizzles into media daemons broke App Store before.
+static IMP gOrigAcctsWithType, gOrigTypeForId;
+static id sepAcctsWithType(id self, SEL _cmd, id type) {
+    id r = gOrigAcctsWithType
+        ? ((id (*)(id, SEL, id))gOrigAcctsWithType)(self, _cmd, type) : nil;
+    id ident = type ? ((id (*)(id, SEL))objc_msgSend)(
+        type, sel_registerName("identifier")) : nil;
+    sepLog(@"ams-accts", @{@"type": [ident description] ?: @"?",
+                           @"count": @([r isKindOfClass:NSArray.class] ? [r count] : -1)});
+    return r;
+}
+static id sepTypeForId(id self, SEL _cmd, id ident) {
+    id r = gOrigTypeForId
+        ? ((id (*)(id, SEL, id))gOrigTypeForId)(self, _cmd, ident) : nil;
+    sepLog(@"ams-type", @{@"id": [ident description] ?: @"?",
+                          @"found": @(r != nil)});
+    return r;
+}
+static void sepInstallAmsProbe(void) {
+    Class c = objc_getClass("ACAccountStore");
+    if (!c) { sepLog(@"ams-probe", @{@"err": @"no ACAccountStore"}); return; }
+    Method m = class_getInstanceMethod(c, sel_registerName("accountsWithAccountType:"));
+    if (m) gOrigAcctsWithType = method_setImplementation(m, (IMP)sepAcctsWithType);
+    m = class_getInstanceMethod(c, sel_registerName("accountTypeWithAccountTypeIdentifier:"));
+    if (m) gOrigTypeForId = method_setImplementation(m, (IMP)sepTypeForId);
+    sepLog(@"ams-probe", @{@"accts": @(gOrigAcctsWithType != NULL),
+                           @"type": @(gOrigTypeForId != NULL)});
+}
+
 // Diagnostic: run the AVP identity probes from INSIDE an entitled daemon
 // (akd), where the AppleVirtualPlatform XPC client actually lives. The
 // standalone probe gets 4097 on the identity service even when a listener
@@ -1206,6 +1267,13 @@ static void sepDeviceIdentityProbe(void) {
 __attribute__((constructor)) static void sepInit(void) {
     swizzled = CFSetCreateMutable(NULL, 0, NULL);
     if (!sepEnabled() || !sepProcessAllowed()) return;
+    {
+        const char *pn = getprogname();
+        if (pn && !strcmp(pn, "amsengagementd")) {
+            sepInstallAmsProbe();
+            return;
+        }
+    }
     {
         const char *pn = getprogname();
         if (pn && (!strcmp(pn, "App Store") || !strcmp(pn, "cdpd") ||

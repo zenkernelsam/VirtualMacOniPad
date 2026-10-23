@@ -917,3 +917,18 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - **host 侧（macOS 15.6 VMM）**：`VzCore::Hardware::AvpStrongIdentity`、`SepCoprocessor`、`AppleVirtualPlatformHostKeyStorage`、`com.apple.virtualization.coprocessor.sep`；资源含 `AVPSEPBooter.vresearch1.bin`。字符串仅出现在 VMM 内，系统里**没有**对应宿主服务/插件（`/System/Library/MultiversePlugins` 只有 shutdown/tester）→ 宿主侧实现在真 Mac 宿主环境，VM 客机 rootfs 不含。
 - **可行路线（待决策）**：在 akd 内实现/桥接 AVP 三个导出函数（hasHostKey/copyStrongIdentityData/sendSubsystemMessage），用 iPad 设备身份证书链 + SEP 签名填充 host key 数据与签名响应。**最大不确定性**：Apple 服务端是否接受“设备根证书”充当 VM 宿主密钥（可能要求 VM 专属根 `BAAVMRootCAPEM`）。
 - 下一步（需授权/排期）：①用 IDA 精读 `dataRepresentation` 与 `ProtocolMessage` 的二进制布局；②实现 akd 侧 AVP 假宿主并用 iPad SEP 签名；③端到端重试 AOS。预计多会话工程量。
+
+### 2026-10-24 23:20 突破：宿主身份服务是客机内可自实现的 XPC 服务
+
+- 探针实测（独立进程，不碰 akd）：`DeviceIdentityIsSupported=0`、`UCRTSupported=1`、`AppleVirtualPlatformGuestHasHostKey()=0`；`AppleVirtualPlatformGuestCopyStrongIdentityData({})` 返回 nil，错误逐字：
+  `NSCocoaErrorDomain 4097 "connection to service named com.apple.AppleVirtualPlatform.IdentityService"`。
+  → guest 的 AVP 身份栈是向**客机 Mach 服务** `com.apple.AppleVirtualPlatform.IdentityService` 发 NSXPC 请求；该服务在真 Mac 宿主由 VZ 提供，本 VM 不存在。
+- **协议已 dump（ObjC Protocol 运行时）**：
+  - `AppleVirtualPlatformIdentityXPCServiceProtocol`（6 个必需方法）：
+    `createHostKeyDataWithReply:`, `validateHostKeyData:reply:`, `copyUDIDForHostKeyData:reply:`,
+    `copyStrongIdentityDataWithOptions:waitForRefresh:reply:`, `deleteStrongIdentityCacheWithReply:`,
+    `sendMessageWithSubsystem:data:reply:`。
+  - `AppleVirtualPlatformSystemServiceProtocol`：`getLockingNonceWithReply:`、`lockWithHostKeyData:signature:reply:`。
+  - 类型编码：`copyStrongIdentityDataWithOptions:waitForRefresh:reply:` = `v36@0:8@16B24@?28`；`sendMessageWithSubsystem:data:reply:` = `v36@0:8I16@20@?28`。
+- **含义**：不必改 VMM——可在**客机内**注册同名 Mach 服务，用 iPad 身份（经 SEP 桥）实现这 6 个方法，让 guest 的 DeviceIdentity 拿到“宿主密钥”，进而生成 BAA。下一步：①反推 HostKeyData/HostCertificate 的 dataRepresentation 布局；②实现 mock 服务并注册；③用 iPad 证书链+签名填充；④端到端重试 AOS。
+- 工具（客机 /tmp）：`avpprobe`（AVP 接口探针）、`avpproto`（协议 dump）。解析库 `dsc-avp/AppleVirtualPlatform`。

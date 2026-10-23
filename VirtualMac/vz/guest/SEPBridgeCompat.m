@@ -40,6 +40,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
+#include <mach/mach.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -274,13 +275,16 @@ static unsigned sepBlockArgTypes(void *block, char *types, unsigned max) {
 static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                                 id wrappedError) {
     if (!block) return;
-    sepLog(@"invoke-enter", @{@"blk":
-        [NSString stringWithFormat:@"%p", (__bridge void *)block]});
+    const char *verbose = getenv("VM_SEP_VERBOSE");
+    BOOL talk = verbose && !strcmp(verbose, "1");
+    if (talk)
+        sepLog(@"invoke-enter", @{@"blk":
+            [NSString stringWithFormat:@"%p", (__bridge void *)block]});
     const char *bsig = _Block_signature((__bridge void *)block);
     char types[6] = {0};
     unsigned n = sepBlockArgTypes((__bridge void *)block, types, 6);
-    sepLog(@"invoke-parsed", @{@"argc": @(n)});
-    sepLog(@"invoke-sig",
+    if (talk) sepLog(@"invoke-parsed", @{@"argc": @(n)});
+    if (talk) sepLog(@"invoke-sig",
            @{@"sig": bsig ? [NSString stringWithUTF8String:bsig] : @"?",
              @"argc": @(n),
              @"blk": [NSString stringWithFormat:@"%p", (__bridge void *)block],
@@ -290,12 +294,14 @@ static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                         ((unsigned long *)((__bridge void *)block))[1] &
                           0xffffffff]});
     long vals[6] = {0};
+    void *keep[6] = {0};   // retain for the call, release afterwards
     for (unsigned i = 0; i < n; i++) {
         BOOL last = (i == n - 1);
         id v = last ? sepUnwrap(wrappedError)
             : (i < wrappedResults.count ? sepUnwrap(wrappedResults[i]) : nil);
-        sepLog(@"invoke-arg",
-               @{@"i": @(i), @"cls": v ? NSStringFromClass([v class]) : @"nil"});
+        if (talk)
+            sepLog(@"invoke-arg",
+                   @{@"i": @(i), @"cls": v ? NSStringFromClass([v class]) : @"nil"});
         switch (types[i]) {
             case 'B':
                 vals[i] = [v respondsToSelector:@selector(boolValue)]
@@ -306,9 +312,11 @@ static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                     ? (long)[v longLongValue] : (long)(v != nil);
                 break;
             default:
-                // v is released at loop scope; the raw pointer must
-                // outlive this function, so retain it deliberately.
-                vals[i] = (long)CFBridgingRetain(v);
+                // v is released at loop scope; keep it alive across the
+                // block call, then release (this used to leak one object
+                // per forwarded completion and pushed akd into jetsam).
+                keep[i] = (void *)CFBridgingRetain(v);
+                vals[i] = (long)keep[i];
                 break;
         }
     }
@@ -338,7 +346,9 @@ static void sepInvokeCompletion(id block, NSArray *wrappedResults,
                 (__bridge id)(void *)vals[3], (__bridge id)(void *)vals[4], (__bridge id)(void *)vals[5]);
             break;
     }
-    sepLog(@"completion-invoked", @{@"argc": @(n)});
+    for (unsigned i = 0; i < n; i++)
+        if (keep[i]) CFRelease(keep[i]);
+    if (talk) sepLog(@"completion-invoked", @{@"argc": @(n)});
 }
 
 static id sepWrapError(NSError *e) {
@@ -433,14 +443,31 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
     });
 }
 
+// Probe: record every intercepted entry so the auth sequence can be
+// correlated with memory and launchd restarts. VM_SEP_PROBE_CALLS=1.
+static void sepCallLog(SEL _cmd, id self, NSArray *args) {
+    const char *on = getenv("VM_SEP_PROBE_CALLS");
+    if (!on || strcmp(on, "1")) return;
+    NSMutableString *a = [NSMutableString string];
+    for (id v in args)
+        [a appendFormat:@"%s%@", a.length ? "," : "",
+            v ? NSStringFromClass([v class]) : @"nil"];
+    sepLog(@"call", @{@"sel": NSStringFromSelector(_cmd),
+                      @"cls": NSStringFromClass([self class]) ?: @"?",
+                      @"args": a});
+}
+
 // Thunks: every intercepted method is (object args..., completion block).
 static void sepFwd1(id self, SEL _cmd, id a, id completion) {
+    sepCallLog(_cmd, self, @[a ?: NSNull.null]);
     sepForward(_cmd, @[a ?: NSNull.null], completion);
 }
 static void sepFwd2(id self, SEL _cmd, id a, id b, id completion) {
+    sepCallLog(_cmd, self, @[a ?: NSNull.null, b ?: NSNull.null]);
     sepForward(_cmd, @[a ?: NSNull.null, b ?: NSNull.null], completion);
 }
 static void sepFwdB1(id self, SEL _cmd, BOOL x, id a, id completion) {
+    sepCallLog(_cmd, self, @[@(x), a ?: NSNull.null]);
     sepForward(_cmd, @[@(x), a ?: NSNull.null], completion);
 }
 
@@ -638,18 +665,21 @@ static void sepFwdEraseCtx(id self, SEL _cmd, id ctx, id c) {
 // hardware identity is exactly what that fetch supplies. erase/sync stay
 // native — forwarding erase would wipe the iPad's real anisette.
 static void sepFwdNativeFetch(id self, SEL _cmd, BOOL p, id c) {
+    sepCallLog(_cmd, self, @[@(p)]);
     sepLog(@"native-fetch", @{@"p": @(p)});
     sepForward(sel_registerName(
         "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
                @[@(p), NSNull.null], c);
 }
 static void sepFwdNativeProvision(id self, SEL _cmd, id c) {
+    sepCallLog(_cmd, self, @[]);
     sepLog(@"native-provision", @{});
     sepForward(sel_registerName(
         "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
                @[@YES, NSNull.null], c);
 }
 static void sepFwdNativeLegacy(id self, SEL _cmd, id dsid, id c) {
+    sepCallLog(_cmd, self, @[dsid ?: NSNull.null]);
     sepLog(@"native-legacy", @{@"dsid": dsid ?: @"nil"});
     sepForward(sel_registerName(
         "fetchAnisetteDataAndProvisionIfNecessary:device:completion:"),
@@ -687,6 +717,69 @@ static const struct { const char *cls; const char *sel; IMP impl; }
     {"DCBAASigner", "signatureForData:completion:", (IMP)sepFwd1},
     {"DCBAASigner", "signaturesForData:completion:", (IMP)sepFwd1},
 };
+
+// Diagnostic: the App Store / media sign-in sheet never hands akd the typed
+// password (it reaches the context as username-only). When explicitly opted
+// in with VM_SEP_STAGE_PASSWORD=1, answer AKAppleIDAuthenticationContext's
+// _password getter from a mode-0600 file for the staged account, consume the
+// file, and forget the value after 3 minutes. Password contents are never
+// logged.
+static IMP gOrigPasswordGetter;
+static NSString *gStagedPassword;
+static void sepStageClear(void) {
+    if (gStagedPassword) {
+        gStagedPassword = nil;
+        sepLog(@"stage-password", @{@"phase": @"cleared"});
+    }
+}
+static id sepPasswordGetter(id self, SEL _cmd) {
+    id v = gOrigPasswordGetter
+        ? ((id (*)(id, SEL))gOrigPasswordGetter)(self, _cmd) : nil;
+    if (v) return v;
+    const char *on = getenv("VM_SEP_STAGE_PASSWORD");
+    if (!on || strcmp(on, "1")) return v;
+    const char *want = getenv("VM_SEP_STAGE_EMAIL");
+    id user = v ? nil : ((id (*)(id, SEL))objc_msgSend)(
+        self, sel_registerName("username"));
+    if (![user isKindOfClass:NSString.class]) return v;
+    if (want && *want && strcmp([(NSString *)user UTF8String], want)) return v;
+    if (!gStagedPassword) {
+        gStagedPassword = [NSString stringWithContentsOfFile:@"/tmp/.vmsep-pw"
+            encoding:NSUTF8StringEncoding error:nil];
+        unlink("/tmp/.vmsep-pw");
+        if (gStagedPassword.length) {
+            sepLog(@"stage-password", @{@"phase": @"filled",
+                                        @"len": @(gStagedPassword.length)});
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 180ull * NSEC_PER_SEC),
+                dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+                    sepStageClear();
+                });
+        }
+    }
+    return gStagedPassword;
+}
+
+// Probe: did the sign-in client actually hand akd a password? Logs only
+// the object class and length (never the contents). VM_SEP_PROBE_CREDS=1.
+static IMP gOrigSetPassword, gOrigSetPLT, gOrigSetUsername;
+static void sepCredLog(NSString *what, id v) {
+    NSString *s = [v isKindOfClass:NSString.class] ? v : nil;
+    sepLog(@"cred", @{@"what": what,
+                      @"cls": v ? NSStringFromClass([v class]) : @"nil",
+                      @"len": @(s ? s.length : 0)});
+}
+static void sepSetPassword(id self, SEL _cmd, id v) {
+    sepCredLog(@"password", v);
+    if (gOrigSetPassword) ((void (*)(id, SEL, id))gOrigSetPassword)(self, _cmd, v);
+}
+static void sepSetPLT(id self, SEL _cmd, id v) {
+    sepCredLog(@"passwordlessToken", v);
+    if (gOrigSetPLT) ((void (*)(id, SEL, id))gOrigSetPLT)(self, _cmd, v);
+}
+static void sepSetUsername(id self, SEL _cmd, id v) {
+    sepCredLog(@"username", v);
+    if (gOrigSetUsername) ((void (*)(id, SEL, id))gOrigSetUsername)(self, _cmd, v);
+}
 
 // One-shot diagnostic: which classes in this process actually implement
 // the anisette entry points. The observable failure mode is akd serving a
@@ -809,6 +902,28 @@ static unsigned sepInstall(void) {
         }
     }
     if (sepIsAkd()) {
+        static BOOL credsHooked;
+        if (!credsHooked) {
+            credsHooked = YES;
+            Class ctx = objc_getClass("AKAppleIDAuthenticationContext");
+            if (ctx) {
+                Method m;
+                m = class_getInstanceMethod(ctx, sel_registerName("_setPassword:"));
+                if (m) gOrigSetPassword = method_setImplementation(m, (IMP)sepSetPassword);
+                m = class_getInstanceMethod(ctx, sel_registerName("setPasswordlessToken:"));
+                if (m) gOrigSetPLT = method_setImplementation(m, (IMP)sepSetPLT);
+                m = class_getInstanceMethod(ctx, sel_registerName("setUsername:"));
+                if (m) gOrigSetUsername = method_setImplementation(m, (IMP)sepSetUsername);
+                m = class_getInstanceMethod(ctx, sel_registerName("_password"));
+                if (m) gOrigPasswordGetter = method_setImplementation(m, (IMP)sepPasswordGetter);
+                sepLog(@"creds-probe", @{@"ctx": @YES,
+                    @"pw": @(gOrigSetPassword != NULL),
+                    @"plt": @(gOrigSetPLT != NULL),
+                    @"user": @(gOrigSetUsername != NULL)});
+            }
+        }
+    }
+    if (sepIsAkd()) {
         static BOOL dumped;
         if (!dumped) {
             dumped = YES;
@@ -921,6 +1036,21 @@ __attribute__((used)) static const sepInterpose sepInterposes[]
         { (const void *)sepExitBlock0, (const void *)exit },
         { (const void *)sepSysctlByName, (const void *)sysctlbyname },
 };
+// Probe: akd's own footprint, sampled every 30s. The job's jetsam soft
+// limit is 50 MB; this makes the correlation with restarts explicit.
+static void *sepMemLoop(void *_) {
+    for (;;) {
+        task_vm_info_data_t vi;
+        mach_msg_type_number_t c = TASK_VM_INFO_COUNT;
+        if (task_info(mach_task_self(), TASK_VM_INFO,
+                      (task_info_t)&vi, &c) == KERN_SUCCESS)
+            sepLog(@"mem", @{@"footprintMB": @(vi.phys_footprint >> 20),
+                             @"residentMB": @(vi.resident_size >> 20)});
+        sleep(30);
+    }
+    return NULL;
+}
+
 static void *sepPinLoop(void *_) {
     void (*xt)(void) = dlsym(RTLD_DEFAULT, "xpc_transaction_begin");
     if (!xt) return NULL;
@@ -977,6 +1107,57 @@ static void sepForceDeviceIdentity(void) {
     sepLog(@"force-devid", @{@"patched": @YES});
 }
 
+// Diagnostic: run AuthKit's password authentication from inside an
+// entitled client (App Store), which can reach com.apple.ak.auth.xpc where
+// an ad-hoc CLI gets 4099. Password is read from a mode-0600 file and the
+// file is unlinked immediately; only result/error classes are logged.
+// Enable with VM_SEP_MEDIA_SIGNIN=<apple-id> (App Store process only).
+static void sepMediaSelfTest(void) {
+    const char *emailEnv = getenv("VM_SEP_MEDIA_SIGNIN");
+    if (!emailEnv || !*emailEnv) return;
+    NSString *pwPath = @"/tmp/.vmsep-pw";
+    NSString *pw = [NSString stringWithContentsOfFile:pwPath
+        encoding:NSUTF8StringEncoding error:nil];
+    unlink("/tmp/.vmsep-pw");
+    if (!pw.length) { sepLog(@"media-auth", @{@"err": @"no password file"}); return; }
+    void *ak = dlopen("/System/Library/PrivateFrameworks/AuthKit.framework/AuthKit", RTLD_NOW);
+    Class ctxCls = objc_getClass("AKAppleIDAuthenticationContext");
+    Class ctlCls = objc_getClass("AKAppleIDAuthenticationController");
+    if (!ak || !ctxCls || !ctlCls) {
+        sepLog(@"media-auth", @{@"err": @"classes unavailable"}); return;
+    }
+    id ctx = ((id (*)(id, SEL))objc_msgSend)(
+        ((id (*)(id, SEL))objc_msgSend)((id)ctxCls, sel_registerName("alloc")),
+        sel_registerName("init"));
+    ((void (*)(id, SEL, id))objc_msgSend)(ctx, sel_registerName("setUsername:"), @(emailEnv));
+    SEL setPw = sel_registerName("_setPassword:");
+    if ([ctx respondsToSelector:setPw])
+        ((void (*)(id, SEL, id))objc_msgSend)(ctx, setPw, pw);
+    id ctl = ((id (*)(id, SEL))objc_msgSend)(
+        ((id (*)(id, SEL))objc_msgSend)((id)ctlCls, sel_registerName("alloc")),
+        sel_registerName("init"));
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    __block id results = nil, error = nil;
+    void (^cb)(id, id) = ^(id r, id e) {
+        results = r; error = e; dispatch_semaphore_signal(sem);
+    };
+    sepLog(@"media-auth", @{@"phase": @"start", @"user": @(emailEnv)});
+    ((void (*)(id, SEL, id, id))objc_msgSend)(
+        ctl, sel_registerName("authenticateWithContext:completion:"), ctx, cb);
+    long w = dispatch_semaphore_wait(sem,
+        dispatch_time(DISPATCH_TIME_NOW, 180ull * NSEC_PER_SEC));
+    NSString *keys = @"";
+    if (results && [results respondsToSelector:sel_registerName("allKeys")])
+        keys = [((id (*)(id, SEL))objc_msgSend)(
+            results, sel_registerName("allKeys")) description];
+    sepLog(@"media-auth", @{
+        @"phase": @"done", @"wait": @(w),
+        @"results": results ? NSStringFromClass([results class]) : @"nil",
+        @"keys": keys ?: @"",
+        @"err": error ? [error description] : @"nil",
+    });
+}
+
 // Diagnostic: run the AVP identity probes from INSIDE an entitled daemon
 // (akd), where the AppleVirtualPlatform XPC client actually lives. The
 // standalone probe gets 4097 on the identity service even when a listener
@@ -1025,6 +1206,17 @@ static void sepDeviceIdentityProbe(void) {
 __attribute__((constructor)) static void sepInit(void) {
     swizzled = CFSetCreateMutable(NULL, 0, NULL);
     if (!sepEnabled() || !sepProcessAllowed()) return;
+    {
+        const char *pn = getprogname();
+        if (pn && (!strcmp(pn, "App Store") || !strcmp(pn, "cdpd") ||
+                   !strcmp(pn, "appleaccountd")) &&
+            getenv("VM_SEP_MEDIA_SIGNIN")) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3ull * NSEC_PER_SEC),
+                dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                    sepMediaSelfTest();
+                });
+        }
+    }
     if (sepIsAkd()) {
         const char *t = getenv("VM_SEP_DEVID_TEST");
         if (t && !strcmp(t, "1")) sepDeviceIdentityProbe();
@@ -1051,6 +1243,9 @@ __attribute__((constructor)) static void sepInit(void) {
         pthread_t pin;
         pthread_create(&pin, NULL, sepPinLoop, NULL);
         pthread_detach(pin);
+        pthread_t mem;
+        pthread_create(&mem, NULL, sepMemLoop, NULL);
+        pthread_detach(mem);
     }
     sepLog(@"loaded",
            @{@"host": sepHost(), @"port": @(sepPort())});
@@ -1065,7 +1260,7 @@ __attribute__((constructor)) static void sepInit(void) {
             unsigned n = sepInstall();
             if (n) sepLog(@"install-pass",
                           @{@"pass": @(i), @"swizzled": @(n)});
-            usleep(500 * 1000);
+            usleep(5 * 1000 * 1000);
         }
     });
 }

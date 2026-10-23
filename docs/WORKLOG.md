@@ -973,3 +973,13 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 修复（生效）：`ifconfig en0 mtu 1400` + pf `block return out proto udp port 443` + `pass out all`，强制回落 TCP；iCloud 设备列表立即恢复。
 - 回滚与持久化方案见 `docs/VM-APPLE-ID-BREAKTHROUGH.md` §9；MTU/pf 重启不保留。
 - App Store 仍失败：Apple 官方文档称 VM 不支持 Apple Media Services，待确认；`commerce`/`appstoreagent` 已带桥 env。
+
+### 2026-10-24 01:30 App Store 登录取证：密码未到达 akd（UI sheet 传输断点）
+
+- **现状**：iCloud 已登录且设备列表可用（MTU 1400 + pf 封 UDP443 后）。App Store 登录：sheet 能弹、能输入（有密码圆点），但转圈后消失、未登录。
+- **探针结论（隐私安全，只记长度）**：akd 内 `AKAppleIDAuthenticationContext` 只观察到 **username（len 22）**，**从未观察到 password**，也没有 `passwordlessToken`/`idmsDataToken` → SRP 以空密码进行，报 `M2 missing (bad password)` → `-7013`/4097。
+- **UI 侧日志**：`AKAuthorizationRemoteViewService` 记录 `Username is present but password is missing and required. Client should provide us with password.`，随后 ViewBridge 断开（Code=18）。→ 密码在不可注入的授权 appex 里被吞。
+- **反证：密码链路本身是通的**。用 cdpd（有 auth entitlement 的守护进程，可继承 env）驱动 `AKAppleIDAuthenticationController authenticateWithContext:`，**认证成功**（err=nil，拿到完整 AKAuthenticationResults：AKIDMSToken/AKIdentityToken/AKDSID/AKAltDSID 等）。说明 akd SRP + 桥 + 2FA 全通，缺的只是 UI 交付。
+- **诊断开关（已实现，env 门控）**：akd 内 `_password` getter 可在 `VM_SEP_STAGE_PASSWORD=1` 时，为匹配 `VM_SEP_STAGE_EMAIL` 的“仅 username”上下文，从 `/tmp/.vmsep-pw`（0600，读取后立即 unlink，内存 3 分钟后清除）补位密码。
+- **发现并回退的干扰**：为了在 App Store 内跑探针，曾把 `App Store/appstored/cdpd` 加入注入白名单——App Store **会继承 env**，桥的 swizzle 进入后其「登入」action 变哑（点击零日志）。已把白名单回退为 `akd/appleaccountd/System Settings/AppleIDSettings`；App Store 进程仍映射库但 `sepProcessAllowed` 早退，swizzle 不生效。
+- **待办**：App Store 实例状态已坏（重启 App 无效），建议重启 VM 复位后，用 staged-password 方案重试 UI 登录；若仍不行，改走“cdpd 认证结果 + 媒体账户 API”的程序化路线。

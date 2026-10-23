@@ -28,6 +28,7 @@
 
 #import <Foundation/Foundation.h>
 #import <objc/message.h>
+#include <Block.h>
 #import <signal.h>
 #import <objc/runtime.h>
 #include <dlfcn.h>
@@ -353,7 +354,13 @@ static NSError *sepError(int code, NSString *text) {
 }
 
 // Runs on a global queue; never blocks the caller's thread.
+// The completion is usually a stack block whose enclosing frame returns as
+// soon as this method returns; ARC retains it as a plain object and never
+// copies it to the heap, so the async invoke later read dead stack — the
+// crash that followed successful forwards. Copy it for the trip.
 static void sepForward(SEL sel, NSArray *args, id completion) {
+    void *blk = completion
+        ? (void *)Block_copy((__bridge void *)completion) : NULL;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         NSString *selName = NSStringFromSelector(sel);
         NSMutableArray *wa = [NSMutableArray array];
@@ -365,8 +372,9 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
         if (![resp isKindOfClass:NSDictionary.class]) {
             sepLog(@"forward-fail",
                    @{@"sel": selName, @"ms": @(elapsed * 1000)});
-            sepInvokeCompletion(completion, @[],
+            sepInvokeCompletion((__bridge id)blk, @[],
                 sepWrapError(sepError(-1, @"SEP bridge transport failure")));
+            if (blk) Block_release(blk);
             return;
         }
         NSArray *rargs = [resp[@"args"] isKindOfClass:NSArray.class]
@@ -419,7 +427,8 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
         }
         if (rs.length) ev[@"resClass"] = rs;
         sepLog(@"forward-ok", ev);
-        sepInvokeCompletion(completion, rargs, resp[@"error"]);
+        sepInvokeCompletion((__bridge id)blk, rargs, resp[@"error"]);
+        if (blk) Block_release(blk);
     });
 }
 
@@ -643,6 +652,58 @@ static const struct { const char *cls; const char *sel; IMP impl; }
     {"DCBAASigner", "signaturesForData:completion:", (IMP)sepFwd1},
 };
 
+// One-shot diagnostic: which classes in this process actually implement
+// the anisette entry points. The observable failure mode is akd serving a
+// client anisette request straight through com.apple.adid, so knowing the
+// real receiver class is the difference between a blind swizzle and fixing
+// the right object.
+static void sepLogReceivers(void) {
+    static const char *sels[] = {
+        "provisionAnisetteForDevice:completion:",
+        "fetchAnisetteDataAndProvisionIfNecessary:device:completion:",
+        "fetchAnisetteDataForContext:provisionIfNecessary:withCompletion:",
+        "attestationDataForRequestData:completion:",
+        "attestationDataForDevice:withRequest:completion:",
+    };
+    int n = objc_getClassList(NULL, 0);
+    if (n <= 0) return;
+    Class *list = (__unsafe_unretained Class *)malloc(sizeof(Class) * (size_t)n);
+    if (!list) return;
+    n = objc_getClassList(list, n);
+    NSMutableArray *hits = [NSMutableArray array];
+    for (int i = 0; i < n; i++) {
+        for (size_t j = 0; j < sizeof(sels) / sizeof(sels[0]); j++) {
+            SEL s = sel_registerName(sels[j]);
+            if (class_getInstanceMethod(list[i], s)) {
+                [hits addObject:[NSString stringWithFormat:@"%s:%s",
+                    class_getName(list[i]), sels[j]]];
+            }
+        }
+    }
+    free(list);
+    sepLog(@"receivers", @{@"list": hits});
+}
+
+// Observation hook: attestationDataForRequestData: is the native path that
+// falls through to CoreADI when a client asks for BAA headers. We cannot
+// safely forward it yet (iPad's device: variant aborted on a synthetic
+// request), but knowing whether real flows hit it decides the next step.
+// It logs and calls the original implementation unchanged.
+static BOOL sepIsAkd(void);
+static IMP gOrigAttestReq;
+static void sepLogAttestReq(id self, SEL _cmd, id req, id completion) {
+    NSUInteger len = [req isKindOfClass:NSData.class]
+        ? [(NSData *)req length] : 0;
+    sepLog(@"attest-req", @{
+        @"cls": NSStringFromClass([self class]) ?: @"?",
+        @"reqLen": @(len),
+        @"reqCls": req ? NSStringFromClass([req class]) : @"nil",
+    });
+    if (gOrigAttestReq)
+        ((void (*)(id, SEL, id, id))gOrigAttestReq)(
+            self, _cmd, req, completion);
+}
+
 static unsigned sepInstall(void) {
     unsigned total = 0;
     Protocol *daemon = objc_getProtocol(
@@ -667,6 +728,14 @@ static unsigned sepInstall(void) {
         if (!c) continue;
         SEL s = sel_registerName(kSignerOps[i].sel);
         if (sepSwizzle(c, s, kSignerOps[i].impl)) total++;
+    }
+    if (sepIsAkd() && !gOrigAttestReq) {
+        Class sc = objc_getClass("AKAnisetteProvisioningService");
+        SEL s = sel_registerName("attestationDataForRequestData:completion:");
+        Method m = sc ? class_getInstanceMethod(sc, s) : NULL;
+        if (m)
+            gOrigAttestReq = method_setImplementation(
+                m, (IMP)sepLogAttestReq);
     }
     return total;
 }
@@ -772,6 +841,7 @@ __attribute__((constructor)) static void sepInit(void) {
     }
     sepLog(@"loaded",
            @{@"host": sepHost(), @"port": @(sepPort())});
+    if (sepIsAkd()) sepLogReceivers();
     // Frameworks/classes attach lazily — _AKAnisetteProviderProxy only
     // registers when the first anisette XPC connection arrives, which can
     // be minutes later. Rescan forever; sepSwizzle no-ops on methods

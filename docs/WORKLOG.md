@@ -983,3 +983,5 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - **诊断开关（已实现，env 门控）**：akd 内 `_password` getter 可在 `VM_SEP_STAGE_PASSWORD=1` 时，为匹配 `VM_SEP_STAGE_EMAIL` 的“仅 username”上下文，从 `/tmp/.vmsep-pw`（0600，读取后立即 unlink，内存 3 分钟后清除）补位密码。
 - **发现并回退的干扰**：为了在 App Store 内跑探针，曾把 `App Store/appstored/cdpd` 加入注入白名单——App Store **会继承 env**，桥的 swizzle 进入后其「登入」action 变哑（点击零日志）。已把白名单回退为 `akd/appleaccountd/System Settings/AppleIDSettings`；App Store 进程仍映射库但 `sepProcessAllowed` 早退，swizzle 不生效。
 - **待办**：App Store 实例状态已坏（重启 App 无效），建议重启 VM 复位后，用 staged-password 方案重试 UI 登录；若仍不行，改走“cdpd 认证结果 + 媒体账户 API”的程序化路线。
+- **01:32 追加**：staged password 被**后台 IDMS check-in** 消费（`Failed to check in with IDMS … 401`），并非 App Store 媒体认证；已 `unsetenv VM_SEP_STAGE_PASSWORD/VM_SEP_STAGE_EMAIL` 停止全局补位。App Store 登录 action 仍哑（即使白名单已回退、App 已重启），判断为 App Store/账户瞬态损坏，待重启 VM 复位。iCloud 账户本体仍在（MobileMeAccounts 正常）。
+- **教训**：`_password` 补位必须按“媒体上下文”精确门控（如 proxied bundle = com.apple.AppStore），不能按 username 全局补，否则会被背景 IDMS check-in 吃掉。

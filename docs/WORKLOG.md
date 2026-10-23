@@ -842,3 +842,11 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 已排除：时钟偏差（客机/iPad 同步）；外部 client 无 entitlement（4099，正常）；XPC 解码入口方案（响应对象不保存原始 body）。
 - 当前可用状态：客机 akd 保持注入（native anisette + signer + daemon 三路），iPad akd 常驻、转发 1–6ms；VM 稳定（0 crash、无 swap）。
 - 下一步候选：①MITM（系统 CA + 代理）读 440 body 确认语义；②在客机侧伪造/桥接 DeviceIdentity 能力并验证 BAA 头是否被 AOS 接受（需先证明 440 与 BAA 相关）；③接受 Apple 限制，Apple ID 走 macPad chroot 路线（已验证可登录）。
+
+### 2026-10-23 深夜：A 方案（MITM 改写三码）验证 —— 被证书 pinning 双杀
+
+- 目标：在 VM 内临时根证书 + 本地代理，改写 AOS 请求里的 UDID/序列号为 iPad 真实值，验证 440 是否身份不一致。
+- 实测：`gsa.apple.com`（AppleIDAuthSupport）与 `setup.icloud.com`（AAURLSession）**均启用证书 pinning**，boringssl 在校验块内直接取消握手（客户端 EOF），日志逐字：`-[AIASSession URLSession:task:didReceiveChallenge:completionHandler:]: pinning failed`、`Trust evaluate failure: [leaf AnchorApple ...]`、`boringssl_context_evaluate_trust_async_external_block_invoke ... Cancelled during verify block`；随后 `NSURLError -999` → SRP 失败 → UI「无法验证你的身份」。
+- 结论：appex 不可注入 + 两条主链路都 pinning → **网络层身份改写不可行**。A 方案终止。
+- 回滚已完成并核验：系统代理关闭（web/secure 均 Enabled: No）、临时根证书从 System keychain 删除（find-certificate 0）、代理进程 kill、CA 私钥删除；网络恢复正常（apple.com 200）。
+- 剩余路线：B = 宿主侧三码/设备树注入（让客机内核直接报 iPad 序列号/UUID，等价 macPad 的共享内核效果）；或实现 Apple 官方 host attestation（iPadOS 缺失该 API，工程量更大）。B 待后续成熟再启动。

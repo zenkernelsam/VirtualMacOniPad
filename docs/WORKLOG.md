@@ -904,3 +904,16 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   3. iPad 的 VZ payload（Virtualization.framework + VMM 三个 iPadOS 变体）中 `AppleVirtualPlatformIdentity|GuestHasHostKey|HostKey|DeviceIdentityProcessVMRequest|StrongIdentity` 字符串计数全为 **0**，且无任何 DeviceIdentity 相关框架 → **iPadOS 侧根本没有宿主 VM attestation 服务**。
 - **结论**：仅共享序列号不足以通过 AOS；VM 客户端的 BAA/VM attestation 需要宿主（macOS 15+）提供的 host key/certs，iPadOS 不提供。与本项目既有的 `-7066 host attestation headers` 证据一致。除非实现宿主侧 identity 服务（协议不透明、且依赖宿主 SEP 的 VM 密钥），否则 VM 内 Apple Account 登录无法完成。
 - 现场：克隆机 `/var/mobile/Media/VirtualMac/Sequoia-SerialAux.bundle` 正在运行（序列号=R9D3WPY7T5）；原机 `Sequoia.bundle` 未动。
+
+### 2026-10-24 23:00 宿主 attestation 协议测绘（继续 B 的下一步）
+
+- 目标：评估“用 iPad SEP 模拟 VZ 宿主密钥”的可行性。
+- **guest 侧 `AppleVirtualPlatform.framework` 已抽取测绘**（`ipsw dyld extract ... AppleVirtualPlatform`）：
+  - 类：`AppleVirtualPlatformHostKeyData`、`AppleVirtualPlatformHostKey`、`AppleVirtualPlatformHostCertificate`、`AppleVirtualPlatformGuestIdentityData`、`AppleVirtualPlatformIdentityServiceConnection`、`AppleVirtualPlatformSubsystemMessenger`、`AppleVirtualPlatformProtocolMessage(User)`。
+  - API：`-[AppleVirtualPlatformHostCertificate initWithDataRepresentation:error:]` / `dataRepresentationWithCachedData:error:`；`leafCertificate`/`intermediateCertificate`/`hostKey`；`getCurrentHostKeyUpdatingDataRepresentation:error:`。
+  - 数据结构键（字符串取证）：`hostUDID`、`hostPublicKey`、`hostKey`、`leafCertificate`、`intermediateCertificate`、`leafUDID`、`leafPublicKey`、`hostBuildVersion`、`requestData`、`signature`、`plistData`、`dataRepresentation`。
+  - 断言：`[leafUDID isEqual:hostUDID]` —— 宿主证书叶子的 UDID 必须等于宿主 UDID。
+  - 导出入口：`AppleVirtualPlatformGuestHasHostKey()`、`AppleVirtualPlatformGuestCopyStrongIdentityData(CFDictionaryRef, CFErrorRef*)`、`AppleVirtualPlatformSendSubsystemMessageToHost(subsystem, CFDataRef, CFErrorRef*)`。
+- **host 侧（macOS 15.6 VMM）**：`VzCore::Hardware::AvpStrongIdentity`、`SepCoprocessor`、`AppleVirtualPlatformHostKeyStorage`、`com.apple.virtualization.coprocessor.sep`；资源含 `AVPSEPBooter.vresearch1.bin`。字符串仅出现在 VMM 内，系统里**没有**对应宿主服务/插件（`/System/Library/MultiversePlugins` 只有 shutdown/tester）→ 宿主侧实现在真 Mac 宿主环境，VM 客机 rootfs 不含。
+- **可行路线（待决策）**：在 akd 内实现/桥接 AVP 三个导出函数（hasHostKey/copyStrongIdentityData/sendSubsystemMessage），用 iPad 设备身份证书链 + SEP 签名填充 host key 数据与签名响应。**最大不确定性**：Apple 服务端是否接受“设备根证书”充当 VM 宿主密钥（可能要求 VM 专属根 `BAAVMRootCAPEM`）。
+- 下一步（需授权/排期）：①用 IDA 精读 `dataRepresentation` 与 `ProtocolMessage` 的二进制布局；②实现 akd 侧 AVP 假宿主并用 iPad SEP 签名；③端到端重试 AOS。预计多会话工程量。

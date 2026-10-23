@@ -850,3 +850,16 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 结论：appex 不可注入 + 两条主链路都 pinning → **网络层身份改写不可行**。A 方案终止。
 - 回滚已完成并核验：系统代理关闭（web/secure 均 Enabled: No）、临时根证书从 System keychain 删除（find-certificate 0）、代理进程 kill、CA 私钥删除；网络恢复正常（apple.com 200）。
 - 剩余路线：B = 宿主侧三码/设备树注入（让客机内核直接报 iPad 序列号/UUID，等价 macPad 的共享内核效果）；或实现 Apple 官方 host attestation（iPadOS 缺失该 API，工程量更大）。B 待后续成熟再启动。
+
+### 2026-10-24 凌晨：B 方案启动 —— 宿主侧三码注入（序列号）已备好测试克隆
+
+- **私有 API 取证**（VZ payload = macOS 二进制，可在客机 dlopen，需把 LC_BUILD_VERSION 平台戳 iOS(2)→macOS(1) 并重签；macPad 的 `misc/vtool_and_sign.sh` 是同款经验）：
+  - `VZMacMachineIdentifier` 类方法：`_machineIdentifierWithSerialNumber:`、`_machineIdentifierWithECID:serialNumber:`、`_machineIdentifierForVirtualMachineClone*`；ivar `_ECID`/`_disableECIDChecks`/`_serialNumber(_VZMacSerialNumber, 10B AvpSerialNumber)`。
+  - `VZMacPlatformConfiguration` 的底层 Mac 平台结构自带 `optional<AvpSerialNumber>` —— 序列号可从平台配置一路传到客机 DT。
+  - **payload bug**：构造函数把序列号存成 `NSString`，`dataRepresentation` 却调用 `[_serialNumber string]` → `-[__NSCFString string]` 崩溃（macOS/iPad 皆然）。绕法：构造后用 `[[_VZMacSerialNumber alloc] initWithString:]` 替换 ivar，再序列化 → 成功得到 96B blob：`{ECID, SerialNumber:"R9D3WPY7T5"}`（`/var/jb/tmp/serial.mid`，回读验证通过）。
+  - 自检：`_machineIdentifierWithSerialNumber:` 每次随机生成 ECID，说明 ECID 与序列号独立、序列号显式随 blob 传递。
+- **同类“绑定”约束**：`VirtualMacApp.m` 现有逻辑对已安装 VM **忽略**序列号 override（注释：installed VM identity is bound to AuxiliaryStorage）。App 的克隆流程会新建 AuxiliaryStorage —— 因此走克隆路线而非原地改。
+- **已产出测试克隆**（原 VM 未动）：`/var/mobile/Media/VirtualMac/Sequoia-IDTest.bundle/` = APFS `clonefile` 秒拷的 Disk.img + `vzaux` 新建的 33MB AuxiliaryStorage（`initCreatingStorageAtURL:hardwareModel:options:error:`）+ HardwareModel + 带 iPad 序列号的 MachineIdentifier。
+- **待验证（重启后新会话首要任务）**：停主 VM → App 里启动 Sequoia-IDTest → 在客机查 `ioreg -c IOPlatformExpertDevice` 的 `IOPlatformSerialNumber`/`IOPlatformUUID` 是否变为 iPad 值（序列号目标 `R9D3WPY7T5`；UUID 待观察）→ 按 handover §6 恢复客机桥 env（重启即丢）→ 重试 Apple Account 登录，看 AOS 是否还 440。
+- 工具与产物（iPad `/var/jb/tmp/`）：`compat/{Hypervisor,ParavirtualizedGraphics,Virtualization}`、`vzid*`/`vzgen*`/`vzload`、`vzclone`、`vzaux`、`serial.mid`。回滚：直接删除 Sequoia-IDTest.bundle；原 VM 与三码均未改。
+- 风险：克隆的 NVRAM 是全新的（无原 boot-args，如 `-arm64e_preview_abi`）；Clash 拷贝来自运行中的磁盘（崩溃一致性，macOS 日志回放应可恢复）；若 VZ 对 serial/ECID 做校验可能拒绝启动（`_disableECIDChecks` 是备用开关）。

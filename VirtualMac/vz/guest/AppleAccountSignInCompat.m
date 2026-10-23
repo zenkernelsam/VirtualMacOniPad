@@ -437,7 +437,26 @@ static void acctImageAdded(const struct mach_header *header, intptr_t slide) {
     for (uint32_t i = 0; i < _dyld_image_count(); ++i)
         acctInstallForImage(_dyld_get_image_name(i));
 }
+// The dylib rides in the domain-wide DYLD_INSERT_LIBRARIES, so it is mapped
+// into every GUI process. Only the auth daemons need it; installing AuthKit
+// web observers in unrelated processes polluted their stderr (VMACCT lines
+// broke git-lfs version probing in Git Desktop). VM_SEP_BRIDGE_ALLOW=all
+// restores the old everywhere behaviour.
+static BOOL acctProcessAllowed(void) {
+    const char *all = getenv("VM_SEP_BRIDGE_ALLOW");
+    if (all && !strcmp(all, "all")) return YES;
+    const char *pn = getprogname();
+    if (!pn) return NO;
+    static const char *const names[] = {
+        "akd", "appleaccountd", "System Settings", "AppleIDSettings",
+    };
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++)
+        if (!strcmp(pn, names[i])) return YES;
+    return NO;
+}
+
 __attribute__((constructor)) static void acctInit(void) {
+    if (!acctProcessAllowed()) return;
     acctLog(@"loaded", @{});
     for (uint32_t i = 0; i < _dyld_image_count(); ++i)
         acctInstallForImage(_dyld_get_image_name(i));

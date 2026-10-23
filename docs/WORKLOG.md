@@ -932,3 +932,15 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
   - 类型编码：`copyStrongIdentityDataWithOptions:waitForRefresh:reply:` = `v36@0:8@16B24@?28`；`sendMessageWithSubsystem:data:reply:` = `v36@0:8I16@20@?28`。
 - **含义**：不必改 VMM——可在**客机内**注册同名 Mach 服务，用 iPad 身份（经 SEP 桥）实现这 6 个方法，让 guest 的 DeviceIdentity 拿到“宿主密钥”，进而生成 BAA。下一步：①反推 HostKeyData/HostCertificate 的 dataRepresentation 布局；②实现 mock 服务并注册；③用 iPad 证书链+签名填充；④端到端重试 AOS。
 - 工具（客机 /tmp）：`avpprobe`（AVP 接口探针）、`avpproto`（协议 dump）。解析库 `dsc-avp/AppleVirtualPlatform`。
+
+### 2026-10-24 23:30 mock 身份服务实验：可达但 AVP 客户端不连（传输层不是普通 guest Mach 服务）
+
+- 实现并部署了客机内 mock 服务（`/Library/VirtualMac/avpidentitymock` + LaunchDaemon，注册 `com.apple.AppleVirtualPlatform.IdentityService`，方法按协议 dump 实现，先记录调用并回受控错误）。
+- **验证**：自写 NSXPC 客户端（default 与 `NSXPCConnectionPrivileged` 两种）都能连上并触发 `deleteStrongIdentityCache` → mock 本身工作正常；`bootstrap_look_up` kr=0。
+- **但 AVP 客户端不连**：在 akd 内（经 SEPBridgeCompat 诊断钩子）调用 AVP：
+  - 无选项：`NSPOSIXErrorDomain 22 "No cached host identity data"`（不再 4097）。
+  - `Synchronous + IgnoreCache + timeout`（opts=3）：`Strong identity data was empty (options 0x2)`。
+  - mock 日志**始终没有** AVP 的连接记录。
+- 结论（待确认）：AVP 的身份链路很可能走 VMM 的 vmapple 子系统/代理层（`AppleVirtualPlatformSubsystemMessenger`），或使用特权/审计令牌受控的连接，普通 guest launchd Mach 服务不足以冒充宿主服务。
+- 已清理：system/gui 两个 launchd job 与 plist 均 bootout/删除，`VM_SEP_DEVID_TEST` env 已 unset；akd 桥正常运行（克隆机）。
+- 下一步：反汇编 `AppleVirtualPlatformIdentityServiceConnection` / `SubsystemMessenger`，确定连接方式（服务名/options/代理层）；若必须经 VMM，则改在 iPad 侧 VZHostCompat 注入点拦截 vmapple 消息。

@@ -26,6 +26,7 @@ kern_return_t bootstrap_check_in(mach_port_t bp, const char *name, mach_port_t *
 #import <mach/mach.h>
 #import <mach/mach_types.h>
 #import <bsm/audit.h>
+#import <errno.h>
 
 static int gFd = -1;
 
@@ -123,14 +124,12 @@ static id makeSvc(void) {
 // context. sig suffix 3 = three-arg completion (result,data,error).
 struct op { const char *sel; const char *target; const char *sig; };
 static const struct op kOps[] = {
+    // Erase/sync are never exposed to guests. The legacy/provision/attestation
+    // asynchronous device methods also remain unsupported: nil devices and
+    // arbitrary request blobs caused native akd aborts in 2026-10-23 evidence.
     {"ping", "daemon", "n"},
-    {"legacyAnisetteDataForDSID:device:completion:", "daemon", "iib"},
-    {"provisionAnisetteForDevice:completion:", "daemon", "ib"},
     {"fetchAnisetteDataAndProvisionIfNecessary:device:completion:", "daemon", "bib"},
-    {"syncAnisetteWithSIMData:device:completion:", "daemon", "iib"},
-    {"eraseAnisetteForDevice:completion:", "daemon", "ib"},
     {"anisetteDataForDevice:provisionIfNecessary:", "daemon", "ibs"},
-    {"attestationDataForDevice:withRequest:completion:", "daemon", "iib"},
     {"absintheSignatureForData:completion:", "daemon", "ib"},
     {"signatureForData:options:completion:", "signer", "iib3"},
     {"signaturesForData:options:completion:", "signer", "iib3"},
@@ -146,7 +145,12 @@ static id makeSigner(void) {
 }
 
 static void respond(NSArray *rargs, id err) {
+    if (err && ![err isKindOfClass:NSError.class])
+        err = [NSError errorWithDomain:@"VirtualMac.SEPRelay" code:EIO
+            userInfo:@{NSLocalizedDescriptionKey:
+                [err isKindOfClass:NSString.class] ? err : [err description]}];
     NSDictionary *resp = @{@"args": rargs ?: @[],
+                           @"protocol": @2,
                            @"akdpid": @(getpid()),
                            @"error": err ? wrap(err) : @{@"k": @"nil"}};
     NSData *p = [NSPropertyListSerialization dataWithPropertyList:resp
@@ -160,9 +164,13 @@ static void respond(NSArray *rargs, id err) {
 static void runCall(NSString *sel, NSArray *args) {
     if ([sel isEqualToString:@"ping"]) { respond(@[], nil); return; }
     const struct op *o = NULL;
-    for (int i = 0; kOps[i].sel; i++)
-        if (!strcmp(kOps[i].sel, sel.UTF8String)) { o = &kOps[i]; break; }
-    if (!o) { respond(nil, [NSString stringWithFormat:@"unsupported %@", sel]);
+    const char *selector = sel.UTF8String;
+    if (selector)
+        for (int i = 0; kOps[i].sel; i++)
+            if (!strcmp(kOps[i].sel, selector)) { o = &kOps[i]; break; }
+    if (!o) { respond(nil, [NSError errorWithDomain:@"VirtualMac.SEPRelay"
+            code:ENOTSUP userInfo:@{NSLocalizedDescriptionKey:
+                [NSString stringWithFormat:@"unsupported %@", sel]}]);
         return; }
     id target = gSvc;
     if (!strcmp(o->target, "signer")) {
@@ -244,10 +252,14 @@ static void serve(void) {
         struct sockaddr_in a = {0};
         a.sin_family = AF_INET;
         a.sin_port = htons(18444);
-        a.sin_addr.s_addr = inet_addr("192.168.64.1");
+        a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         if (connect(fd, (struct sockaddr *)&a, sizeof(a)) == 0) {
             gFd = fd;
+            uint32_t hello[] = {htonl(0x53455032), htonl((uint32_t)getpid())};
+            if (!wrAll(hello, sizeof(hello))) {
+                close(fd); gFd = -1; usleep(500000); continue;
+            }
             for (;;) {
                 uint32_t len;
                 if (!rdAll(&len, 4)) break;
@@ -260,7 +272,15 @@ static void serve(void) {
                         NSDictionary *req = [NSPropertyListSerialization
                             propertyListWithData:d options:0 format:NULL
                             error:nil];
-                        if (![req isKindOfClass:NSDictionary.class]) continue;
+                        if (![req isKindOfClass:NSDictionary.class] ||
+                            ![req[@"sel"] isKindOfClass:NSString.class] ||
+                            ![req[@"args"] isKindOfClass:NSArray.class]) {
+                            respond(nil, @"invalid request schema"); continue;
+                        }
+                        BOOL valid = YES;
+                        for (id argument in req[@"args"])
+                            if (![argument isKindOfClass:NSDictionary.class]) valid = NO;
+                        if (!valid) { respond(nil, @"invalid argument schema"); continue; }
                         runCall(req[@"sel"], req[@"args"]);
                     } @catch (NSException *e) {
                         respond(nil, [NSString stringWithFormat:

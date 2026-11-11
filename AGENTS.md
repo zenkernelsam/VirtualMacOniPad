@@ -8,6 +8,13 @@
 - **当前战线**：①外设直通盘点（已产出 `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md`）；②**主线研究：VM 原生 GPU 优化**——目标是接近真 Mac 上 Virtualization.framework 的 GPU 体验。已知痛点：Matlab、Devin(Electron GPU)、Qoder CN 等需 `--disable-gpu` 或崩溃。研究记录写 `docs/GPU-NATIVE-RESEARCH.md`；③**VM 内 Apple Account 登录已突破（2026-10-24）**——关键在 akd 内 interpose `sysctlbyname("kern.hv_vmm_present")` 返回 0（`VM_SEP_FAKE_NONVM=1`），让 AuthKit 走真机 BAA 路径、经 SEP 桥用 iPad 真 SEP 完成真实 2FA。完整复盘（含错误结论与死胡同）：`docs/VM-APPLE-ID-BREAKTHROUGH.md`；**复活/复现入口：`docs/VM-APPLE-ID-REVIVAL-HANDOFF.md`**（含从零复现、重启恢复、资产指纹、探针开关、已知坑）；开机自恢复：`com.vm.sepbridge.autoapply`（env + MTU1400 + pf 封 UDP443 + 重启 akd）。克隆机 `Sequoia-SerialAux.bundle` 已登录 iCloud，原机未动。**App Store/Music/TV 媒体服务仍未通**：AMS 报 `Security level check failed to find IDMS account`，`iTunesStore` 账户从未建行；UI 登录 sheet 不把密码交给 akd（不可注入 appex）。
 - 进度日志：`docs/WORKLOG.md`（每完成一步追加，压缩后从这里恢复进度）。
 
+### 2026-11-11 至 11-12 当前账户 / 网络整合
+
+- 最新工作入口 `docs/ACCOUNT-NETWORK-INTEGRATION-20261111.md`，媒体事实纠正 `docs/AMS-MEDIA-ACCOUNT-AUDIT-20261112.md`。群友独立ADI已按native provider接源码；netsflex10提交整合；账户/网络/安装/克隆回归通过。不要把离线或编译成功当系统媒体已登录。
+- 实际仍是用户自编旧包224.317567bbc7；guest224-6b9c1467accb8a6a，尚未安装本轮新包。当前iCloud账户在；两条媒体账户是isLocalAccount=true占位，未登录；AMS nil匹配错误不是VM硬限制证明。
+- 用户拔SIM后iPad SSH改用192.168.68.66，公钥与旧19264.1一致；凭据问用户，不写文件。guest实际19268.59/22，配置NAT但bridge100含en0(MACNAT)+vmenet0；当前无热点。watcher已加载runs868/exit0，不能复用“114未装”假设。新root/guest地址选择已补动态，手机+VM蜂窝热点共存仍待现场验收。
+- iPad仅做只读SSH与两个独立文件/接口小探针；无运行中注入、无服务重启、无新包部署、无VM盘操作。旧nativeakd已有映射时不得把opainject exit0当新版已加载；新的protocol2反链需首启验证，不能强杀宿主akd来伪装热升级成功。
+
 ## 1. 十条行为准则（load-bearing，逐条遵守）
 
 1. **取证先行**：改代码前先检索建立事实，禁止盲改。
@@ -112,6 +119,8 @@
 | `docs/PERIPHERAL-PASSTHROUGH-AUDIT.md` | 外设直通盘点（本轮产出） |
 | `docs/SOURCE-AUDIT-REPORT.md` | vz/ 全源码逐行静态审计（架构地图/hook 全表/USB 状态机/entitlement/风险清单） |
 | `docs/GPU-NATIVE-RESEARCH.md` | GPU 主线研究记录（本轮起持续更新） |
+| `docs/ACCOUNT-NETWORK-INTEGRATION-20261111.md` | 最新账户、热点、身份界面与netsflex整合及验收边界 |
+| `docs/AMS-MEDIA-ACCOUNT-AUDIT-20261112.md` | 媒体placeholder / 对应IDMS查找反汇编与旧结论纠正 |
 | `docs/WORKLOG.md` | 逐条进度日志（压缩后先读它） |
 | `.diag/` | 本机取证暂存（gitignored，不入库） |
 

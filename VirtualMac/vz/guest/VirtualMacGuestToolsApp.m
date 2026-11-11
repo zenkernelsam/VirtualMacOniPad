@@ -1,6 +1,7 @@
 #import <AppKit/AppKit.h>
 #import <dlfcn.h>
 #import <signal.h>
+#import "SEPBridgeNetwork.h"
 
 static NSString * const VMOpenGLKey = @"OpenGLAcceleration";
 static NSString * const VMOpenGLAllowedKey = @"OpenGLAllowed";
@@ -30,6 +31,13 @@ static NSString *VML(NSString *key)
 @property(nonatomic, copy) NSString *readyToken;
 @property(nonatomic) NSUInteger dockIconCacheRepairAttempts;
 @property(nonatomic) NSTimeInterval dockIconCacheRepairTime;
+@property(nonatomic, retain) NSTask *identityServer;
+@property(nonatomic, copy) NSString *identityToken;
+@property(nonatomic, copy) NSString *identityPort;
+@property(nonatomic) BOOL identityStarting;
+@property(nonatomic) BOOL identityPreparing;
+@property(nonatomic, copy) NSString *hostRelayToken;
+@property(nonatomic, copy) NSString *hostRelayAddress;
 @end
 
 @implementation VMGuestToolsDelegate
@@ -61,6 +69,9 @@ static NSString *VML(NSString *key)
         NSNumber *openGL = configuration[VMOpenGLKey];
         if ([openGL isKindOfClass:NSNumber.class])
             [self.preferences setBool:openGL.boolValue forKey:VMOpenGLKey];
+        NSNumber *appleServices = configuration[@"AppleServicesEnabled"];
+        if ([appleServices isKindOfClass:NSNumber.class])
+            [self.preferences setBool:appleServices.boolValue forKey:VMSEPBridgeKey];
         [self.preferences setObject:token forKey:VMReadyTokenKey];
     }
     for (NSString *key in @[VMOpenGLAllowedKey, VMPencilSupportKey]) {
@@ -68,6 +79,10 @@ static NSString *VML(NSString *key)
         if ([value isKindOfClass:NSNumber.class])
             [self.preferences setBool:value.boolValue forKey:key];
     }
+    id relayToken = configuration[@"AppleServicesRelayToken"];
+    self.hostRelayToken = [relayToken isKindOfClass:NSString.class] && [relayToken length] == 64
+        ? relayToken : nil;
+    self.hostRelayAddress = VMSEPPreferredHost(configuration[@"AppleServicesRelayHosts"]);
     [self.preferences synchronize];
 }
 
@@ -311,7 +326,8 @@ static NSString *VML(NSString *key)
     // AccountSignInAdapter -bool true`. It requires the same relaxed
     // run-time security policy as the OpenGL dylib and is only injected into
     // processes launched after the environment change.
-    return [self preferenceForKey:VMAccountSignInKey defaultValue:NO] &&
+    return ([self preferenceForKey:VMAccountSignInKey defaultValue:NO] ||
+        [self sepIdentityBridgeAvailable]) &&
         [self securityPolicySupportsOpenGL] &&
         [NSFileManager.defaultManager fileExistsAtPath:[VMLibrary
             stringByAppendingPathComponent:@"AppleAccountSignInCompat.dylib"]];
@@ -323,7 +339,9 @@ static NSString *VML(NSString *key)
     // `defaults write com.mac.virtual.guest-tools SEPIdentityBridge
     // -bool true`. Forwards anisette/attestation operations to the host
     // iPad's real SEP path (see docs/SEP-IDENTITY-BRIDGE.md).
-    return [self preferenceForKey:VMSEPBridgeKey defaultValue:NO] &&
+    return self.hostRelayToken.length == 64 && self.hostRelayAddress.length &&
+        self.identityServer.running && self.identityPort.length &&
+        [self preferenceForKey:VMSEPBridgeKey defaultValue:NO] &&
         [self securityPolicySupportsOpenGL] &&
         [NSFileManager.defaultManager fileExistsAtPath:[VMLibrary
             stringByAppendingPathComponent:@"SEPBridgeCompat.dylib"]];
@@ -351,6 +369,14 @@ static NSString *VML(NSString *key)
     [self setEnvironmentVariable:@"DYLD_INSERT_LIBRARIES"
         value:libraries.count
             ? [libraries componentsJoinedByString:@":"] : nil];
+    BOOL identity = [self sepIdentityBridgeAvailable];
+    [self setEnvironmentVariable:@"VM_SEP_BRIDGE" value:identity ? @"1" : nil];
+    [self setEnvironmentVariable:@"VM_SEP_FAKE_NONVM" value:identity ? @"1" : nil];
+    [self setEnvironmentVariable:@"VM_INDEPENDENT_IDENTITY" value:identity ? @"1" : nil];
+    [self setEnvironmentVariable:@"VM_INDEPENDENT_IDENTITY_PORT" value:identity ? self.identityPort : nil];
+    [self setEnvironmentVariable:@"VM_INDEPENDENT_IDENTITY_TOKEN" value:identity ? self.identityToken : nil];
+    [self setEnvironmentVariable:@"VM_SEP_REMOTE_TOKEN" value:identity ? self.hostRelayToken : nil];
+    [self setEnvironmentVariable:@"VM_SEP_HOST" value:identity ? self.hostRelayAddress : nil];
     // loginwindow can restore applications before an ordinary LaunchAgent is
     // scheduled, so those processes cannot inherit a value published by this
     // menu extra. While acceleration is enabled, turn off saved-application
@@ -360,6 +386,106 @@ static NSString *VML(NSString *key)
     // running-kernel policy when this login item starts. That transient state
     // must not re-enable saved-app restoration for the following boot.
     [self setSavedApplicationRelaunchSuppressed:requested];
+}
+
+- (NSDictionary *)independentIdentityStatus
+{
+    NSString *provider = [VMLibrary stringByAppendingPathComponent:@"independent-identity-provider"];
+    NSString *output = [self outputForExecutable:provider arguments:@[@"--status"]];
+    NSData *data = [output dataUsingEncoding:NSUTF8StringEncoding];
+    id result = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+    return [result isKindOfClass:NSDictionary.class] ? result : @{};
+}
+
+- (void)startIndependentIdentity
+{
+    if (self.identityStarting || self.identityPreparing || self.identityServer.running ||
+        ![self preferenceForKey:VMSEPBridgeKey defaultValue:NO] ||
+        NSProcessInfo.processInfo.operatingSystemVersion.majorVersion < 15 ||
+        ![self securityPolicySupportsOpenGL] ||
+        ![[self independentIdentityStatus][@"ready"] boolValue]) return;
+    self.identityStarting = YES;
+    unsigned char random[32]; arc4random_buf(random, sizeof(random));
+    NSMutableString *token = [NSMutableString string];
+    for (unsigned i = 0; i < sizeof(random); i++) [token appendFormat:@"%02x", random[i]];
+    self.identityToken = token;
+    NSTask *task = [[[NSTask alloc] init] autorelease];
+    task.launchPath = [VMLibrary stringByAppendingPathComponent:@"independent-identity-provider"];
+    task.arguments = @[@"--serve"];
+    NSMutableDictionary *environment = [NSProcessInfo.processInfo.environment mutableCopy];
+    [environment removeObjectForKey:@"DYLD_INSERT_LIBRARIES"];
+    environment[@"VM_INDEPENDENT_IDENTITY_TOKEN"] = token;
+    task.environment = environment; [environment release];
+    NSPipe *pipe = [NSPipe pipe]; task.standardOutput = pipe;
+    self.identityServer = task;
+    @try { [task launch]; }
+    @catch (__unused NSException *exception) { self.identityStarting = NO; self.identityServer = nil; return; }
+    // A missing startup line must not hang the menu extra indefinitely.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5LL * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        if (self.identityStarting && self.identityServer == task && task.running) [task terminate];
+    });
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+        NSData *line = [pipe.fileHandleForReading availableData];
+        NSString *text = [[[NSString alloc] initWithData:line encoding:NSUTF8StringEncoding] autorelease];
+        NSString *port = [text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        BOOL valid = port.length && port.length <= 5 &&
+            [port rangeOfCharacterFromSet:NSCharacterSet.decimalDigitCharacterSet.invertedSet].location == NSNotFound &&
+            port.integerValue >= 1024 && port.integerValue <= 65535;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.identityStarting = NO;
+            if (!valid || !task.running) { self.identityServer = nil; self.identityPort = nil; [self applyOpenGL]; return; }
+            self.identityPort = port;
+            [self applyOpenGL];
+            // Guest akd must inherit the new user environment. This occurs once
+            // at provider startup, never on every menu opening/request.
+            [self outputForExecutable:@"/usr/bin/killall" arguments:@[@"akd"]];
+        });
+    });
+}
+
+- (void)showAppleServices:(NSMenuItem *)sender
+{
+    (void)sender;
+    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+    alert.messageText = VML(@"Apple Services Identity");
+    alert.informativeText = [[self independentIdentityStatus][@"ready"] boolValue]
+        ? VML(@"Independent identity is ready. iCloud and media sign-in still require verification in their apps.")
+        : VML(@"Prepare a separate identity for this Virtual Mac before signing in. Existing account data is preserved.");
+    if (!self.hostRelayToken.length)
+        alert.informativeText = VML(@"Enable the independent-v1 identity profile for this VM. Guest Tools will guide identity preparation; iCloud and media sign-in are verified separately. Copied ADI identities stay blocked until a new identity is prepared. Disabling adapters preserves account data.");
+    [alert addButtonWithTitle:VML(@"Prepare Independent Identity")];
+    [alert addButtonWithTitle:VML(@"Open Apple Account Settings")];
+    [alert addButtonWithTitle:VML(@"Disable Apple Service Adapters")];
+    [alert addButtonWithTitle:VML(@"Cancel")];
+    NSModalResponse choice = [alert runModal];
+    if (choice == NSAlertSecondButtonReturn) {
+        [NSWorkspace.sharedWorkspace openURL:[NSURL URLWithString:@"x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings"]];
+    } else if (choice == NSAlertThirdButtonReturn) {
+        [self.preferences setBool:NO forKey:VMSEPBridgeKey];
+        if (self.identityServer.running) [self.identityServer terminate];
+        self.identityServer = nil; self.identityPort = nil; self.identityToken = nil;
+        [self applyOpenGL];
+        [self outputForExecutable:@"/usr/bin/killall" arguments:@[@"akd"]];
+    } else if (choice == NSAlertFirstButtonReturn && !self.identityPreparing) {
+        self.identityPreparing = YES;
+        // Initial HTTPS provisioning has its own 110s budget. Auth requests
+        // subsequently use existing state only, avoiding the old 15s race.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+            [self outputForExecutable:[VMLibrary stringByAppendingPathComponent:@"independent-identity-provider"]
+                arguments:@[@"--prepare"]];
+            BOOL ready = [[self independentIdentityStatus][@"ready"] boolValue];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.identityPreparing = NO;
+                if (ready) { [self.preferences setBool:YES forKey:VMSEPBridgeKey]; [self startIndependentIdentity]; }
+                NSAlert *result = [[[NSAlert alloc] init] autorelease];
+                result.messageText = VML(@"Apple Services Identity");
+                result.informativeText = ready
+                    ? VML(@"Independent identity is ready. iCloud and media sign-in still require verification in their apps.")
+                    : VML(@"Identity preparation failed. Existing identity was kept; check the Guest Tools log and try again.");
+                [result runModal];
+            });
+        });
+    }
 }
 
 - (NSImage *)statusImageNamed:(NSString *)name
@@ -387,10 +513,12 @@ static NSString *VML(NSString *key)
 - (void)menuWillOpen:(NSMenu *)menu
 {
     (void)menu;
+    [self applyHostConfiguration];
     // The host applies the running-kernel policy asynchronously during boot.
     // Refresh both the effective environment and the visible checkmark when
     // the user opens the menu instead of freezing startup-time state.
     [self applyOpenGL];
+    [self startIndependentIdentity];
     [self updateMenu];
 }
 
@@ -416,6 +544,7 @@ static NSString *VML(NSString *key)
     BOOL enabled = ![self preferenceForKey:VMOpenGLKey defaultValue:YES];
     [self.preferences setBool:enabled forKey:VMOpenGLKey];
     [self applyOpenGL];
+    [self startIndependentIdentity];
     [self updateMenu];
 }
 
@@ -462,6 +591,7 @@ static NSString *VML(NSString *key)
     (void)notification;
     [self applyHostConfiguration];
     [self applyOpenGL];
+    [self startIndependentIdentity];
     [self rebuildDockIconCacheIfNeeded];
     self.statusItem = [NSStatusBar.systemStatusBar
         statusItemWithLength:NSSquareStatusItemLength];
@@ -480,6 +610,8 @@ static NSString *VML(NSString *key)
         : VML(@"OpenGL Acceleration requires macOS Sonoma or later.")
         action:@selector(toggleOpenGL:) representedObject:nil];
     [menu addItem:self.openGLMenuItem];
+    [menu addItem:[self itemWithTitle:VML(@"Apple Services Identity")
+        action:@selector(showAppleServices:) representedObject:nil]];
     [menu addItem:NSMenuItem.separatorItem];
     [menu addItem:[self itemWithTitle:VML(@"Download Xcode")
         action:@selector(openWebItem:) representedObject:@"xcode"]];

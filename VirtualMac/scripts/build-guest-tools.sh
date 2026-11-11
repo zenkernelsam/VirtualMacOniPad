@@ -21,17 +21,11 @@ SYMBOL_CATALOG="$OUT/VirtualMacGuestTools.xcassets"
 "$SCRIPT_DIR/development/build-opengl-guest-compat.sh"
 "$SCRIPT_DIR/development/build-account-signin-compat.sh"
 "$SCRIPT_DIR/development/build-sepbridge-compat.sh"
+"$SCRIPT_DIR/development/build-independent-identity.sh"
 
-rm -rf "$APP" "$OUT/VirtualMac.iconset" "$OUT/payload" "$SYMBOL_CATALOG"
-rm -f "$OUT/VirtualMacGuestTools.arm64" \
-    "$OUT/VirtualMacGuestTools.x86_64" \
-    "$OUT/OpenGLPVGCompat.dylib" \
-    "$OUT/AppleAccountSignInCompat.dylib" \
-    "$OUT/SEPBridgeCompat.dylib" \
-    "$OUT/com.mac.virtual.guest-tools.plist" \
-    "$OUT/com.mac.virtual.opengl-compat.plist" \
-    "$OUT/Virtual Mac OpenGL Acceleration" \
-    "$OUT/VirtualMacGuestTools.tar.gz"
+if [[ -e "$OUT" ]]; then
+    mv "$OUT" "${OUT}.previous.$(date +%Y%m%d-%H%M%S).$$"
+fi
 mkdir -p "$MACOS" "$RESOURCES"
 cp "$VZ_REPO_ROOT/vz/guest/VirtualMacGuestTools-Info.plist" \
     "$CONTENTS/Info.plist"
@@ -71,6 +65,11 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$RESOURCES/VirtualMac.icns"
 
+mkdir -p "$RESOURCES/ThirdPartyNotices"
+cp "$VZ_REPO_ROOT/third-party/apple-auth/source/LICENSE" "$RESOURCES/ThirdPartyNotices/apple-auth-LICENSE"
+cp "$VZ_REPO_ROOT/third-party/apple-auth/source/THIRD_PARTY_NOTICES.md" "$RESOURCES/ThirdPartyNotices/apple-auth-NOTICES.md"
+cp -R "$VZ_REPO_ROOT/third-party/apple-auth/source/LICENSES" "$RESOURCES/ThirdPartyNotices/"
+
 xattr -cr "$APP"
 codesign --force --sign - "$APP"
 
@@ -87,6 +86,10 @@ cp -R "$APP" "$PAYLOAD/Library/VirtualMac/"
 cp "$OUT/OpenGLPVGCompat.dylib" "$PAYLOAD/Library/VirtualMac/"
 cp "$OUT/AppleAccountSignInCompat.dylib" "$PAYLOAD/Library/VirtualMac/"
 cp "$OUT/SEPBridgeCompat.dylib" "$PAYLOAD/Library/VirtualMac/"
+cp "$VZ_BUILD_ROOT/guest-independent/independent-identity-provider" "$PAYLOAD/Library/VirtualMac/"
+cp "$VZ_REPO_ROOT/vz/guest/install-guest-payload.sh" "$PAYLOAD/Library/VirtualMac/"
+cp "$VZ_REPO_ROOT/vz/guest/apply-sep-bridge.sh" "$PAYLOAD/Library/VirtualMac/"
+chmod 755 "$PAYLOAD/Library/VirtualMac/"*.sh
 cp "$OUT/com.mac.virtual.guest-tools.plist" \
     "$PAYLOAD/Library/LaunchAgents/"
 # Do not encode checkout provenance into the guest payload. macOS 27 launchd

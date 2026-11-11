@@ -1,5 +1,7 @@
 # Handover：修复越狱状态下 Personal Hotspot DHCP 死锁（热点/VM NAT 共存）
 
+> **2026-11-11 更新**：当前源码已补 bridge 被 VM 重用时误删 DHCP、partial plist 覆盖及并发重写问题，15 项离线回归通过；当前 SSH 连接超时，安装与手机/VM同网实测待验。最新范围和闸门见 [整合记录](ACCOUNT-NETWORK-INTEGRATION-20261111.md)。下文为历史根因 / PoC，固定 bridge101 的描述不应作为新的实现规则。
+>
 > 交接对象：负责 VirtualMac 打包的 Agent。基线 commit `3fa6b5e3d816ec78d0d0bd2701a1ca5864babf1f`（即 `VirtualMac_1.2.3_3fa6b5e3d8.deb` 同源）。本文档 = 完整诊断 + 已在真机上验证通过的修复设计 + 施工/验收清单。
 > 写作日期：2026-10-07。环境：iPad Pro 11" M1，iPadOS 16.3 (20D47)，Dopamine 3.0.2 rootless，SSH `ssh -p 22 root@192.168.64.1`（2222 亦通，凭据问用户）。
 

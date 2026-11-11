@@ -14,5 +14,5 @@ Icon: https://raw.githubusercontent.com/nfzerox/VirtualMacOniPad/main/VirtualMac
 Section: Utilities
 Priority: optional
 Installed-Size: @INSTALLED_SIZE@
-Depends: firmware (>= @MIN_IOS@), firmware (<< 16.4), ellekit | org.coolstar.libhooker
+Depends: firmware (>= @MIN_IOS@), firmware (<< 16.4), ellekit | org.coolstar.libhooker, python3
 Tag: role::enduser

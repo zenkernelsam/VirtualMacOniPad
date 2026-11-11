@@ -16,6 +16,8 @@
 #include <spawn.h>
 #include <stdlib.h>
 #include <sys/sysctl.h>
+#include <sys/clonefile.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 extern char **environ;
@@ -193,6 +195,41 @@ static uint64_t VZVMStorageCapacity(NSString *bundlePath,
             @"Disk.img"] error:nil];
     uint64_t capacity = [attributes[NSFileSize] unsignedLongLongValue];
     return capacity ?: [options[VZStorageSizeKey] unsignedLongLongValue];
+}
+
+// A disk clone must not silently become a full sparse-disk copy. Require a
+// separate, costed choice for that fallback, and retain failed work for review.
+static BOOL VZCopyIdentityCloneDisk(NSString *source, NSString *destination,
+                                    BOOL allowFullCopy, NSError **error)
+{
+    if (clonefile(source.fileSystemRepresentation,
+                  destination.fileSystemRepresentation, CLONE_NOFOLLOW) == 0)
+        return YES;
+    int cloneError = errno;
+    if (!allowFullCopy || (cloneError != ENOTSUP && cloneError != EXDEV &&
+                           cloneError != EINVAL && cloneError != ENOSYS)) {
+        if (error)
+            *error = [NSError errorWithDomain:NSPOSIXErrorDomain
+                code:cloneError userInfo:@{
+                    NSLocalizedDescriptionKey:
+                        VZL(@"Copy-on-write cloning is unavailable. The source VM is preserved; a full copy requires a separate storage confirmation.")}];
+        return NO;
+    }
+    NSDictionary *attributes = [NSFileManager.defaultManager
+        attributesOfItemAtPath:source error:error];
+    if (!attributes)
+        return NO;
+    uint64_t capacity = [attributes[NSFileSize] unsignedLongLongValue];
+    uint64_t available = VZAvailableStorageSize();
+    if (capacity > available || available - capacity < GiB(1)) {
+        if (error)
+            *error = [NSError errorWithDomain:@"VirtualMac" code:32
+                userInfo:@{NSLocalizedDescriptionKey:
+                    VZL(@"A full copy requires the disk's logical capacity plus 1 GiB of free space. Choose copy-on-write or free additional storage.")}];
+        return NO;
+    }
+    return [NSFileManager.defaultManager copyItemAtPath:source
+        toPath:destination error:error];
 }
 
 static NSString *VZMACStringFromBytes(const uint8_t bytes[6])
@@ -613,7 +650,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (BOOL)identityManager:(id)manager didRequestDeletePath:(NSString *)path;
 - (void)identityManagerDidRequestGenerate:(id)manager;
 - (void)identityManagerDidRequestClone:(id)manager;
-- (void)identityManagerDidRequestOriginal:(id)manager;
 @optional
 - (NSArray<NSString *> *)identityManagerPaths:(id)manager;
 - (NSData *)identityManagerActiveData:(id)manager;
@@ -626,6 +662,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 @property(nonatomic, retain) NSData *activeData;
 @property(nonatomic, copy) NSString *selectedPath;
 @property(nonatomic, retain) UITableView *identityTableView;
+@property(nonatomic, retain) UIBarButtonItem *cloneButton;
 - (instancetype)initWithIdentityPaths:(NSArray<NSString *> *)paths
                             activeData:(NSData *)active;
 - (void)reloadIdentityData;
@@ -646,21 +683,20 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.title = VZL(@"Manage Identities");
+    self.title = VZL(@"Archived Identities");
     self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
     self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
         initWithBarButtonSystemItem:UIBarButtonSystemItemDone
                              target:self action:@selector(done)] autorelease];
     UIBarButtonItem *add = [[[UIBarButtonItem alloc]
-        initWithTitle:VZL(@"Add Identity") style:UIBarButtonItemStylePlain
+        initWithTitle:VZL(@"Generate Candidate") style:UIBarButtonItemStylePlain
                target:self action:@selector(addIdentity)] autorelease];
     UIBarButtonItem *clone = [[[UIBarButtonItem alloc]
         initWithTitle:VZL(@"Create Clone") style:UIBarButtonItemStylePlain
                target:self action:@selector(createClone)] autorelease];
+    self.cloneButton = clone;
+    clone.enabled = NO;
     self.navigationItem.rightBarButtonItems = @[clone, add];
-    self.navigationItem.leftBarButtonItem = [[[UIBarButtonItem alloc]
-        initWithBarButtonSystemItem:UIBarButtonSystemItemDone
-                             target:self action:@selector(done)] autorelease];
     UITableView *table = [[[UITableView alloc]
         initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped] autorelease];
     table.translatesAutoresizingMaskIntoConstraints = NO;
@@ -674,7 +710,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         [table.topAnchor constraintEqualToAnchor:self.view.topAnchor],
         [table.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
     ]];
-    self.view.accessibilityLabel = VZL(@"Manage Identities");
+    self.view.accessibilityLabel = VZL(@"Archived Identities");
 }
 
 - (void)reloadIdentityData
@@ -690,6 +726,10 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     if (self.selectedPath &&
         ![self.identityPaths containsObject:self.selectedPath])
         self.selectedPath = nil;
+    NSData *selected = self.selectedPath
+        ? [NSData dataWithContentsOfFile:self.selectedPath] : nil;
+    self.cloneButton.enabled = selected.length &&
+        ![selected isEqualToData:self.activeData];
     [self.identityTableView reloadData];
 }
 
@@ -706,7 +746,27 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 
 - (void)createClone
 {
+    if (!self.cloneButton.enabled)
+        return;
     [self.delegate identityManagerDidRequestClone:self];
+}
+
+- (NSString *)tableView:(UITableView *)tableView
+ titleForHeaderInSection:(NSInteger)section
+{
+    (void)tableView;
+    (void)section;
+    NSString *label = VZAppleIdentityLabelForData(self.activeData);
+    return [NSString stringWithFormat:VZL(@"Current Identity: %@"),
+        label ?: VZL(@"Unavailable")];
+}
+
+- (NSString *)tableView:(UITableView *)tableView
+ titleForFooterInSection:(NSInteger)section
+{
+    (void)tableView;
+    (void)section;
+    return VZL(@"Candidates are archived only. Preview a candidate, then create a separate clone to use it. The current VM identity is preserved; Apple service sign-in requires separate verification.");
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -725,8 +785,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         cell = [[[UITableViewCell alloc]
             initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"identity"]
             autorelease];
-    if (indexPath.section != 0 ||
-        indexPath.row >= self.identityPaths.count) {
+    if (indexPath.section != 0 || indexPath.row < 0 ||
+        (NSUInteger)indexPath.row >= self.identityPaths.count) {
         cell.textLabel.text = nil;
         cell.detailTextLabel.text = nil;
         cell.accessoryType = UITableViewCellAccessoryNone;
@@ -740,8 +800,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     BOOL active = self.activeData && [self.activeData isEqualToData:data];
     BOOL selected = self.selectedPath &&
         [self.selectedPath isEqualToString:path];
-    cell.detailTextLabel.text = selected ? VZL(@"Selected Identity") :
-        active ? VZL(@"Configured") : nil;
+    cell.detailTextLabel.text = selected ? VZL(@"Previewed Candidate") :
+        active ? VZL(@"Current Identity") : VZL(@"Archived Candidate");
     cell.accessoryType = (active || selected)
         ? UITableViewCellAccessoryCheckmark : UITableViewCellAccessoryNone;
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
@@ -751,13 +811,13 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 - (void)tableView:(UITableView *)tableView
  didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    if (indexPath.section != 0 ||
-        indexPath.row >= self.identityPaths.count) {
+    if (indexPath.section != 0 || indexPath.row < 0 ||
+        (NSUInteger)indexPath.row >= self.identityPaths.count) {
         [tableView deselectRowAtIndexPath:indexPath animated:YES];
         return;
     }
     self.selectedPath = self.identityPaths[indexPath.row];
-    [tableView reloadData];
+    [self reloadIdentityData];
     [self.delegate identityManager:self didSelectPath:self.selectedPath];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
@@ -766,8 +826,8 @@ void VZRemovePaths(NSArray<NSString *> *paths)
   trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     (void)tableView;
-    if (indexPath.section != 0 ||
-        indexPath.row >= self.identityPaths.count)
+    if (indexPath.section != 0 || indexPath.row < 0 ||
+        (NSUInteger)indexPath.row >= self.identityPaths.count)
         return nil;
     NSString *path = self.identityPaths[indexPath.row];
     NSData *data = [NSData dataWithContentsOfFile:path];
@@ -793,7 +853,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
             [updated release];
             if ([self.selectedPath isEqualToString:path])
                 self.selectedPath = nil;
-            [self.identityTableView reloadData];
+            [self reloadIdentityData];
         }
         completion(deleted);
     }];
@@ -807,6 +867,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     [_activeData release];
     [_selectedPath release];
     [_identityTableView release];
+    [_cloneButton release];
     [super dealloc];
 }
 @end
@@ -1059,7 +1120,7 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     if (section == 5)
         return 5;
     if (section == 6)
-        return 1;
+        return 2;
     return self.bundlePath && self.running ? 0 : 1;
 }
 
@@ -1081,6 +1142,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     (void)tableView;
     if (section == 0 && !self.bundlePath)
         return VZL(@"Storage size can’t be changed later. If you need additional storage in the future, set a larger size now.");
+    if (section == 6) {
+        if ([self.options[@"AppleServicesIdentityResetRequired"] boolValue])
+            return VZL(@"This clone contains copied account data. Apple service adapters stay disabled until a new independent ADI identity is prepared. Sign-in has not been verified.");
+        return VZL(@"The identity shown is the VM's actual MachineIdentifier. Apple service configuration and account sign-in are verified separately. Identity changes require a separate clone while the VM is shut down.");
+    }
     return nil;
 }
 
@@ -1244,13 +1310,22 @@ void VZRemovePaths(NSArray<NSString *> *paths)
         cell.accessoryType = UITableViewCellAccessoryNone;
         cell.detailTextLabel.text = nil;
     } else if (indexPath.section == 6) {
-        cell.textLabel.text = VZL(@"Apple Services Identity");
-        BOOL serialOverride = !self.bundlePath &&
-            [self.options[VZAppleIdentityEnabledKey] boolValue] &&
-            [self.options[VZAppleSerialNumberKey] length] > 0;
-        cell.detailTextLabel.text = (serialOverride ||
-            [self bundleAppleIdentityWasRegenerated])
-            ? VZL(@"Configured") : VZL(@"Not Configured");
+        if (indexPath.row == 0) {
+            cell.textLabel.text = VZL(@"Apple Services Identity");
+            NSData *identity = self.bundlePath ? [NSData dataWithContentsOfFile:
+                [self.bundlePath stringByAppendingPathComponent:@"MachineIdentifier"]]
+                : nil;
+            cell.detailTextLabel.text = self.bundlePath
+                ? (VZAppleIdentityLabelForData(identity) ?: VZL(@"Unavailable"))
+                : VZL(@"Generated During Installation");
+        } else {
+            cell.textLabel.text = VZL(@"Apple Service Adapters");
+            cell.detailTextLabel.text =
+                [self.options[@"AppleServicesIdentityResetRequired"] boolValue]
+                ? VZL(@"Identity Preparation Required")
+                : [self.options[@"AppleServicesEnabled"] boolValue]
+                    ? VZL(@"Configured; Sign-In Unverified") : VZL(@"Disabled");
+        }
         if (self.running) {
             cell.textLabel.textColor = UIColor.secondaryLabelColor;
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
@@ -1647,8 +1722,11 @@ void VZRemovePaths(NSArray<NSString *> *paths)
                          title:titles[indexPath.row - 1]
                            min:minimum max:maximum bytes:NO];
     } else if (indexPath.section == 6) {
-        [self presentAppleIdentityOptionsFromCell:
-            [tableView cellForRowAtIndexPath:indexPath]];
+        if (indexPath.row == 0)
+            [self presentAppleIdentityOptionsFromCell:
+                [tableView cellForRowAtIndexPath:indexPath]];
+        else
+            [self presentAppleServiceOptions];
     } else if (indexPath.section == 7) {
         if (self.bundlePath)
             [self confirmDeleteVirtualMac];
@@ -1790,55 +1868,45 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     if (self.running)
         return;
-    if (self.bundlePath) {
-        VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-            VZL(@"Identity changes require a new Virtual Mac."),
-            nil, VZFailureSupportOptionNone);
-        return;
-    }
     UIAlertController *alert = [UIAlertController
         alertControllerWithTitle:VZL(@"Apple Services Identity")
-                         message:VZL(@"Experimental")
+                         message:VZL(@"Virtual Mac creates a MachineIdentifier during installation. Serial / MLB / ROM fields are not applied by this VZ payload. After installation, you can archive candidates and create a separate identity clone. Apple service sign-in still requires verification.")
                   preferredStyle:UIAlertControllerStyleAlert];
-    NSArray *keys = @[VZAppleSerialNumberKey, VZAppleBoardSerialNumberKey,
-                      VZAppleROMKey];
-    NSArray *placeholders = @[VZL(@"Mac Serial Number"),
-                              VZL(@"Board Serial Number (MLB)"),
-                              VZL(@"ROM")];
-    for (NSUInteger i = 0; i < keys.count; i++) {
-        NSString *key = keys[i];
-        NSString *placeholder = placeholders[i];
-        [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
-            field.placeholder = placeholder;
-            field.text = self.options[key];
-            field.autocapitalizationType = UITextAutocapitalizationTypeAllCharacters;
-            field.autocorrectionType = UITextAutocorrectionTypeNo;
-            field.clearButtonMode = UITextFieldViewModeWhileEditing;
-        }];
-    }
-    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
-        style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
-        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        (void)action;
-        for (NSUInteger i = 0; i < keys.count; i++) {
-            NSString *value = [alert.textFields[i].text
-                stringByTrimmingCharactersInSet:
-                    NSCharacterSet.whitespaceAndNewlineCharacterSet];
-            if (value.length)
-                self.options[keys[i]] = value;
-            else
-                [self.options removeObjectForKey:keys[i]];
-        }
-        self.options[VZAppleIdentityEnabledKey] = @(
-            [self.options[VZAppleSerialNumberKey] length] > 0);
-        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:6]
-                      withRowAnimation:UITableViewRowAnimationNone];
-    }]];
+        style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 
 #pragma mark - Apple identity generation
+
+- (void)presentAppleServiceOptions
+{
+    if (self.running)
+        return;
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:VZL(@"Apple Service Adapters")
+                         message:VZL(@"Enable the independent-v1 identity profile for this VM. Guest Tools will guide identity preparation; iCloud and media sign-in are verified separately. Copied ADI identities stay blocked until a new identity is prepared. Disabling adapters preserves account data.")
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Enable Independent Identity")
+        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        (void)action;
+        self.options[@"AppleServicesEnabled"] = @YES;
+        self.options[@"AppleServicesProfile"] = @"independent-v1";
+        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:6]
+            withRowAnimation:UITableViewRowAnimationNone];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"Disable Adapters")
+        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        (void)action;
+        self.options[@"AppleServicesEnabled"] = @NO;
+        self.options[@"AppleServicesProfile"] = @"disabled";
+        [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:6]
+            withRowAnimation:UITableViewRowAnimationNone];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
 
 - (NSString *)appleIdentityPoolDirectory
 {
@@ -1851,20 +1919,6 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     NSString *pool = [self appleIdentityPoolDirectory];
     return pool ? [pool stringByAppendingPathComponent:@"original.mid"] : nil;
-}
-
-// YES only when the active bundle identity differs from the preserved original.
-- (BOOL)bundleAppleIdentityWasRegenerated
-{
-    NSString *original = [self appleIdentityOriginalPath];
-    if (!original ||
-        ![NSFileManager.defaultManager fileExistsAtPath:original])
-        return NO;
-    NSData *originalData = [NSData dataWithContentsOfFile:original];
-    NSData *activeData = [NSData dataWithContentsOfFile:
-        [self.bundlePath stringByAppendingPathComponent:@"MachineIdentifier"]];
-    return originalData.length && activeData.length &&
-        ![originalData isEqualToData:activeData];
 }
 
 // Archived, generated identities (newest first); excludes the preserved
@@ -1923,25 +1977,13 @@ void VZRemovePaths(NSArray<NSString *> *paths)
     }
     UIAlertController *sheet = [UIAlertController
         alertControllerWithTitle:VZL(@"Apple Services Identity")
-                         message:VZL(@"Experimental")
+                         message:VZL(@"Current VM identity is preserved. Candidates can be used only in a separate clone; account sign-in is not guaranteed.")
                   preferredStyle:UIAlertControllerStyleActionSheet];
-    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Manage Identities")
+    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Archived Identities")
         style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         (void)action;
         [self presentAppleIdentityManagerFromCell:cell];
     }]];
-    [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Serial / MLB / ROM")
-        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-        (void)action;
-        [self editAppleIdentity];
-    }]];
-    if ([self bundleAppleIdentityWasRegenerated]) {
-        [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Use Original Identity")
-            style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
-            (void)action;
-            [self useBundleAppleIdentity];
-        }]];
-    }
     [sheet addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
         style:UIAlertActionStyleCancel handler:nil]];
     sheet.popoverPresentationController.sourceView = cell;
@@ -2093,43 +2135,114 @@ void VZRemovePaths(NSArray<NSString *> *paths)
 {
     if (self.running || !self.bundlePath)
         return;
+    VZAppleIdentityManagerViewController *identityManager = manager;
+    NSString *selectedPath = identityManager.selectedPath;
+    NSData *candidate = selectedPath
+        ? [NSData dataWithContentsOfFile:selectedPath] : nil;
+    NSData *active = [self identityManagerActiveData:manager];
+    id plist = candidate ? [NSPropertyListSerialization
+        propertyListWithData:candidate options:NSPropertyListImmutable
+        format:NULL error:NULL] : nil;
+    NSNumber *ecid = [plist isKindOfClass:NSDictionary.class]
+        ? (plist[@"ECID"] ?: plist[@"ecid"]) : nil;
+    if (!selectedPath.length ||
+        ![[self appleIdentityPoolPathsDescending] containsObject:selectedPath] ||
+        ![ecid isKindOfClass:NSNumber.class] ||
+        ![ecid unsignedLongLongValue] || [candidate isEqualToData:active]) {
+        VZPresentFailureReport(identityManager, VZL(@"Apple Services Identity"),
+            VZL(@"Preview a valid archived candidate that differs from the current identity before creating a clone."),
+            nil, VZFailureSupportOptionNone);
+        return;
+    }
+    uint64_t capacity = VZVMStorageCapacity(self.bundlePath, self.options);
+    uint64_t available = VZAvailableStorageSize();
+    if (available < GiB(1)) {
+        VZPresentFailureReport(identityManager, VZL(@"Apple Services Identity"),
+            VZL(@"Cloning requires at least 1 GiB of free space for metadata and future guest writes."),
+            nil, VZFailureSupportOptionNone);
+        return;
+    }
+    NSString *diskSize = [NSByteCountFormatter stringFromByteCount:
+        (long long)MIN(capacity, (uint64_t)LLONG_MAX)
+        countStyle:NSByteCountFormatterCountStyleFile];
+    NSString *freeSize = [NSByteCountFormatter stringFromByteCount:
+        (long long)MIN(available, (uint64_t)LLONG_MAX)
+        countStyle:NSByteCountFormatterCountStyleFile];
+    NSString *message = [NSString stringWithFormat:
+        VZL(@"Use candidate %@ in a separate clone and copy the source AuxiliaryStorage. Disk capacity: %@; free space: %@. Copy-on-write shares existing blocks and needs space as the clone changes. A full copy may require the entire disk capacity. Account data and ADI files are copied with the disk, so Apple service adapters will stay disabled until a new independent ADI identity is prepared. Sign-in and boot compatibility are not yet verified. The source VM is preserved."),
+        VZAppleIdentityLabelForData(candidate) ?: VZL(@"Unavailable"),
+        diskSize, freeSize];
+    UIAlertController *confirmation = [UIAlertController
+        alertControllerWithTitle:VZL(@"Create Identity Clone")
+                         message:message
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [confirmation addAction:[UIAlertAction actionWithTitle:VZL(@"Cancel")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [confirmation addAction:[UIAlertAction actionWithTitle:VZL(@"Create Copy-on-Write Clone")
+        style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        (void)action;
+        [self createAppleIdentityCloneFromManager:identityManager
+            candidate:candidate allowFullCopy:NO];
+    }]];
+    if (capacity <= available && available - capacity >= GiB(1)) {
+        [confirmation addAction:[UIAlertAction actionWithTitle:
+            [NSString stringWithFormat:VZL(@"Allow Full Copy (%@)"), diskSize]
+            style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            (void)action;
+            [self createAppleIdentityCloneFromManager:identityManager
+                candidate:candidate allowFullCopy:YES];
+        }]];
+    }
+    [identityManager presentViewController:confirmation animated:YES completion:nil];
+}
+
+- (void)createAppleIdentityCloneFromManager:(UIViewController *)manager
+                                 candidate:(NSData *)candidate
+                             allowFullCopy:(BOOL)allowFullCopy
+{
+    if (self.running || !self.bundlePath || !candidate.length)
+        return;
     NSString *source = [[self.bundlePath copy] autorelease];
     NSString *name = VZUniqueVMName(
         [NSString stringWithFormat:@"%@ Identity Clone", self.vmName]);
     NSString *destination = [VZVMLibraryPath()
         stringByAppendingPathComponent:
             [name stringByAppendingPathExtension:@"bundle"]];
+    NSString *staging = [VZVMLibraryPath() stringByAppendingPathComponent:
+        [NSString stringWithFormat:@".identity-clone-%@", NSUUID.UUID.UUIDString]];
     UIAlertController *progress = [UIAlertController
         alertControllerWithTitle:VZL(@"Creating Clone")
                          message:VZL(@"The VM disk is being cloned. Keep Virtual Mac open.")
                   preferredStyle:UIAlertControllerStyleAlert];
-    [self presentViewController:progress animated:YES completion:nil];
+    [manager presentViewController:progress animated:YES completion:nil];
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        @autoreleasepool {
         NSFileManager *files = NSFileManager.defaultManager;
         NSError *error = nil;
-        BOOL ok = [files createDirectoryAtPath:destination
+        NSString *sourceDisk = [source stringByAppendingPathComponent:@"Disk.img"];
+        struct stat before = {0}, after = {0};
+        BOOL ok = lstat(sourceDisk.fileSystemRepresentation, &before) == 0 &&
+            S_ISREG(before.st_mode);
+        if (!ok)
+            error = [NSError errorWithDomain:@"VirtualMac" code:33
+                userInfo:@{NSLocalizedDescriptionKey:
+                    VZL(@"The source disk must be a regular file and the VM must be shut down.")}];
+        if (ok)
+            ok = [files createDirectoryAtPath:staging
                    withIntermediateDirectories:NO attributes:nil error:&error];
-        NSData *cloneIdentity = nil;
-        if (ok) {
-            ok = [files copyItemAtPath:[source stringByAppendingPathComponent:@"Disk.img"]
-                                toPath:[destination stringByAppendingPathComponent:@"Disk.img"]
-                                 error:&error];
-        }
-        if (ok) {
-            ok = [files copyItemAtPath:[source stringByAppendingPathComponent:@"HardwareModel"]
-                                toPath:[destination stringByAppendingPathComponent:@"HardwareModel"]
-                                 error:&error];
-        }
-        if (ok) {
-            ok = VZCreateCloneAuxiliaryStorage(source,
-                [destination stringByAppendingPathComponent:@"AuxiliaryStorage"],
-                &error);
+        if (ok)
+            ok = VZCopyIdentityCloneDisk(sourceDisk,
+                [staging stringByAppendingPathComponent:@"Disk.img"],
+                allowFullCopy, &error);
+        for (NSString *asset in @[@"HardwareModel", @"AuxiliaryStorage"]) {
+            if (ok)
+                ok = [files copyItemAtPath:[source stringByAppendingPathComponent:asset]
+                    toPath:[staging stringByAppendingPathComponent:asset]
+                    error:&error];
         }
         if (ok)
-            ok = VZGenerateCloneAppleIdentityData(&cloneIdentity, &error);
-        if (ok)
-            ok = [cloneIdentity writeToFile:
-                [destination stringByAppendingPathComponent:@"MachineIdentifier"]
+            ok = [candidate writeToFile:
+                [staging stringByAppendingPathComponent:@"MachineIdentifier"]
                 options:NSDataWritingAtomic error:&error];
         if (ok) {
             NSMutableDictionary *options =
@@ -2138,88 +2251,66 @@ void VZRemovePaths(NSArray<NSString *> *paths)
             options[@"VMName"] = name;
             options[@"MACAddress"] = VZRandomMACAddress();
             options[VZAppleIdentityEnabledKey] = @NO;
-            ok = VZWriteVMOptions(options, destination, &error);
+            [options removeObjectForKey:VZAppleSerialNumberKey];
+            [options removeObjectForKey:VZAppleBoardSerialNumberKey];
+            [options removeObjectForKey:VZAppleROMKey];
+            // The disk contains the source user's account/ADI state. Host and
+            // guest profile application must block adapters on this clone until
+            // an independent identity has been explicitly prepared.
+            options[@"AppleServicesIdentityResetRequired"] = @YES;
+            options[@"AppleServicesProfile"] = @"disabled";
+            options[@"AppleServicesEnabled"] = @NO;
+            ok = VZWriteVMOptions(options, staging, &error);
         }
         if (ok) {
-            NSString *pool = [destination stringByAppendingPathComponent:@"Identities"];
+            NSString *pool = [staging stringByAppendingPathComponent:@"Identities"];
             ok = [files createDirectoryAtPath:pool
                   withIntermediateDirectories:YES attributes:nil error:&error];
             if (ok)
-                ok = [cloneIdentity writeToFile:
+                ok = [candidate writeToFile:
                     [pool stringByAppendingPathComponent:@"original.mid"]
                     options:NSDataWritingAtomic error:&error];
         }
-        [cloneIdentity release];
-        if (!ok)
-            [files removeItemAtPath:destination error:nil];
+        if (ok && (lstat(sourceDisk.fileSystemRepresentation, &after) != 0 ||
+            before.st_ino != after.st_ino || before.st_size != after.st_size ||
+            before.st_mtimespec.tv_sec != after.st_mtimespec.tv_sec ||
+            before.st_mtimespec.tv_nsec != after.st_mtimespec.tv_nsec)) {
+            ok = NO;
+            error = [NSError errorWithDomain:@"VirtualMac" code:34
+                userInfo:@{NSLocalizedDescriptionKey:
+                    VZL(@"The source disk changed while cloning. Shut down the source VM and retry. Partial work was retained for review.")}];
+        }
+        if (ok)
+            ok = [files moveItemAtPath:staging toPath:destination error:&error];
+        // Failed work remains in the hidden staging directory; the source and
+        // any completed bundle are never deleted or overwritten.
         dispatch_async(dispatch_get_main_queue(), ^{
             [progress dismissViewControllerAnimated:YES completion:^{
                 if (!ok) {
-                    VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
+                    VZPresentFailureReport(manager, VZL(@"Apple Services Identity"),
                         error.localizedDescription ?: VZL(@"Could Not Save"),
-                        error.debugDescription, VZFailureSupportOptionNone);
+                        [NSString stringWithFormat:@"%@\nRetained staging: %@",
+                            error.debugDescription ?: @"", staging],
+                        VZFailureSupportOptionNone);
                     return;
                 }
                 UIAlertController *done = [UIAlertController
                     alertControllerWithTitle:VZL(@"Clone Created")
-                                     message:name
+                                     message:[NSString stringWithFormat:
+                                         VZL(@"%@ was created with the previewed candidate. Apple service adapters are disabled pending a new independent ADI identity. Boot and sign-in still require verification. The source VM is your rollback."), name]
                               preferredStyle:UIAlertControllerStyleAlert];
                 [done addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
                     style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
                     (void)action;
-                    [self dismissViewControllerAnimated:YES completion:^{
-                        [self done:nil];
+                    [manager dismissViewControllerAnimated:YES completion:^{
+                        [self.tableView reloadData];
                     }];
                 }]];
-                [self presentViewController:done animated:YES completion:nil];
+                [manager presentViewController:done animated:YES completion:nil];
             }];
         });
-    });
-}
-
-- (void)identityManagerDidRequestOriginal:(id)manager
-{
-    (void)manager;
-    [self useBundleAppleIdentity];
-}
-
-// Restore the identity captured when the bundle was first re-generated.
-- (void)useBundleAppleIdentity
-{
-    if (self.running || !self.bundlePath)
-        return;
-    NSString *original = [self appleIdentityOriginalPath];
-    NSError *error = nil;
-    if ([NSFileManager.defaultManager fileExistsAtPath:original]) {
-        NSString *identityPath = [self.bundlePath
-            stringByAppendingPathComponent:@"MachineIdentifier"];
-        NSData *originalData = [NSData dataWithContentsOfFile:original];
-        if (!originalData.length ||
-            ![originalData writeToFile:identityPath options:NSDataWritingAtomic
-                                error:&error]) {
-            VZPresentFailureReport(self, VZL(@"Apple Services Identity"),
-                error.localizedDescription, error.debugDescription,
-                VZFailureSupportOptionNone);
-            return;
         }
-    }
-    [self.options removeObjectForKey:VZAppleSerialNumberKey];
-    [self.options removeObjectForKey:VZAppleBoardSerialNumberKey];
-    [self.options removeObjectForKey:VZAppleROMKey];
-    self.options[VZAppleIdentityEnabledKey] = @NO;
-    [self.tableView reloadData];
-    [self presentAppleIdentityApplied:nil];
-}
-
-- (void)presentAppleIdentityApplied:(NSString *)label
-{
-    UIAlertController *alert = [UIAlertController
-        alertControllerWithTitle:VZL(@"Apple Services Identity")
-                         message:label.length ? label : VZL(@"Configured")
-                  preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:VZL(@"OK")
-        style:UIAlertActionStyleDefault handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
+    });
 }
 
 - (void)done:(id)sender

@@ -1,4 +1,5 @@
 #import "VZGuestTools.h"
+#import "../guest/SEPBridgeNetwork.h"
 
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -484,17 +485,26 @@ static void VZGuestToolsProvisionDesktop(NSUInteger attempt);
 
 static NSData *VZGuestToolsConfigurationData(NSString *build)
 {
-    NSDictionary *configuration = @{
+    NSMutableDictionary *configuration = [@{
         @"Build": build ?: @"",
         @"ReadyToken": gGuestReadyToken ?: @"",
         @"OpenGLAllowed": @(gGuestOpenGLAccelerationEnabled),
         @"OpenGLAcceleration": @(gGuestOpenGLAccelerationEnabled),
         @"ApplePencilPressureTiltEnabled": @(gGuestPencilSupportEnabled),
-    };
+    } mutableCopy];
+    NSDictionary *options = [NSDictionary dictionaryWithContentsOfFile:
+        [gGuestBundlePath stringByAppendingPathComponent:@"VirtualMac.plist"]];
+    for (NSString *key in @[@"AppleServicesEnabled", @"AppleServicesProfile",
+                            @"AppleServicesIdentityResetRequired"])
+        if (options[key]) configuration[key] = options[key];
+    const char *relayToken = getenv("VZ_SEP_REMOTE_TOKEN");
+    configuration[@"AppleServicesRelayToken"] = relayToken ? @(relayToken) : @"";
+    configuration[@"AppleServicesRelayHosts"] = VMSEPHostAddresses();
     NSError *error = nil;
     NSData *data = [NSPropertyListSerialization
         dataWithPropertyList:configuration
         format:NSPropertyListXMLFormat_v1_0 options:0 error:&error];
+    [configuration release];
     if (!data)
         VZGuestToolsLog(@"could not encode guest policy: %@", error);
     return data;
@@ -617,10 +627,15 @@ static void VZGuestToolsUninstall(void)
          "/usr/bin/sudo -u \"$user\" -H /usr/bin/defaults delete "
              "com.apple.loginwindow LoginwindowLaunchesRelaunchApps "
              "2>/dev/null || true; "
-         "/bin/rm -rf /Library/VirtualMac "
-             "/Library/LaunchAgents/com.mac.virtual.guest-tools.plist "
+         "/bin/launchctl bootout system/com.vm.sepbridge.autoapply 2>/dev/null || true; "
+         "for key in VM_SEP_BRIDGE VM_SEP_FAKE_NONVM VM_INDEPENDENT_IDENTITY VM_INDEPENDENT_IDENTITY_PORT VM_INDEPENDENT_IDENTITY_TOKEN; do "
+         "/bin/launchctl asuser \"$uid\" /bin/launchctl unsetenv \"$key\"; done; "
+         "backup=$(/usr/bin/mktemp -d /Library/VirtualMac-uninstalled.XXXXXXXX); "
+         "for path in /Library/VirtualMac /Library/LaunchAgents/com.mac.virtual.guest-tools.plist "
              "/Library/LaunchAgents/com.mac.virtual.opengl-compat.plist "
-             "/Library/LaunchDaemons/com.mac.virtual.opengl-compat.plist";
+             "/Library/LaunchDaemons/com.mac.virtual.opengl-compat.plist "
+             "/Library/LaunchDaemons/com.vm.sepbridge.autoapply.plist; do "
+         "test ! -e \"$path\" || /bin/mv \"$path\" \"$backup/\"; done";
     VZGuestToolsRun(@"/bin/sh", @[@"-c", script],
         ^(BOOL success, NSData *output) {
             (void)output;
@@ -687,8 +702,21 @@ static void VZGuestToolsInstallPayload(uint64_t generation,
             completion(NO);
             return;
         }
+        NSString *update =
+            @"set -e; /bin/mkdir -p /Library/VirtualMac; "
+             "/usr/sbin/chown root:wheel "
+                 "/tmp/VirtualMacGuestToolsConfiguration.plist; "
+             "/bin/chmod 644 "
+                 "/tmp/VirtualMacGuestToolsConfiguration.plist; "
+             "/bin/mv -f /tmp/VirtualMacGuestToolsConfiguration.plist "
+                 "/Library/VirtualMac/HostConfiguration.plist";
         NSString *check = [NSString stringWithFormat:
-            @"test \"$(cat /Library/VirtualMac/.build 2>/dev/null)\" = '%@'",
+            @"test \"$(cat /Library/VirtualMac/.build 2>/dev/null)\" = '%@' && "
+             "test -f /Library/VirtualMac/install-guest-payload.sh && "
+             "test -f /Library/VirtualMac/apply-sep-bridge.sh && "
+             "/usr/bin/codesign --verify --strict '/Library/VirtualMac/Virtual Mac Guest Tools.app' && "
+             "for code in OpenGLPVGCompat.dylib AppleAccountSignInCompat.dylib SEPBridgeCompat.dylib independent-identity-provider; do "
+             "/usr/bin/codesign --verify --strict \"/Library/VirtualMac/$code\" || exit 1; done",
             build];
         VZGuestToolsRun(@"/bin/sh", @[@"-c", check],
             ^(BOOL current, NSData *output) {
@@ -696,14 +724,6 @@ static void VZGuestToolsInstallPayload(uint64_t generation,
             if (generation != __atomic_load_n(&gGuestProvisioningGeneration,
                                               __ATOMIC_ACQUIRE)) return;
             if (current) {
-                NSString *update =
-                    @"set -e; /bin/mkdir -p /Library/VirtualMac; "
-                     "/usr/sbin/chown root:wheel "
-                         "/tmp/VirtualMacGuestToolsConfiguration.plist; "
-                     "/bin/chmod 644 "
-                         "/tmp/VirtualMacGuestToolsConfiguration.plist; "
-                     "/bin/mv -f /tmp/VirtualMacGuestToolsConfiguration.plist "
-                         "/Library/VirtualMac/HostConfiguration.plist";
                 VZGuestToolsRun(@"/bin/sh", @[@"-c", update],
                     ^(BOOL updated, NSData *updateOutput) {
                     (void)updateOutput;
@@ -746,29 +766,10 @@ static void VZGuestToolsInstallPayload(uint64_t generation,
                      "then /usr/bin/defaults delete "
                         "/Library/Preferences/com.apple.loginwindow LoginHook "
                         "2>/dev/null || true; fi; "
-                     "/bin/rm -rf /tmp/VirtualMacGuestToolsPayload; "
-                     "/bin/mkdir -p /tmp/VirtualMacGuestToolsPayload; "
-                     "/usr/bin/tar --no-same-owner -xmzf "
-                        "/tmp/VirtualMacGuestTools.tar.gz "
-                        "-C /tmp/VirtualMacGuestToolsPayload; "
-                     "/bin/mkdir -p /Library/VirtualMac /Library/LaunchAgents; "
-                     "/bin/rm -rf '/Library/VirtualMac/Virtual Mac Guest Tools.app'; "
-                     "/bin/cp -R '/tmp/VirtualMacGuestToolsPayload/Library/VirtualMac/Virtual Mac Guest Tools.app' "
-                        "/Library/VirtualMac/; "
-                     "/bin/cp -f /tmp/VirtualMacGuestToolsPayload/Library/VirtualMac/OpenGLPVGCompat.dylib "
-                        "/Library/VirtualMac/OpenGLPVGCompat.dylib; "
-                     "if test -f /tmp/VirtualMacGuestToolsPayload/Library/VirtualMac/AppleAccountSignInCompat.dylib; "
-                        "then /bin/cp -f /tmp/VirtualMacGuestToolsPayload/Library/VirtualMac/AppleAccountSignInCompat.dylib "
-                        "/Library/VirtualMac/AppleAccountSignInCompat.dylib; "
-                        "/bin/chmod 755 /Library/VirtualMac/AppleAccountSignInCompat.dylib; "
-                        "/usr/bin/codesign --verify --strict "
-                        "/Library/VirtualMac/AppleAccountSignInCompat.dylib; fi; "
-                     "if test -f /tmp/VirtualMacGuestToolsPayload/Library/VirtualMac/SEPBridgeCompat.dylib; "
-                        "then /bin/cp -f /tmp/VirtualMacGuestToolsPayload/Library/VirtualMac/SEPBridgeCompat.dylib "
-                        "/Library/VirtualMac/SEPBridgeCompat.dylib; "
-                        "/bin/chmod 755 /Library/VirtualMac/SEPBridgeCompat.dylib; "
-                        "/usr/bin/codesign --verify --strict "
-                        "/Library/VirtualMac/SEPBridgeCompat.dylib; fi; "
+                     "stage=$(/usr/bin/mktemp -d /tmp/VirtualMacGuestToolsPayload.XXXXXXXX); "
+                     "/usr/bin/tar --no-same-owner -xmzf /tmp/VirtualMacGuestTools.tar.gz -C \"$stage\"; "
+                     "/bin/sh \"$stage/Library/VirtualMac/install-guest-payload.sh\" \"$stage/Library/VirtualMac\"; "
+                     "/bin/mkdir -p /Library/LaunchAgents; "
                      "/usr/sbin/chown root:wheel "
                         "/tmp/VirtualMacGuestToolsConfiguration.plist; "
                      "/bin/chmod 644 "
@@ -783,7 +784,7 @@ static void VZGuestToolsInstallPayload(uint64_t generation,
                         "'/Library/VirtualMac/Virtual Mac Guest Tools.app'; "
                      "/usr/bin/codesign --verify --strict "
                         "/Library/VirtualMac/OpenGLPVGCompat.dylib; "
-                     "/bin/cp -f /tmp/VirtualMacGuestToolsPayload/Library/LaunchAgents/com.mac.virtual.guest-tools.plist "
+                     "/bin/cp -f \"$stage/Library/LaunchAgents/com.mac.virtual.guest-tools.plist\" "
                         "/Library/LaunchAgents/com.mac.virtual.guest-tools.plist.new; "
                      "/usr/sbin/chown root:wheel "
                         "/Library/LaunchAgents/com.mac.virtual.guest-tools.plist.new; "
@@ -793,8 +794,7 @@ static void VZGuestToolsInstallPayload(uint64_t generation,
                         "/Library/LaunchAgents/com.mac.virtual.guest-tools.plist.new "
                         "/Library/LaunchAgents/com.mac.virtual.guest-tools.plist; "
                      "printf '%%s' '%@' > /Library/VirtualMac/.build; "
-                     "/bin/rm -rf /tmp/VirtualMacGuestToolsPayload "
-                        "/tmp/VirtualMacGuestTools.tar.gz; "
+                     "# Keep staging and backups for explicit rollback.\n "
                      "echo VIRTUAL_MAC_PAYLOAD_INSTALLED", build];
                 VZGuestToolsRun(@"/bin/sh", @[@"-c", finish],
                     ^(BOOL installed, NSData *finishOutput) {
@@ -806,7 +806,28 @@ static void VZGuestToolsInstallPayload(uint64_t generation,
                     if (!installed) {
                         VZGuestToolsLog(@"payload setup failed: %@",
                                         text ?: @"unknown error");
-                        completion(NO);
+                        // The setup script boots the agent out before
+                        // replacing it. If it stops partway, install the new
+                        // configuration and restart whatever agent is still on
+                        // disk, so it can acknowledge this session's token and
+                        // end the retry loop. A missing agent just fails to
+                        // bootstrap.
+                        VZGuestToolsRun(@"/bin/sh", @[@"-c", update],
+                            ^(BOOL restored, NSData *restoreOutput) {
+                            (void)restored;
+                            (void)restoreOutput;
+                            if (generation != __atomic_load_n(
+                                    &gGuestProvisioningGeneration,
+                                    __ATOMIC_ACQUIRE)) {
+                                completion(NO);
+                                return;
+                            }
+                            VZGuestToolsActivate(NO, generation,
+                                ^(BOOL activated) {
+                                    (void)activated;
+                                    completion(NO);
+                                });
+                        });
                         return;
                     }
                     VZGuestToolsLog(@"installed guest payload build %@", build);

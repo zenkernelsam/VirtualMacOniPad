@@ -1009,3 +1009,15 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 压缩复活后按 `docs/VM-APPLE-ID-REVIVAL-HANDOFF.md` §1 复验全部通过：序列号 `R9D3WPY7T5` / UUID `1E03B2C5-…` / model `VirtualMac2,1`；akd pid 9352 带 `fake-nonvm` 事件、`install-pass swizzled:20`；gui/501 env 三库 + `VM_SEP_BRIDGE=1` + `VM_SEP_FAKE_NONVM=1`（残留 `VM_SEP_STAGE_EMAIL` 无害，staging 需 `VM_SEP_STAGE_PASSWORD=1` 才生效）；en0 MTU 1400；MobileMeAccounts 仍为 `hejiajie9527@gmail.com`；amsengagementd pid 9129 已装载只读探针（启动时 `ams-probe accts=1 type=1`，此后无登录尝试故无新事件）。
 - **下一步（§6.2 第 1 步的取证入口已改道）**：`Security level check failed to find IDMS account` 在磁盘上的 Framework 二进制里 grep 不到（macOS 15 走 dyld shared cache），应改用 `ipsw dyld str -h`/`ipsw dyld str "Security level"` 在 `/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_arm64e` 定位所属 image，再 `ipsw dyld extract` 该 dylib 反汇编校验条件；或直接用 Music/App Store 触发一次登录读 `ams-accts`/`ams-type`。
 - 用户关机睡觉，VM 已停；下次从本节 + handoff §6.2 继续。
+
+
+### 2026-11-11 至 11-12 账户 / 网络 / 上游整合
+
+- 主入口 `docs/ACCOUNT-NETWORK-INTEGRATION-20261111.md`；先读用户指定 SEP handover，再审群友 20261111.2。群友210项SHA全匹配，成果为独立ADI消除重复MID，不提供三种系统媒体登录证明。
+- 合并netsflex fd659dd 的10提交；身份/Aux片段逐字保留，修复其fd复用 / 后台fsync持有问题，保留关闭开关。新独立原生provider免Python/旧未公开设备路由，身份准备110s、认证离线读取、UUID+uid绑定、坏状态failclosed，旧身份保留。fresh-inode安装、重复rollback及克隆预览/成本/ADI隔离、37语言362keys已补。
+- 源码层热点回归15/15；identity client8/8、provider9个测试组、安装4/4、network8/8、实际GuestTools方法policy1/1；strict warnings/ASan/UBSan。host安全传输与真实子进程超时也离线通过。不是现场账号/长期GPU性能验收。
+- 用户确认尚未安装群友包，当前自己维护的版本。最初19264 SSH超时；用户拔SIM改Wi-Fi后19268.66可达，公钥与原iPad一致。凭据只在会话与临时进程环境，不写文件；SSH需要ASKPASS因为本CLI沙箱不能开/dev/tty，不能据此误判密码错误。
+- 00:31只读iPad确认包224.317567bbc7、watcher已加载runs868/exit0、原生akd658/uid501/正确路径、旧com.vm.sepbridge helper420。guest224-6b9c1467accb8a6a；NetworkMode=NAT，但当前bridge100实际包含en0(MACNAT)+vmenet0，guest19268.59/22、iPad19268.66/22；无SIM/热点，无stockplist，不能复用旧64子网假设。
+- 因上述现场补动态私有地址relay与guest同子网选择；真实iPad只读小探针打印relay_addresses=[19268.66]、trusted_dopamine_injector=1。仅上传并执行两个独立文件/接口查询小探针，未注入任何进程、未重启服务、未改VM盘或安装新包。
+- 账户只读聚合推翻“iTunesStore从未建行”：目前两条媒体本地placeholder均isLocalAccount=true/active0；IDMS active/auth1。AMS静态nil关联检查不是VM硬限制证明。媒体实际正常UI登录仍待新包验证；详细反汇编证据由新AMS审计文档记录。
+- 新VM构建已exit0，29entitlement项通过；91个iOS Mach-O平台/min14.5检查通过；缺DSC时完整ABI审计明确跳过。新副本缓存仅用于未变Apple原始输入/14HV/3shader资源，App/Guest/VMM兼容源码重编；receipt/log在.diag/20261111-account-build。构建与最终包收据后续追加，未提前宣布已登录/已根治热点。

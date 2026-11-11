@@ -1,5 +1,7 @@
 # SEP Bridge 超级交接：macOS VM Apple Account 登录修复
 
+> **2026-11-11 整合工作入口**：先读 [账户、身份与热点整合记录](ACCOUNT-NETWORK-INTEGRATION-20261111.md)。新独立 ADI / 自动恢复 / 宿主鉴权桥已经进入源码，真实首启和媒体登录仍待验；下文保留 10 月原始取证，不再直接运行旧全局 PF / staged-password 配方。
+>
 > 交接对象：任何 coding agent（不依赖 Devin 会话记忆）。项目根：`/Users/ciscohe/Desktop/VirtualMacOniPad`。
 > 先读本文件 + 根 `AGENTS.md` + `docs/WORKLOG.md`（末尾的 2026-10-22 SEP桥 系列条目 = 逐小时取证流水）。
 > 最后更新：2026-10-23，对应 commit `a827f32`。

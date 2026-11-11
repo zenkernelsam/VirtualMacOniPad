@@ -28,6 +28,8 @@ extern CFTimeInterval VZUSBTrackpadRelayLastMouseTime(void);
 extern void VZUSBTrackpadRelayNote(NSString *message);
 extern void VZUSBTrackpadRelaySetMouseHandler(void (*moved)(double dx, double dy),
                                               void (*buttons)(long buttons));
+#import "VZTouchScreenRelay.h"
+#include <CommonCrypto/CommonDigest.h>
 #include <dlfcn.h>
 #include <objc/runtime.h>
 #include <objc/message.h>
@@ -176,7 +178,6 @@ static CGPoint gMouseLocation;
 // a direct touchscreen tap moves the guest cursor. Track raw host motion
 // separately and apply its deltas to the guest coordinate so the next click
 // remains at the touchscreen-selected location.
-static CGPoint gHostPointerLocation;
 static BOOL gHostPointerLocationValid;
 static BOOL gUIKitHoverActive;
 static CGSize gLastInputBoundsSize;
@@ -212,6 +213,7 @@ static void setStatus(NSString *status);
 static void flushPendingScroll(void);
 static void resetScrollCoalescing(void);
 static void resetScrollDiagnostics(void);
+static void VZSetPVGEnvironment(void);
 // External display (Keynote-style: UIWindow.screen = externalScreen)
 static UIWindow *gExternalWindow;
 static UIView *gExternalMirrorView;
@@ -481,6 +483,41 @@ static BOOL gGuestCursorKnown;
 static BOOL gPointerLocked;
 static CFTimeInterval gLastMouseDrive;
 
+// With Native Touch, VZTouchScreenRelay sends the fingers on the screen to the
+// guest; a trackpad, a mouse and the Pencil keep using this input path.
+static BOOL touchScreenOwnsDirectTouches(NSSet<UITouch *> *touches) {
+    return VZTouchScreenRelayActive() && touches.anyObject.type == UITouchTypeDirect;
+}
+
+static CGRect touchScreenViewport(UIView **view) {
+    *view = gInputView;
+    if (!gInputView)
+        return CGRectZero;
+    // gInputView covers the visible guest viewport, except while mirroring.
+    return gExternalWindow ? displayViewportRect(gDisplayPixelSize, gInputView.bounds)
+                           : gInputView.bounds;
+}
+
+static BOOL usesNativeTouch(NSDictionary *options) {
+    // Recovery has no use for a touch screen, and needs the pointer.
+    return [options[@"TouchScreenBehavior"] isEqualToString:@"NativeTouch"] &&
+        ![options[@"BootRecovery"] boolValue];
+}
+
+// The UUID the guest's display and touch screen share: stable for a virtual
+// machine and different from any other's.
+static NSString *touchScreenDisplayUUID(NSData *machineIdentifier) {
+    static const char salt[] = "VirtualMac touch screen display";
+    NSMutableData *input = [NSMutableData dataWithData:machineIdentifier];
+    [input appendBytes:salt length:sizeof salt - 1];
+    uint8_t digest[CC_SHA256_DIGEST_LENGTH];
+    CC_SHA256(input.bytes, (CC_LONG)input.length, digest);
+    digest[6] = (digest[6] & 0x0f) | 0x50;
+    digest[8] = (digest[8] & 0x3f) | 0x80;
+    NSUUID *uuid = [[[NSUUID alloc] initWithUUIDBytes:digest] autorelease];
+    return uuid.UUIDString;
+}
+
 static void notePointerInputSource(BOOL directTouch) {
     gLastInputWasDirectTouch = directTouch;
     if (directTouch)
@@ -517,6 +554,16 @@ static BOOL shouldShowStatusLabel(void) {
     if ([processInfo.arguments containsObject:@"--show-status-label"])
         return YES;
     return [VZAppSettings.sharedSettings boolForKey:VZShowStatusLabelKey];
+}
+
+static void applyTouchScreenGestureRouting(void) {
+    if (!VZTouchScreenRelayActive())
+        return;
+    gTouchScrollRecognizer.enabled = NO;
+    NSArray *allowed = @[@(UITouchTypeIndirectPointer)];
+    gPinchRecognizer.allowedTouchTypes = allowed;
+    gRotationRecognizer.allowedTouchTypes = allowed;
+    gSmartMagnifyRecognizer.allowedTouchTypes = allowed;
 }
 
 static void resetPointerSession(BOOL releaseButtons) {
@@ -3028,6 +3075,8 @@ static bool pencilVsockSend(uint8_t type, float pressure,
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
+    if (touchScreenOwnsDirectTouches(touches))
+        return;
     UITouch *touch = [touches anyObject];
     // With the Magic Trackpad, trackpad clicks reach the guest as Magic
     // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
@@ -3120,6 +3169,8 @@ static bool pencilVsockSend(uint8_t type, float pressure,
 - (void)touchesMoved:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
+    if (touchScreenOwnsDirectTouches(touches))
+        return;
     UITouch *touch = [touches anyObject];
     // With the Magic Trackpad, trackpad clicks reach the guest as Magic
     // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
@@ -3180,6 +3231,8 @@ static bool pencilVsockSend(uint8_t type, float pressure,
 - (void)touchesEnded:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
+    if (touchScreenOwnsDirectTouches(touches))
+        return;
     // type=2 (proximity_leave): Pencil lifted off screen.
     // Pressure is 0 because the pen is no longer touching.
     // altitude=π/2 (perpendicular): the pen has no meaningful tilt
@@ -3234,6 +3287,8 @@ static bool pencilVsockSend(uint8_t type, float pressure,
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
                withEvent:(UIEvent *)event
 {
+    if (touchScreenOwnsDirectTouches(touches))
+        return;
     UITouch *touch = [touches anyObject];
     // With the Magic Trackpad, trackpad clicks reach the guest as Magic
     // Trackpad frames and mouse buttons come from HID (relayMouseButtons).
@@ -3475,6 +3530,7 @@ static bool pencilVsockSend(uint8_t type, float pressure,
         gPinchRecognizer.allowedTouchTypes = allowed;
         gRotationRecognizer.allowedTouchTypes = allowed;
         gSmartMagnifyRecognizer.allowedTouchTypes = allowed;
+        applyTouchScreenGestureRouting();
     }
 }
 
@@ -4096,6 +4152,10 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
         NULL,
     };
     [@"" writeToFile:logPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    // The installer's VMM inherits this environment and loads the same PVG
+    // compatibility layer as a normal boot. Set it here too, because no VM
+    // may have been started since the app launched.
+    VZSetPVGEnvironment();
     VZWriteInstallationAttempt(attemptPath, @"installing", @{
         @"Name": name, @"RestoreImage": url.path, @"Destination": bundlePath,
         @"StartedAt": NSDate.date,
@@ -4433,6 +4493,7 @@ static void VZWriteInstallationAttempt(NSString *attemptPath, NSString *state,
     gGlobeDown = NO;
     gPointingDevice = nil;
     VZUSBTrackpadRelayStop();
+    VZTouchScreenRelayStop();
     gGuestCursorKnown = NO;
     gLastMouseDrive = 0;
     resetScrollCoalescing();
@@ -4806,6 +4867,30 @@ static BOOL VZUsesModernPVG(void) {
         integerValue] >= 27;
 }
 
+// Functional PVG settings shared by a normal boot and a restore. Without them
+// the VMM's PVG compatibility layer is not installed and the VM cannot start.
+static void VZSetPVGEnvironment(void) {
+    setenv("VZ_PVG_BACKEND_VERSION", VZUsesModernPVG() ? "27" : "13", 1);
+    setenv("PVG_TRACE", "1", 1);
+    // Ordinary clients start with a compact reservation and grow lazily below.
+    // Keep the first three long-lived system clients contiguous, however.
+    // WindowServer's Launchpad task crosses 256 MiB in one burst and older
+    // guests can stop submitting frames after that task is split across host
+    // reservations even though every individual map succeeds. Two GiB matches
+    // the proven 1.1.2 policy and still uses only a small fraction of iPadOS's
+    // roughly 63 GiB extended address space.
+    setenv("PVG_TASK_RESERVATION_MB", "256", 1);
+    // Once an ordinary client crosses its primary reservation, the PVG host
+    // adds a separate 2 GiB sparse reservation and translates PGTask's address
+    // helpers. Final Cut exceeded the old fixed 512 MiB reservation, while a
+    // launch-all stress test showed that only two of 74 ordinary clients did.
+    setenv("PVG_TASK_OVERFLOW_MB", "2048", 1);
+    setenv("PVG_LARGE_TASK_RESERVATION_MB", "2048", 1);
+    setenv("PVG_LARGE_TASK_COUNT", "3", 1);
+    setenv("PVG_MIN_TASK_RESERVATION_MB", "64", 1);
+    setenv("PVG_METALLIB_FALLBACK", "1", 1);
+}
+
 static BOOL loadExtractedFrameworks(void) {
     NSString *hookPath =
         [NSBundle.mainBundle pathForResource:@"VZHostCompat"
@@ -5110,44 +5195,79 @@ static void configureDirectorySharing(id configuration,
            directories.allKeys.description.UTF8String);
 }
 
-// VZDiskImageStorageDeviceAttachment's extended initializer is present in
-// the extracted Ventura payload and exposes Apple's native cache/sync policy.
-// Cached + Fsync keeps the host page cache while retaining an fsync durability
-// boundary. If a future payload rejects the combination, fall back to the
-// original initializer instead of preventing the VM from starting.
-static id makeDiskImageAttachment(NSString *bundlePath, NSError **error)
-{
-    NSString *path = [bundlePath stringByAppendingPathComponent:@"Disk.img"];
+// Map a developer Disk.img policy name to its VZ enum value, or -1.
+static NSInteger debugDiskModeValue(NSString *name, NSArray<NSString *> *names,
+                                    NSInteger firstValue) {
+    NSUInteger index = name ? [names indexOfObject:name.lowercaseString]
+                            : NSNotFound;
+    return index == NSNotFound ? -1 : firstValue + (NSInteger)index;
+}
+
+// Disk.img defaults to Cached caching with Fsync synchronization. In the
+// bundled VMM, every caching mode except Cached opens Disk.img with F_NOCACHE;
+// a guest flush becomes F_FULLFSYNC under Full and plain fsync under Fsync,
+// while guest barriers stay F_BARRIERFSYNC under both. Settings.plist can
+// override each axis separately for disk I/O comparisons. The three-argument
+// initializer (Automatic and Full) remains the fallback.
+static id makeDiskImageAttachment(NSString *bundlePath, NSError **error) {
+    NSURL *url = fileURL([bundlePath stringByAppendingPathComponent:@"Disk.img"]);
     id attachmentClass = CLS("VZDiskImageStorageDeviceAttachment");
-    SEL extendedSelector =
-        S("initWithURL:readOnly:cachingMode:synchronizationMode:error:");
-    id attachment = nil;
-    NSError *extendedError = nil;
-    if ([attachmentClass instancesRespondToSelector:extendedSelector]) {
-        id object = [attachmentClass alloc];
-        attachment = ((id(*)(id, SEL, id, BOOL, NSInteger, NSInteger,
-                              NSError **))objc_msgSend)(
-            object, extendedSelector, fileURL(path), NO,
-            2 /* VZDiskImageCachingModeCached */,
-            2 /* VZDiskImageSynchronizationModeFsync */,
-            &extendedError);
-        if (attachment) {
-            printf("[VirtualMac] disk attachment cache=cached(2) "
-                   "synchronization=fsync(2)\n");
-            return attachment;
+    VZAppSettings *settings = VZAppSettings.sharedSettings;
+    NSString *cachingName = [settings stringForKey:VZDebugDiskCachingModeKey];
+    NSString *synchronizationName =
+        [settings stringForKey:VZDebugDiskSynchronizationModeKey];
+    NSArray *cachingNames = @[@"automatic", @"uncached", @"cached"];
+    NSArray *synchronizationNames = @[@"full", @"fsync", @"none"];
+    NSInteger caching = 2 /* VZDiskImageCachingModeCached */;
+    NSInteger synchronization = 2 /* VZDiskImageSynchronizationModeFsync */;
+    if (cachingName.length || synchronizationName.length) {
+        NSInteger overrideCaching = cachingName.length
+            ? debugDiskModeValue(cachingName, cachingNames, 0) : caching;
+        NSInteger overrideSynchronization = synchronizationName.length
+            ? debugDiskModeValue(synchronizationName, synchronizationNames, 1)
+            : synchronization;
+        if (overrideCaching < 0 || overrideSynchronization < 0) {
+            printf("[VirtualMac] ignoring disk policy override "
+                   "caching=%s synchronization=%s\n",
+                   cachingName.UTF8String ?: "(unset)",
+                   synchronizationName.UTF8String ?: "(unset)");
+        } else {
+            caching = overrideCaching;
+            synchronization = overrideSynchronization;
         }
-        [object release];
-        printf("[VirtualMac] cached+fsync disk attachment failed: %s; "
-               "falling back to automatic disk attachment\n",
-               extendedError.localizedDescription.UTF8String ?: "unknown error");
-    } else {
-        printf("[VirtualMac] extended disk attachment selector unavailable; "
-               "falling back to automatic disk attachment\n");
     }
 
+    SEL extended =
+        S("initWithURL:readOnly:cachingMode:synchronizationMode:error:");
+    if ([attachmentClass instancesRespondToSelector:extended]) {
+        NSError *extendedError = nil;
+        id attachment = ((id(*)(id, SEL, id, BOOL, NSInteger, NSInteger,
+                                NSError **))objc_msgSend)(
+            [attachmentClass alloc], extended, url, NO, caching,
+            synchronization, &extendedError);
+        if (attachment) {
+            printf("[VirtualMac] disk policy caching=%s(%ld) "
+                   "synchronization=%s(%ld)%s\n",
+                   [cachingNames[caching] UTF8String], (long)caching,
+                   [synchronizationNames[synchronization - 1] UTF8String],
+                   (long)synchronization,
+                   cachingName.length || synchronizationName.length
+                       ? " (debug override)" : "");
+            return attachment;
+        }
+        printf("[VirtualMac] disk policy caching=%ld synchronization=%ld "
+               "failed: %s; using the three-argument attachment\n",
+               (long)caching, (long)synchronization,
+               extendedError.localizedDescription.UTF8String ?: "unknown");
+    } else {
+        printf("[VirtualMac] extended disk attachment unavailable; using the "
+               "three-argument attachment\n");
+    }
+    printf("[VirtualMac] disk policy caching=automatic(0) "
+           "synchronization=full(1)\n");
     return ((id(*)(id, SEL, id, BOOL, NSError **))objc_msgSend)(
-        [attachmentClass alloc], S("initWithURL:readOnly:error:"),
-        fileURL(path), NO, error);
+        [attachmentClass alloc], S("initWithURL:readOnly:error:"), url, NO,
+        error);
 }
 
 // The extracted Virtualization frameworks are only dlopen'd in the boot path
@@ -5420,7 +5540,8 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
     BOOL guestToolsEnabled =
         [options[VZVirtualMacGuestToolsEnabledKey] boolValue];
     BOOL runtimePolicyEnabled = guestToolsEnabled &&
-        [options[VZOpenGLAccelerationEnabledKey] boolValue];
+        ([options[VZOpenGLAccelerationEnabledKey] boolValue] ||
+         [options[@"AppleServicesEnabled"] boolValue]);
     BOOL guestToolsRemovalPending =
         [options[VZGuestToolsRemovalPendingKey] boolValue];
 #if EXPERIMENT_GDB_DEBUG
@@ -5616,17 +5737,36 @@ static id makeConfiguration(NSString *bundlePath, NSDictionary *options,
            useUSBMouse ? "USB Mouse" : useMagicTrackpad
                ? "Mac Trackpad + Magic Trackpad" : "Mac Trackpad",
            pointing ? object_getClassName(pointing) : "(unavailable)");
+    // Multi-touch devices: the Magic Trackpad is the first, so that its relay finds
+    // it, and the touch screen the last.
+    NSMutableArray *multiTouchDevices = [NSMutableArray array];
+    BOOL canAddMultiTouch =
+        [configuration respondsToSelector:S("_setMultiTouchDevices:")];
     // The VMM hook presents the framework's USB touch screen as a USB Magic
     // Trackpad 2 (usb_trackpad_proto.inc).
-    if (useMagicTrackpad &&
-        [configuration respondsToSelector:S("_setMultiTouchDevices:")]) {
+    if (useMagicTrackpad && canAddMultiTouch) {
         id touchScreen = NEW("_VZUSBTouchScreenConfiguration");
         if (touchScreen)
-            setObj(configuration, "_setMultiTouchDevices:", @[touchScreen]);
+            [multiTouchDevices addObject:touchScreen];
         printf("[VirtualMac] configured Magic Trackpad touch device=%s\n",
                touchScreen ? object_getClassName(touchScreen) : "(unavailable)");
         [touchScreen release];
     }
+    // The VMM inherits this variable; see touch_screen_display.inc.
+    unsetenv("VZ_TOUCH_DISPLAY_UUID");
+    if (usesNativeTouch(options) && canAddMultiTouch) {
+        id touchScreen = NEW("_VZAppleTouchScreenConfiguration");
+        if (touchScreen) {
+            [multiTouchDevices addObject:touchScreen];
+            setenv("VZ_TOUCH_DISPLAY_UUID",
+                   touchScreenDisplayUUID(machineIdentifierData).UTF8String, 1);
+        }
+        printf("[VirtualMac] configured native touch device=%s\n",
+               touchScreen ? object_getClassName(touchScreen) : "(unavailable)");
+        [touchScreen release];
+    }
+    if (multiTouchDevices.count)
+        setObj(configuration, "_setMultiTouchDevices:", multiTouchDevices);
     configureAudio(configuration, options);
     configureVideoToolbox(configuration, options);
     configureNetwork(configuration, options);
@@ -5803,6 +5943,40 @@ static void invokeVirtualMachineStartOnMain(void *opaque) {
     free(context);
 }
 
+static void prepareHostAppleServicesBridge(NSDictionary *options) {
+    unsetenv("VZ_SEP_REMOTE_TOKEN");
+    BOOL enabled = [options[@"AppleServicesEnabled"] boolValue] &&
+        [options[@"AppleServicesProfile"] isEqual:@"independent-v1"];
+    // An explicitly disabled profile stops only our relay job on the next
+    // start. It never terminates the native akd or unloads its mapped library.
+    if (!enabled && access("/var/jb/sepbridge/sepbridge-helper", X_OK) != 0) return;
+    unsigned char bytes[32]; arc4random_buf(bytes, sizeof(bytes));
+    NSMutableString *token = [NSMutableString string];
+    for (unsigned i = 0; i < sizeof(bytes); i++) [token appendFormat:@"%02x", bytes[i]];
+    const char *launcher = VZRuntimePath(@"install/install-launcher").fileSystemRepresentation;
+    char *args[] = {(char *)launcher, enabled ? "--sepbridge-start" : "--sepbridge-stop",
+        enabled ? (char *)token.UTF8String : NULL, NULL};
+    pid_t child = 0;
+    int spawned = posix_spawn(&child, launcher, NULL, NULL, args, environ);
+    if (spawned) { fprintf(stderr,"[AppleServices] host bridge launcher unavailable (%d)\n",spawned); return; }
+    int status = 0; pid_t result = 0;
+    double deadline = NSProcessInfo.processInfo.systemUptime + 12.0;
+    while ((result = waitpid(child, &status, WNOHANG)) == 0 &&
+           NSProcessInfo.processInfo.systemUptime < deadline) usleep(50000);
+    if (result != child) {
+        // Only our bounded launcher child is terminated; native services and
+        // the running App/VMM are never injected or restarted here.
+        if (result == 0) { kill(child,SIGTERM); waitpid(child,&status,WNOHANG); }
+        fprintf(stderr,"[AppleServices] host bridge setup did not complete\n");
+        return;
+    }
+    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        if (!enabled) return;
+        setenv("VZ_SEP_REMOTE_TOKEN", token.UTF8String, 1);
+        fprintf(stderr,"[AppleServices] host relay configured; account sign-in unverified\n");
+    } else fprintf(stderr,"[AppleServices] host relay failed status=%d\n", status);
+}
+
 static void startVirtualMachineWorker(UIView *container, id delegate,
                                       NSString *bundlePath,
                                       NSDictionary *options) {
@@ -5810,6 +5984,7 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
     gShiftPressedMask = 0;
     pencilVsockReset();
     VZGuestToolsReset();
+    prepareHostAppleServicesBridge(options);
     __atomic_store_n(&gPencilRelayEnabled,
         [options[VZApplePencilPressureTiltEnabledKey] boolValue],
         __ATOMIC_RELEASE);
@@ -5822,7 +5997,7 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
     setenv("VZ_AVP_BOOTER",
            VZRuntimePath(@"payload/Frameworks/Virtualization.framework/Resources/AVPBooter.vmapple2.bin").fileSystemRepresentation,
            1);
-    setenv("VZ_PVG_BACKEND_VERSION", VZUsesModernPVG() ? "27" : "13", 1);
+    VZSetPVGEnvironment();
     // Consume the one-shot mode at the actual boot boundary. The current boot
     // keeps the captured value while Settings immediately returns to Off.
     gDebugLogging = VZConsumeDebugLoggingForBoot();
@@ -5836,30 +6011,12 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
     // enough for its asynchronous Metal/IOSurface capability exchange.
     setenv("VMM_FACTORY_LONG_STOP", "6", 1);
     setenv("VMM_FACTORY_LONG_SETTLE_USEC", "5000000", 1);
-    setenv("PVG_TRACE", "1", 1);
     // Functional PVG task compatibility remains installed in every build;
     // this flag enables only the additional diagnostic method wrappers.
     if (gDebugLogging)
         setenv("PVG_TRACE_METHODS", "1", 1);
     else
         unsetenv("PVG_TRACE_METHODS");
-    // Ordinary clients start with a compact reservation and grow lazily below.
-    // Keep the first three long-lived system clients contiguous, however.
-    // WindowServer's Launchpad task crosses 256 MiB in one burst and older
-    // guests can stop submitting frames after that task is split across host
-    // reservations even though every individual map succeeds. Two GiB matches
-    // the proven 1.1.2 policy and still uses only a small fraction of iPadOS's
-    // roughly 63 GiB extended address space.
-    setenv("PVG_TASK_RESERVATION_MB", "256", 1);
-    // Once an ordinary client crosses its primary reservation, the PVG host
-    // adds a separate 2 GiB sparse reservation and translates PGTask's address
-    // helpers. Final Cut exceeded the old fixed 512 MiB reservation, while a
-    // launch-all stress test showed that only two of 74 ordinary clients did.
-    setenv("PVG_TASK_OVERFLOW_MB", "2048", 1);
-    setenv("PVG_LARGE_TASK_RESERVATION_MB", "2048", 1);
-    setenv("PVG_LARGE_TASK_COUNT", "3", 1);
-    setenv("PVG_MIN_TASK_RESERVATION_MB", "64", 1);
-    setenv("PVG_METALLIB_FALLBACK", "1", 1);
     BOOL metalBCSupport =
         [options[VZMetalBCSupportEnabledKey] boolValue];
     setenv("VZ_METAL_BC_SUPPORT", metalBCSupport ? "1" : "0", 1);
@@ -5889,7 +6046,9 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
         [options[VZVirtualMacGuestToolsEnabledKey] boolValue];
     BOOL openGLAcceleration = guestToolsEnabled &&
         [options[VZOpenGLAccelerationEnabledKey] boolValue];
-    setenv("VZ_GUEST_RUNTIME_POLICY", openGLAcceleration ? "1" : "0", 1);
+    BOOL runtimePolicy = guestToolsEnabled && (openGLAcceleration ||
+        [options[@"AppleServicesEnabled"] boolValue]);
+    setenv("VZ_GUEST_RUNTIME_POLICY", runtimePolicy ? "1" : "0", 1);
     fprintf(stderr, "[GuestTools] VM option enabled=%d OpenGL=%d BC=%d pencil=%d\n",
             guestToolsEnabled,
             openGLAcceleration, metalBCSupport,
@@ -5950,7 +6109,11 @@ static void startVirtualMachineWorker(UIView *container, id delegate,
     gKeyboard = [keyboards firstObject];
     gPointingDevice = [pointingDevices firstObject];
     VZUSBTrackpadRelaySetMouseHandler(relayMouseMoved, relayMouseButtons);
-    VZUSBTrackpadRelayStart(gVirtualMachine);
+    if ([options[@"PointingDevice"] isEqualToString:@"MagicTrackpad"])
+        VZUSBTrackpadRelayStart(gVirtualMachine);
+    if (usesNativeTouch(options))
+        VZTouchScreenRelayStart(gVirtualMachine, touchScreenViewport);
+    applyTouchScreenGestureRouting();
     dumpRPCHandlers(gVirtualMachine, "after-init");
     // setFramebuffer: installs the process_frame_update handler needed by the
     // VMM. The host hook holds its set_frame_rate message until start succeeds.
@@ -6408,6 +6571,7 @@ static void disconnectExternalDisplay(void) {
         smartMagnify.allowedTouchTypes = @[@(UITouchTypeIndirectPointer)];
     }
     [inputView addGestureRecognizer:smartMagnify];
+    applyTouchScreenGestureRouting();
     [controller.view addSubview:inputView];
 
     gCursorView = [[UIImageView alloc] initWithFrame:CGRectZero];

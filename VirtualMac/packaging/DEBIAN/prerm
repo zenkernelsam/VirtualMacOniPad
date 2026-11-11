@@ -19,6 +19,8 @@ if test -x /var/jb/usr/bin/launchctl; then
     app=/var/jb/Applications/VirtualMac.app
 fi
 for domain in system user/501; do
+    "$launchctl" bootout "$domain/com.mac.virtual.sepbridge.host" \
+        2>/dev/null || true
     "$launchctl" bootout "$domain/vzi.apple.bootpd-controller" \
         2>/dev/null || true
     "$launchctl" bootout "$domain/vzi.apple.bootpd" \

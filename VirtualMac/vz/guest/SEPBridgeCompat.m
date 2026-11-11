@@ -27,6 +27,8 @@
 // (stderr does not reach `log stream` from extension processes).
 
 #import <Foundation/Foundation.h>
+#import "IndependentIdentityClient.h"
+#import "MediaSignInContextPolicy.h"
 #import <objc/message.h>
 #include <Block.h>
 #import <signal.h>
@@ -46,6 +48,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 extern const char *_Block_signature(void *aBlock);
 
@@ -185,6 +189,14 @@ static int sepReadAll(int fd, void *buf, size_t n) {
 
 // Returns the reply dictionary or nil on transport failure.
 static NSDictionary *sepRoundtrip(NSDictionary *request) {
+    const char *token = getenv("VM_SEP_REMOTE_TOKEN");
+    if (!token || strlen(token) != 64) { sepLog(@"remote-token-unavailable", @{}); return nil; }
+    unsigned char secret[32];
+    for (unsigned i = 0; i < sizeof(secret); i++) {
+        char digits[3] = {token[i*2],token[i*2+1],0};
+        if (!isxdigit(digits[0]) || !isxdigit(digits[1])) return nil;
+        secret[i] = (unsigned char)strtoul(digits, NULL, 16);
+    }
     NSData *payload = [NSPropertyListSerialization
         dataWithPropertyList:request
         format:NSPropertyListBinaryFormat_v1_0 options:0 error:nil];
@@ -206,7 +218,7 @@ static NSDictionary *sepRoundtrip(NSDictionary *request) {
         close(fd); return nil;
     }
     uint32_t len = htonl((uint32_t)payload.length);
-    if (sepWriteAll(fd, &len, 4) || sepWriteAll(fd, payload.bytes,
+    if (sepWriteAll(fd, secret, sizeof(secret)) || sepWriteAll(fd, &len, 4) || sepWriteAll(fd, payload.bytes,
                                               payload.length)) {
         sepLog(@"transport-write-fail", @{});
         close(fd); return nil;
@@ -374,6 +386,26 @@ static void sepForward(SEL sel, NSArray *args, id completion) {
         ? (void *)Block_copy((__bridge void *)completion) : NULL;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         NSString *selName = NSStringFromSelector(sel);
+        if (VMIndependentEnabled() && [selName containsString:@"Anisette"]) {
+            // ADI belongs to this VM. Failed/incomplete local state must never
+            // fall back to the iPad MID, which caused duplicateMachineID.
+            NSError *error = nil;
+            id anisette = nil;
+            if ([selName hasPrefix:@"fetchAnisetteData"] ||
+                [selName hasPrefix:@"legacyAnisetteData"] ||
+                [selName hasPrefix:@"provisionAnisette"]) {
+                anisette = VMIdentityAnisette(VMIdentityPayload(&error), &error);
+                if (!anisette && !error) error = sepError(-2, @"Independent anisette archive unavailable");
+            } else {
+                error = sepError(-3, @"Remote ADI mutation is disabled for independent identity");
+            }
+            sepLog(@"independent-anisette", @{@"sel":selName,
+                @"ok":@(anisette != nil && error == nil), @"code":@(error.code)});
+            sepInvokeCompletion((__bridge id)blk,
+                anisette ? @[sepWrap(anisette)] : @[], sepWrapError(error));
+            if (blk) Block_release(blk);
+            return;
+        }
         NSMutableArray *wa = [NSMutableArray array];
         for (id a in args) [wa addObject:sepWrap(a)];
         double start = sepNow();
@@ -767,14 +799,26 @@ static id sepPasswordGetter(id self, SEL _cmd) {
     const char *on = getenv("VM_SEP_STAGE_PASSWORD");
     if (!on || strcmp(on, "1")) return v;
     const char *want = getenv("VM_SEP_STAGE_EMAIL");
+    const char *bundle = getenv("VM_SEP_STAGE_BUNDLE_ID");
+    if (!want || !bundle || !VMMediaContextMatches(self, @(want), @(bundle))) return v;
     id user = v ? nil : ((id (*)(id, SEL))objc_msgSend)(
         self, sel_registerName("username"));
     if (![user isKindOfClass:NSString.class]) return v;
     if (want && *want && strcmp([(NSString *)user UTF8String], want)) return v;
     sepLogCtxProps(self);
     if (!gStagedPassword) {
-        gStagedPassword = [NSString stringWithContentsOfFile:@"/tmp/.vmsep-pw"
-            encoding:NSUTF8StringEncoding error:nil];
+        int fd = open("/tmp/.vmsep-pw", O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
+        struct stat st;
+        if (fd < 0) return nil;
+        if (fstat(fd, &st) || !S_ISREG(st.st_mode) || st.st_uid != getuid() ||
+            (st.st_mode & 0777) != 0600 || st.st_nlink != 1 ||
+            st.st_size <= 0 || st.st_size > 65536) { close(fd); return nil; }
+        NSMutableData *data = [NSMutableData dataWithLength:(NSUInteger)st.st_size];
+        if (VMIdentityIO(fd, data.mutableBytes, data.length, NO)) { close(fd); return nil; }
+        close(fd);
+        // Consume only after account+caller and private-file checks succeed.
+        gStagedPassword = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        if (!gStagedPassword.length) return nil;
         unlink("/tmp/.vmsep-pw");
         if (gStagedPassword.length) {
             sepLog(@"stage-password", @{@"phase": @"filled",
@@ -901,8 +945,40 @@ static void sepDumpClass(const char *name) {
                             @"protos": protos});
 }
 
+static IMP gIndependentNative, gIndependentHeaders;
+static id sepIndependentNative(id object, SEL selector, NSError **error) {
+    if (!VMIndependentEnabled())
+        return ((id(*)(id,SEL,NSError **))gIndependentNative)(object,selector,error);
+    return VMIdentityAnisette(VMIdentityPayload(error), error);
+}
+static id sepIndependentHeaders(id object, SEL selector, id request, NSError **error) {
+    NSError *failure = nil;
+    id original = ((id(*)(id,SEL,id,NSError **))gIndependentHeaders)(object,selector,request,&failure);
+    if (!VMIndependentEnabled()) { if (error) *error = failure; return original; }
+    if (!original || failure) { if (error) *error = failure; return nil; }
+    NSDictionary *payload = VMIdentityPayload(&failure);
+    id result = payload ? VMIdentityMergeHeaders(original, payload, &failure) : nil;
+    if (error) *error = failure;
+    return result;
+}
 static unsigned sepInstall(void) {
     unsigned total = 0;
+    // Private ABI verified against the group's 15.6.1 implementation.
+    // Unknown OS/encoding fails closed; no unchecked message or constant reply.
+    if (VMIndependentEnabled()) {
+        Method native = class_getInstanceMethod(NSClassFromString(@"AKNativeAnisetteService"),
+            sel_registerName("_tq_anisetteDataWithRoutingInfoForLastKnownDSIDWithError:"));
+        Method headers = class_getInstanceMethod(NSClassFromString(@"AKAppleIDSession"),
+            sel_registerName("_generateAppleIDHeadersForRequest:error:"));
+        if (native && headers && !strcmp(method_getTypeEncoding(native), "@24@0:8^@16") &&
+            !strcmp(method_getTypeEncoding(headers), "@32@0:8@16^@24")) {
+            if (!gIndependentNative) {
+                gIndependentNative = method_setImplementation(native, (IMP)sepIndependentNative);
+                gIndependentHeaders = method_setImplementation(headers, (IMP)sepIndependentHeaders);
+                total += 2;
+            }
+        }
+    }
     Protocol *daemon = objc_getProtocol(
         "AKAnisetteProvisioningDaemonProtocol");
     if (daemon) {

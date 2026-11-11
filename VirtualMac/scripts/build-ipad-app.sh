@@ -37,6 +37,7 @@ need_file "$VZ_REPO_ROOT/vz/host/VZProgressViewController.m"
 need_file "$VZ_REPO_ROOT/vz/host/VZSettingsViewController.m"
 need_file "$VZ_REPO_ROOT/vz/host/VZTrackpadScrollBridge.m"
 need_file "$VZ_REPO_ROOT/vz/host/VZUSBTrackpadRelay.m"
+need_file "$VZ_REPO_ROOT/vz/host/VZTouchScreenRelay.m"
 need_file "$VZ_REPO_ROOT/vz/host/VZGuestTools.m"
 need_file "$VZ_REPO_ROOT/vz/host/VZGuestRuntimePolicy.m"
 need_file "$VZ_REPO_ROOT/vz/host/VZVMLibraryViewController.m"
@@ -49,9 +50,12 @@ need_file "$ENTS"
 # built-in AppleQEMUGuestAgent installs them without network access or guest
 # credentials on first boot.
 "$VZ_REPO_ROOT/scripts/build-guest-tools.sh"
+"$VZ_REPO_ROOT/scripts/build-host-sepbridge.sh"
 need_file "$VZ_BUILD_ROOT/guest-tools/VirtualMacGuestTools.tar.gz"
 
-rm -rf "$APP"
+if [[ -e "$APP" ]]; then
+    mv "$APP" "${APP}.previous.$(date +%Y%m%d-%H%M%S).$$"
+fi
 python3 "$VZ_REPO_ROOT/scripts/validate-localizations.py"
 mkdir -p "$APP"
 cp "$VZ_REPO_ROOT/vz/host/VirtualMac-Info.plist" "$APP/Info.plist"
@@ -124,6 +128,7 @@ xcrun --sdk iphoneos clang \
     "$VZ_REPO_ROOT/vz/host/VZTrackpadScrollBridge.m" \
     "$VZ_REPO_ROOT/vz/host/VZVMLibraryViewController.m" \
     "$VZ_REPO_ROOT/vz/host/VZUSBTrackpadRelay.m" \
+    "$VZ_REPO_ROOT/vz/host/VZTouchScreenRelay.m" \
     "$VZ_REPO_ROOT/vz/host/VirtualMacApp.m" \
     -o "$BIN"
 xcrun --sdk iphoneos clang \

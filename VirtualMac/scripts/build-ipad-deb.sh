@@ -68,6 +68,7 @@ mkdir -p \
     "$STAGE/var/jb/usr/lib" \
     "$STAGE/var/jb/usr/libexec" \
     "$STAGE/var/jb/usr/libexec/VirtualMac" \
+    "$STAGE/var/jb/sepbridge" \
     "$STAGE/var/jb/usr/bin" \
     "$STAGE/var/jb/usr/sbin" \
     "$STAGE/var/jb/usr/share/VirtualMac" \
@@ -88,6 +89,14 @@ ditto "$VZ_BUILD_ROOT/ipad-app/VirtualMac.app" \
     "$STAGE/var/jb/Applications/VirtualMac.app"
 install -m 755 "$VZ_BUILD_ROOT/ipad-app/virtualmac-diagnostics" \
     "$STAGE/var/jb/usr/bin/virtualmac-diagnostics"
+install -m 4755 "$VZ_BUILD_ROOT/host-sepbridge/sepbridge-helper" \
+    "$STAGE/var/jb/sepbridge/sepbridge-helper"
+install -m 755 "$VZ_BUILD_ROOT/host-sepbridge/sepinject.dylib" \
+    "$STAGE/var/jb/sepbridge/sepinject.dylib"
+# This private plist is deliberately outside bootstrap discovery directories.
+# Only an explicitly enabled VM starts the authenticated host signing relay.
+install -m 644 "$VZ_BUILD_ROOT/host-sepbridge/com.mac.virtual.sepbridge.host.plist" \
+    "$STAGE/var/jb/sepbridge/com.mac.virtual.sepbridge.host.plist"
 
 # The component builds retain command-line probes for developer iteration.
 # They are not used by the app and do not belong in the end-user package.

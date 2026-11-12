@@ -18,6 +18,9 @@ int main(void) { @autoreleasepool {
     NSString *machine = VMHash(@"synthetic-guest-machine:501");
     NSString *lookup = @"https://gsa.apple.com/grandslam/GsService2/lookup";
     CHECK(VMAllowedRequest(lookup, @"GET", @{}));
+    CHECK(VMAllowedRequest(@"https://gsa.apple.com/grandslam/MidService/startMachineProvisioning", @"POST", @{}));
+    CHECK(VMAllowedRequest(@"https://gsa.apple.com/grandslam/MidService/finishMachineProvisioning", @"POST", @{}));
+    CHECK(!VMAllowedRequest(@"https://gsa.apple.com/grandslam/GsService2/startMachineProvisioning", @"POST", @{}));
     CHECK(!VMAllowedRequest(@"https://gsa.apple.com.evil.invalid/grandslam/GsService2/lookup", @"GET", @{}));
     CHECK(!VMAllowedRequest(@"http://gsa.apple.com/grandslam/GsService2/lookup", @"GET", @{}));
     CHECK(!VMAllowedRequest([lookup stringByAppendingString:@"?x=1"], @"GET", @{}));

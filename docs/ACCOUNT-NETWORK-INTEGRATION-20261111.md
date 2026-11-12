@@ -82,3 +82,12 @@ ACAccount: Security level check failed to find IDMS account
 正式回归在 `VirtualMac/scripts/tests/`：热点、磁盘 fd、独立 provider / client、媒体 context policy 与 payload 安装。`.diag` 保留原始结果但不进 git。完整 ABI 审计在缺 DSC 时明确跳过；离线 / 编译通过不等于宿主首启或长期稳定性。
 
 安装前正常关闭 VM，保留当前可启动旧 deb。新 Guest Tools 的安装输出含 `.VirtualMac-install.*/rollback.sh`，旧代码保留，rollback 可重复执行；它恢复代码，不回退 / 删除账号数据库或独立身份。真实宿主 / 客机部署、iCloud 登录、三种媒体服务以及热点共存均需单独验收。本会话未安装 deb、操作 VM 磁盘或重启设备。
+
+
+## 最终联网抽验（2026-11-12）
+
+使用本轮相同生产代码、独立 `.diag` 私有临时状态，真实向 Apple 完成 account-free provisioning：lookup、MidService/startMachineProvisioning、MidService/finishMachineProvisioning 三次均 HTTPS 200。完成耗时 **2.576 秒**，随后再次准备及离线 payload 读取验证 identity.json 逐字不变、真实 AKAnisetteData secure archive 存在。**没有登录账号，也没有读取账号密码**。测试状态未进入用户正式身份目录或安装包。
+
+真实联网修正了此前错误的 GsService2/start 路径限制，采用 Apple lookup 实际返回的 MidService/start 与 finish 路径；新增请求阶段/HTTP状态错误码日志，不记录 headers、body、MID或令牌。离线模拟测试仍用同一生产过滤器。
+
+源码合并 `b023599` 已推送 main，主仓库Git已无损同步；首次包抽验发现旧 launcher.previous 混入（仅生成物备份），已移动到构建 archive，旧包标为失败不交付。最终包必须核验没有备份 / 个人状态再交付。

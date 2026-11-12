@@ -207,8 +207,8 @@ static BOOL VMAllowedRequest(NSString *urlString, NSString *method, NSDictionary
     NSURLComponents *url = [NSURLComponents componentsWithString:urlString];
     NSSet *hosts = [NSSet setWithArray:@[@"gsa.apple.com", @"gsas.apple.com"]];
     NSSet *paths = [NSSet setWithArray:@[@"/grandslam/GsService2/lookup",
-        @"/grandslam/GsService2/startMachineProvisioning",
-        @"/grandslam/GsService2/endMachineProvisioning"]];
+        @"/grandslam/MidService/startMachineProvisioning",
+        @"/grandslam/MidService/finishMachineProvisioning"]];
     if (![url.scheme isEqual:@"https"] || ![hosts containsObject:url.host.lowercaseString] ||
         (url.port && url.port.integerValue != 443) || url.user || url.password ||
         url.query || url.fragment || ![paths containsObject:url.percentEncodedPath] ||
@@ -268,6 +268,9 @@ static int VMTransport(void *opaque, const aauth_http_request *request, aauth_ht
             NSDictionary *headers = VMJSON([NSData dataWithBytes:request->headers_json
                 length:strlen(request->headers_json)]);
             NSString *url = @(request->url), *method = @(request->method);
+            NSURLComponents *endpoint = [NSURLComponents componentsWithString:url];
+            fprintf(stderr,"independent-identity: provisioning phase=%u host=%s path=%s\n",
+                context->requests, endpoint.host.UTF8String ?: "", endpoint.path.UTF8String ?: "");
             VMRequire(VMAllowedRequest(url, method, headers), "provisioning-endpoint-rejected");
 #ifdef VM_INDEPENDENT_PROVIDER_TESTING
             const char *test = getenv("VM_INDEPENDENT_TEST_TRANSPORT");
@@ -293,6 +296,8 @@ static int VMTransport(void *opaque, const aauth_http_request *request, aauth_ht
                 dispatch_time(DISPATCH_TIME_NOW, (int64_t)(budget * NSEC_PER_SEC)));
             if (waited) { [task cancel]; [session invalidateAndCancel]; return AAUTH_NETWORK_ERROR; }
             [session finishTasksAndInvalidate];
+            fprintf(stderr,"independent-identity: provisioning response=%ld transportCode=%ld\n",
+                (long)delegate.response.statusCode, (long)delegate.error.code);
             VMRequire(!delegate.error && !delegate.rejected && delegate.response.statusCode == 200,
                 "verified-https-failed");
             NSMutableArray *pairs = [NSMutableArray array];
@@ -306,7 +311,10 @@ static int VMTransport(void *opaque, const aauth_http_request *request, aauth_ht
             memcpy(response->body.data, delegate.body.bytes, delegate.body.length);
             memcpy(response->headers_json.data, headerData.bytes, headerData.length);
             return AAUTH_OK;
-        } catch (...) { return AAUTH_NETWORK_ERROR; }
+        } catch (const std::exception &error) {
+            fprintf(stderr,"independent-identity: provisioning failure=%s\n",error.what());
+            return AAUTH_NETWORK_ERROR;
+        }
     }
 }
 static void VMCreateClient(VMClient &client, NSData *snapshot, VMTransportContext *context) {

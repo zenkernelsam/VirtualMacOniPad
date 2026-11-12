@@ -1021,3 +1021,10 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 因上述现场补动态私有地址relay与guest同子网选择；真实iPad只读小探针打印relay_addresses=[19268.66]、trusted_dopamine_injector=1。仅上传并执行两个独立文件/接口查询小探针，未注入任何进程、未重启服务、未改VM盘或安装新包。
 - 账户只读聚合推翻“iTunesStore从未建行”：目前两条媒体本地placeholder均isLocalAccount=true/active0；IDMS active/auth1。AMS静态nil关联检查不是VM硬限制证明。媒体实际正常UI登录仍待新包验证；详细反汇编证据由新AMS审计文档记录。
 - 新VM构建已exit0，29entitlement项通过；91个iOS Mach-O平台/min14.5检查通过；缺DSC时完整ABI审计明确跳过。新副本缓存仅用于未变Apple原始输入/14HV/3shader资源，App/Guest/VMM兼容源码重编；receipt/log在.diag/20261111-account-build。构建与最终包收据后续追加，未提前宣布已登录/已根治热点。
+
+
+### 2026-11-12 最终联网与推送恢复
+
+- 用户反馈卡顿后检查无活跃构建满载，guest load~2.6/8核；新full-access恢复Git凭据与taskpolicy，b023599已立即重试push成功，主Git备份后仅mixed metadata同步、源逐字一致且clean。
+- 独立ADI真实三请求HTTPS200，总2.576s；重复准备/离线读回身份逐字稳定，不登录、不读账户密码，临时状态仅.diag。实测修正官方MidService start/finish路径过滤；生产日志仅phase/host/path/http/errorcode。provider ASan/UBSan回归重跑。
+- 最初build276包发现installer.previous备份混入，已archive失败包与备份，重新构建App/payload/deb；不能交旧错误stage，最终receipt核验不含backup/privateidentity。

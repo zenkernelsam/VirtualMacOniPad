@@ -414,6 +414,9 @@ static NSString *VML(NSString *key)
     task.arguments = @[@"--serve"];
     NSMutableDictionary *environment = [NSProcessInfo.processInfo.environment mutableCopy];
     [environment removeObjectForKey:@"DYLD_INSERT_LIBRARIES"];
+    // A repair relaunch inherits the previous provider's published port.
+    // Always request a fresh random listener instead of rebinding that port.
+    [environment removeObjectForKey:@"VM_INDEPENDENT_IDENTITY_PORT"];
     environment[@"VM_INDEPENDENT_IDENTITY_TOKEN"] = token;
     task.environment = environment; [environment release];
     NSPipe *pipe = [NSPipe pipe]; task.standardOutput = pipe;

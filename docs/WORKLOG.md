@@ -1035,3 +1035,10 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 功能源ddd6c1f65f，完整重建App/Guestpayload，VMM为本轮已验证同源新构建。deb VirtualMac_1.2.3_ddd6c1f65f.deb，22,493,860 bytes，SHA e33c960b0818ae7cd26ea83e111937516bf08bc91a8138dbf3c9b95a324f0e21，GuestTools278-ecc010ba2c9325bb。
 - 正式release+飞牛本地两处hash/size一致；NAS远端待确认。93platform/min14.5、91trustcache、7strict签名、56guest文件无个人状态与全stage无备份通过，14.5完整ABI缺DSC跳过。final receipt .diag/20261111-account-build/final-verification-receipt.json。
 - 未安装/重启/注入新hook；实际仍旧包。iCloud/媒体正常UI与蜂窝热点两端共存均尚未新包验收；不能宣布任务运行期全部修好。安装要先正常关闭VM，保留当前旧包作为回滚。
+
+
+### 2026-11-13 build278复制到iPad内部File Provider Storage
+
+- 用户指定目录 `/var/mobile/Containers/Shared/AppGroup/1B2AD29A-2C34-4770-86EC-E11CD02312FF/File Provider Storage/`；通过已核对公钥的192.168.68.66:22复制最终278 deb，仅文件传输，不安装或启动组件。
+- 先检查目录存在与目标不存在；上传到独立临时文件，核验22,493,860 bytes与SHA256 e33c960b0818ae7cd26ea83e111937516bf08bc91a8138dbf3c9b95a324f0e21，设与目录一致uid/gid501、mode0644，再rename正式文件VirtualMac_1.2.3_ddd6c1f65f.deb。两端hash一致，未覆盖现有用户文件。
+- 回答验收边界：最新优化与独立ADI/恢复/身份UI代码已入278；群友成果是iCloud/Octagon/CKKS信任稳定，不存在其三种系统媒体登录全部成功证据。真实新包首启、iCloud与App Store/Music/TV分别登录、蜂窝热点共存仍待验收，不能保证“下一个安装包全部成功”。

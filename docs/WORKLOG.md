@@ -1028,3 +1028,10 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 用户反馈卡顿后检查无活跃构建满载，guest load~2.6/8核；新full-access恢复Git凭据与taskpolicy，b023599已立即重试push成功，主Git备份后仅mixed metadata同步、源逐字一致且clean。
 - 独立ADI真实三请求HTTPS200，总2.576s；重复准备/离线读回身份逐字稳定，不登录、不读账户密码，临时状态仅.diag。实测修正官方MidService start/finish路径过滤；生产日志仅phase/host/path/http/errorcode。provider ASan/UBSan回归重跑。
 - 最初build276包发现installer.previous备份混入，已archive失败包与备份，重新构建App/payload/deb；不能交旧错误stage，最终receipt核验不含backup/privateidentity。
+
+
+### 2026-11-12 build278正式交付
+
+- 功能源ddd6c1f65f，完整重建App/Guestpayload，VMM为本轮已验证同源新构建。deb VirtualMac_1.2.3_ddd6c1f65f.deb，22,493,860 bytes，SHA e33c960b0818ae7cd26ea83e111937516bf08bc91a8138dbf3c9b95a324f0e21，GuestTools278-ecc010ba2c9325bb。
+- 正式release+飞牛本地两处hash/size一致；NAS远端待确认。93platform/min14.5、91trustcache、7strict签名、56guest文件无个人状态与全stage无备份通过，14.5完整ABI缺DSC跳过。final receipt .diag/20261111-account-build/final-verification-receipt.json。
+- 未安装/重启/注入新hook；实际仍旧包。iCloud/媒体正常UI与蜂窝热点两端共存均尚未新包验收；不能宣布任务运行期全部修好。安装要先正常关闭VM，保留当前旧包作为回滚。

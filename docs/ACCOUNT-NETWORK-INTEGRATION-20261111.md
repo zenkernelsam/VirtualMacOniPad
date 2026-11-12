@@ -91,3 +91,13 @@ ACAccount: Security level check failed to find IDMS account
 真实联网修正了此前错误的 GsService2/start 路径限制，采用 Apple lookup 实际返回的 MidService/start 与 finish 路径；新增请求阶段/HTTP状态错误码日志，不记录 headers、body、MID或令牌。离线模拟测试仍用同一生产过滤器。
 
 源码合并 `b023599` 已推送 main，主仓库Git已无损同步；首次包抽验发现旧 launcher.previous 混入（仅生成物备份），已移动到构建 archive，旧包标为失败不交付。最终包必须核验没有备份 / 个人状态再交付。
+
+
+## build278 最终交付
+
+- 功能源 `ddd6c1f65f`，完整 deb `VirtualMac_1.2.3_ddd6c1f65f.deb`，version `2:1.2.3+278.ddd6c1f65f`。
+- **22,493,860 bytes**；SHA256 `e33c960b0818ae7cd26ea83e111937516bf08bc91a8138dbf3c9b95a324f0e21`；预期 GuestTools `278-ecc010ba2c9325bb`。
+- 已复制 `VirtualMac/build/release/` 和飞牛同步本地 `VirtualMacOniPad_iOS/`，两处大小/hash一致；NAS远端同步尚未核对。
+- 最终93个iOS Mach-O platform2/min14.5检查、91条trustcache逐CDHash、7个host/guest严格签名目标、56个guest文件私人状态排除、全stage备份排除均通过；缺14.5 DSC，完整ABI检查明确跳过。
+- 功能提交已推送，主仓库clean。此包未安装、未重启、未运行任何宿主新hook。旧276/277错误或过渡包仅在构建archive，正式release只交最终278。
+- 正常关闭当前VM后方可安装；安装后先验证预期GuestTools、独立ADI准备、protocol2反链、iCloud真实CloudKit/CKKS，再分别验证App Store/Music/TV正常UI账号状态；SIM/热点切换共存还需两端同时公网验收。

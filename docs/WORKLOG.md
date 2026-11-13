@@ -1058,3 +1058,11 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 正式包对真实旧com.vm.sepbridge.list全路径核验：非目录文件冲突0，旧/var/jb/sepbridge package条目0；新helper/sepinject/plist及launcher路径一致。93platform/min14.5、91trustcache、7strict签名、56guest文件无私人state/备份通过，完整ABI缺DSC仍跳过。
 - 已复制本repo release、飞牛本地及用户指定iPad内部File Provider Storage；iPad上传后独立临时文件验size/hash，设置目录一致owner501/mode0644后rename，未覆盖旧包/未安装/未重启/未注入。NAS远端同步未验。
 - 当前用户仍运行224，失败安装未完成升级；仅删除旧目录不清dpkg归属，修正版共存旧包而不force-overwrite/卸载旧桥。正常关闭VM后安装281并重开App核build281；实际账号与protocol2首次启动仍另验。
+
+
+### 2026-11-14 build281安装后的首次实际账户验收
+
+- 用户确认已281，且Apple Service Adapters与Prepare Independent Identity两项均未做。只读iPad确认包2:1.2.3+281.52e9eba317，guest281-bba6cd928743ae40匹配；新hosthelper/plist/sepinject存在且权限正确，但自有relayjob未加载、VM options无AppleServicesEnabled/Profile，HostConfiguration relaytoken为空，provider readyfalse/boundfalse/needsPreparationtrue。
+- 当前iCloud账户1/服务配置21、CloudKit Available/hasValidCredentialstrue；Octagon Untrusted/selfexcluded/RenewCredentials提醒；23个CKKS view全waitfortrust，0ready。媒体production/sandbox两行仍isLocalAccounttrue/activeauth0，不能称Apple服务已全通。
+- akd812已有启动时继承的桥映射，重复remote-token-unavailable/forward-fail；现gui用户env已清桥开关，不等于已映射进程自动卸载。未启用新hostjob、未准备正式独立ADI、未kill/注入/登录、未修改账户。
+- 先正常关VM，在宿主选项开启独立Apple适配再启动；GuestTools准备独立身份，然后系统Apple Account正常续验/2FA。新bridgeprotocol2、真实anisette/signature、OctagonReady/CKKSready与三种媒体UI各自验收，不能按安装版本替代运行期验证。脱敏receipt .diag/20261114-build281-acceptance。

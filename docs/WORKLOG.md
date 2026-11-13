@@ -1066,3 +1066,12 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 当前iCloud账户1/服务配置21、CloudKit Available/hasValidCredentialstrue；Octagon Untrusted/selfexcluded/RenewCredentials提醒；23个CKKS view全waitfortrust，0ready。媒体production/sandbox两行仍isLocalAccounttrue/activeauth0，不能称Apple服务已全通。
 - akd812已有启动时继承的桥映射，重复remote-token-unavailable/forward-fail；现gui用户env已清桥开关，不等于已映射进程自动卸载。未启用新hostjob、未准备正式独立ADI、未kill/注入/登录、未修改账户。
 - 先正常关VM，在宿主选项开启独立Apple适配再启动；GuestTools准备独立身份，然后系统Apple Account正常续验/2FA。新bridgeprotocol2、真实anisette/signature、OctagonReady/CKKSready与三种媒体UI各自验收，不能按安装版本替代运行期验证。脱敏receipt .diag/20261114-build281-acceptance。
+
+
+### 2026-11-14 build281启用独立身份后的运行验收
+
+- 用户完成enable/prepare后：provider readytrue/boundtrue/needsPreparationfalse，HostConfiguration profileindependent-v1/enabledtrue/token存在；用户env桥开关全1，实际guest host19264.1，本地server49176。只记录token存在布尔，不入文档token本体。
+- 初始akd583启动早于新env，vmmap无3库、日志原生anisette-43004/-8004；用户域inherit环境显示新env不证明旧进程加载。guest同用户SIGTERM未刷新PID，保存只读证据后仅本客机uid501 akd SIGKILL重生7875，未重启/注入iPad任何系统进程；新vmmap确认3库，loaded/install-pass20。
+- 随后正常系统后台请求6次independent-anisette ok1/code0，本地ADI实际接入akd；该时段最近1m原生Provisioning failed查询0条。普通无权限CLI AuthKit probe4099不能算桥失败，不加fakeentitlement/注入。
+- 账户只读仍CloudKitAvailable+有效凭据、OctagonUntrusted/selfexcluded/RenewCredentials、23CKKS waitfortrust/0ready，媒体仍local占位activeauth0。新宿主helper已ownjob启动且监听两真实私网地址，但未出现新的protocol2链/SEP签名请求成功证据，不能宣称完整signing/3媒体登录已验。
+- 用户是否完成正常Apple Account更新验证/2FA及媒体登录尚待确认；Prepare身份不是重新登录。证据 .diag/20261114-build281-enabled/after-akd-refresh/，前后脱敏快照独立保存，未改变账号数据库/keychain或重置Octagon。

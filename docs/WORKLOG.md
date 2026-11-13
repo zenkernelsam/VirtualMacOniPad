@@ -1050,3 +1050,11 @@ echo <pw> | sudo -S killall -9 akd appleaccountd adid
 - 原因是278错误复用了独立旧桥包路径。不能靠删除文件/force-overwrite修复包归属。新自有组件改到/var/jb/usr/libexec/VirtualMac/sepbridge；helper/token/inject/plist/log及launcher/App/postinst/deb统一迁移，旧com.vm.sepbridge仍保留自己的文件登记，不加入Replaces/Conflicts。
 - 正式测试package-ownership-test.py：临时dpkg安装旧fixture后移走物理helper，旧路径新包真实失败；新独立路径无force/Replaces解包成功，旧所有权/备份不动。新版尚未安装/重启/注入；核验新prefix在真实iPad无文件owner。
 - 继续正常关闭VM才能安装完整修正版，不能在此CLI客机运行期自动装包；新包按新HEAD重编App/hosthelper/launcher，VMM源未变保留本轮已核验产物。最终指纹及复制位置待构建验收追加。
+
+
+### 2026-11-14 build281独立SEP路径修正版交付
+
+- 修复包VirtualMac_1.2.3_52e9eba317.deb，version2:1.2.3+281.52e9eba317，22,490,272 bytes，SHA256 e6c9ad8d3357bff7f85402a4a712f671b8ebfe2703f948ce1864d9a1fc2a6134，预期GuestTools281-bba6cd928743ae40。
+- 正式包对真实旧com.vm.sepbridge.list全路径核验：非目录文件冲突0，旧/var/jb/sepbridge package条目0；新helper/sepinject/plist及launcher路径一致。93platform/min14.5、91trustcache、7strict签名、56guest文件无私人state/备份通过，完整ABI缺DSC仍跳过。
+- 已复制本repo release、飞牛本地及用户指定iPad内部File Provider Storage；iPad上传后独立临时文件验size/hash，设置目录一致owner501/mode0644后rename，未覆盖旧包/未安装/未重启/未注入。NAS远端同步未验。
+- 当前用户仍运行224，失败安装未完成升级；仅删除旧目录不清dpkg归属，修正版共存旧包而不force-overwrite/卸载旧桥。正常关闭VM后安装281并重开App核build281；实际账号与protocol2首次启动仍另验。

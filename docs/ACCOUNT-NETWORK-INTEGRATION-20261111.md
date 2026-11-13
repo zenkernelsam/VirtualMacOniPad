@@ -108,3 +108,8 @@ ACAccount: Security level check failed to find IDMS account
 build278 在已有 `com.vm.sepbridge 0.9.1` 时发生 dpkg 文件归属冲突，不能视为完成升级。删除 `/var/jb/sepbridge` 也不清除包数据库中的所有权。新完整包将本项目的宿主桥迁移到 `/var/jb/usr/libexec/VirtualMac/sepbridge/`，全部路径消费者一致；不覆盖 / 卸载旧独立桥包，不 force-overwrite，不声称旧目录删除后旧桥已可正常复活。
 
 临时真实 dpkg 回归已复现冲突并证明独立路径可共存，见 `VirtualMac/scripts/tests/package-ownership-test.py`。现场只有只读核对，没有停止nativeakd/旧helper或安装新包。修正版安装前仍须正常关闭VM；删除过的旧桥文件无法当回滚资产，需保留旧安装包/已存证据，新版不自动猜测补回。
+
+
+### build281安装冲突修正版
+
+功能源52e9eba317，deb `VirtualMac_1.2.3_52e9eba317.deb`，22,490,272 bytes，SHA256 `e6c9ad8d3357bff7f85402a4a712f671b8ebfe2703f948ce1864d9a1fc2a6134`。预期GuestTools `281-bba6cd928743ae40`。新包与真实旧包非目录归属交集为0；平台/签名/trustcache/私人状态排除复验通过。已复制正式release/飞牛本地/iPad指定File Provider目录，尚未安装；不要继续尝试有冲突的278。

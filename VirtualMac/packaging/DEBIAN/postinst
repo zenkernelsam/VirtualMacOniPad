@@ -257,13 +257,13 @@ chmod 755 \
     "$runtime/install/start-install.sh"
 chown root:wheel "$runtime/install/install-launcher"
 chmod 4755 "$runtime/install/install-launcher"
-if test -f /var/jb/sepbridge/sepbridge-helper; then
-    chown root:wheel /var/jb/sepbridge/sepbridge-helper \
-        /var/jb/sepbridge/sepinject.dylib \
-        /var/jb/sepbridge/com.mac.virtual.sepbridge.host.plist
-    chmod 4755 /var/jb/sepbridge/sepbridge-helper
-    chmod 755 /var/jb/sepbridge/sepinject.dylib
-    chmod 644 /var/jb/sepbridge/com.mac.virtual.sepbridge.host.plist
+if test -f /var/jb/usr/libexec/VirtualMac/sepbridge/sepbridge-helper; then
+    chown root:wheel /var/jb/usr/libexec/VirtualMac/sepbridge/sepbridge-helper \
+        /var/jb/usr/libexec/VirtualMac/sepbridge/sepinject.dylib \
+        /var/jb/usr/libexec/VirtualMac/sepbridge/com.mac.virtual.sepbridge.host.plist
+    chmod 4755 /var/jb/usr/libexec/VirtualMac/sepbridge/sepbridge-helper
+    chmod 755 /var/jb/usr/libexec/VirtualMac/sepbridge/sepinject.dylib
+    chmod 644 /var/jb/usr/libexec/VirtualMac/sepbridge/com.mac.virtual.sepbridge.host.plist
 fi
 
 mkdir -p "$library" "$support/Restore Images" "$support/Installations"

@@ -101,3 +101,10 @@ ACAccount: Security level check failed to find IDMS account
 - 最终93个iOS Mach-O platform2/min14.5检查、91条trustcache逐CDHash、7个host/guest严格签名目标、56个guest文件私人状态排除、全stage备份排除均通过；缺14.5 DSC，完整ABI检查明确跳过。
 - 功能提交已推送，主仓库clean。此包未安装、未重启、未运行任何宿主新hook。旧276/277错误或过渡包仅在构建archive，正式release只交最终278。
 - 正常关闭当前VM后方可安装；安装后先验证预期GuestTools、独立ADI准备、protocol2反链、iCloud真实CloudKit/CKKS，再分别验证App Store/Music/TV正常UI账号状态；SIM/热点切换共存还需两端同时公网验收。
+
+
+## 2026-11-14 安装冲突纠正
+
+build278 在已有 `com.vm.sepbridge 0.9.1` 时发生 dpkg 文件归属冲突，不能视为完成升级。删除 `/var/jb/sepbridge` 也不清除包数据库中的所有权。新完整包将本项目的宿主桥迁移到 `/var/jb/usr/libexec/VirtualMac/sepbridge/`，全部路径消费者一致；不覆盖 / 卸载旧独立桥包，不 force-overwrite，不声称旧目录删除后旧桥已可正常复活。
+
+临时真实 dpkg 回归已复现冲突并证明独立路径可共存，见 `VirtualMac/scripts/tests/package-ownership-test.py`。现场只有只读核对，没有停止nativeakd/旧helper或安装新包。修正版安装前仍须正常关闭VM；删除过的旧桥文件无法当回滚资产，需保留旧安装包/已存证据，新版不自动猜测补回。

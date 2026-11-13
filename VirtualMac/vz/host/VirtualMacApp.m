@@ -5949,7 +5949,7 @@ static void prepareHostAppleServicesBridge(NSDictionary *options) {
         [options[@"AppleServicesProfile"] isEqual:@"independent-v1"];
     // An explicitly disabled profile stops only our relay job on the next
     // start. It never terminates the native akd or unloads its mapped library.
-    if (!enabled && access("/var/jb/sepbridge/sepbridge-helper", X_OK) != 0) return;
+    if (!enabled && access("/var/jb/usr/libexec/VirtualMac/sepbridge/sepbridge-helper", X_OK) != 0) return;
     unsigned char bytes[32]; arc4random_buf(bytes, sizeof(bytes));
     NSMutableString *token = [NSMutableString string];
     for (unsigned i = 0; i < sizeof(bytes); i++) [token appendFormat:@"%02x", bytes[i]];

@@ -19,7 +19,7 @@
 #endif
 #define VZ_START_INSTALL VZ_RUNTIME_ROOT "/install/start-install.sh"
 
-#define VZ_SEP_DIRECTORY "/var/jb/sepbridge"
+#define VZ_SEP_DIRECTORY "/var/jb/usr/libexec/VirtualMac/sepbridge"
 #define VZ_SEP_TOKEN VZ_SEP_DIRECTORY "/host-token.bin"
 #define VZ_SEP_PLIST VZ_SEP_DIRECTORY "/com.mac.virtual.sepbridge.host.plist"
 #define VZ_SEP_JOB "user/501/com.mac.virtual.sepbridge.host"

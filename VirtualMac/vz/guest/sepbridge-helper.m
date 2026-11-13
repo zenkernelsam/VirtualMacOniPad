@@ -37,10 +37,10 @@
 #import <poll.h>
 
 #ifndef VMSEP_TOKEN_PATH
-#define VMSEP_TOKEN_PATH "/var/jb/sepbridge/host-token.bin"
+#define VMSEP_TOKEN_PATH "/var/jb/usr/libexec/VirtualMac/sepbridge/host-token.bin"
 #endif
 #define VMSEP_INJECTOR_PATH "/var/jb/usr/bin/opainject"
-#define VMSEP_INJECTION_PATH "/var/jb/sepbridge/sepinject.dylib"
+#define VMSEP_INJECTION_PATH "/var/jb/usr/libexec/VirtualMac/sepbridge/sepinject.dylib"
 #define VMSEP_NATIVE_AKD_PATH "/System/Library/PrivateFrameworks/AuthKit.framework/akd"
 
 static unsigned hCount;
